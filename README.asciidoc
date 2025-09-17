@@ -1,22 +1,13 @@
-= Team Name
+= 1.9 TDI
 
 == Team members
 
 * Oskar Saarepera
-* Crismar
+* Crismar Liukonen 
 * Duc Man Vo
-* Aditya Hishobkar 
+* Aditya Hishobkar
 
 == Tasks Monitoring
 Every task is tracked in the following spreadsheet: 
 
 *Link*: https://docs.google.com/spreadsheets/d/1BuB5ma2_HEqyW9NlWKQd18tdcUmmZ1mwd1015u59PhM/edit?usp=sharing 
-
-
-
-== Mechanics
-
-=== Design
-
-
-=== Thrower
