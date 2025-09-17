@@ -1,0 +1,5 @@
+== SOFTWARE DOCUMENTATION
+
+== Camera Calibration
+Explanation and instructions for camera intrinsic and extrinsic calibration.
+Check this doc: link:docs/CAM_CALIBRATION.asciidoc[Camera Intrisic and Extrinsic Calibration]

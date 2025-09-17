@@ -1,0 +1,50 @@
+= Camera Intrinsic and Extrinsic Calibration
+John <ducman@ut.ee>
+:toc:
+:sectnums:
+
+This repository contains code for camera intrinsic and extrinsic calibration using OpenCV. The calibration process involves capturing images of a chessboard pattern from different angles and distances, and then using these images to compute the camera's intrinsic parameters (focal length, optical center, distortion coefficients) and extrinsic parameters (rotation and translation vectors).
+
+The intrinsic parameters are processed by MATLAB, then they will be used in Python to calculate the transformation matrix between the camera and the robot base frame. 
+
+== Notation
+The transformation matrix is denoted as T, where: T = [R | t]. We call the checkerboard frame as W (world frame), the camera frame as C, and the robot base frame as B (at the center of the robot, but with z=0).
+
+* Twc: transformation matrix from camera frame to checkerboard frame.
+* Tbc: transformation matrix from camera frame to robot base frame.
+* Tbw: transformation matrix from checkerboard frame to robot base frame.
+* K: camera intrinsic matrix.
+* tcw: translation vector from the checkerboard frame to the camera frame.
+
+== Requirements
+* Capture chessboard images using a camera.
+* MATLAB with the Computer Vision Toolbox.
+* Python with OpenCV library.
+
+== Procedure
+* Step 1. Capture checkerboard images using a camera.
+
+image:../images/rgb_817512071221_20250915_200258_814264.png[An example of checkerboard captured, width=400, align=center]
+
+* Step 2. Intrinsic calibration using MATLAB.
+  1. Load the captured images into MATLAB.
+  2. Use the `cameraCalibrator` app or the `estimateCameraParameters` function to perform intrinsic calibration.
+  3. Save the intrinsic parameters (camera matrix and distortion coefficients) for later use.
+
+* Step 3. Extrinsic calibration using Python (with known K, Tcw, and distortion coefficients from MATLAB).
+    1. Calculate the rotation matrix Rbc: Xb = [1,0,0]; Zb = -tcw; Yb = cross(Zb,Xb); Rbc = [Xb;Yb;Zb]' (ensure Rbc is a valid rotation matrix by orthonormalizing it with SVD).
+    2. Calculate the translation vector tbc: tbc = -Rbc * tcw;
+    3. Form the transformation matrix Tbc: Tbc = [Rbc, tbc; 0,0,0,1];
+    4. Tbw = Tbc * Tcw;
+
+== Validate the results
+To validate the calibration results, we can use the transformation matrix Twc & intrinsic K to transform points from the image frame to checkerboard frame. Then, transform these points to the robot base frame using Tbw. Finally, we can measure ball positions which are placed at known locations with respect to the robot base frame and compare them with the calculated positions.
+
+image:../images/viz_cam_calibration.png[Extrinsic validation image, width=400, align=center]
+
+The following are some example outputs of ball positions in both image frame and robot base frame: 
+
+* Ball location in: image frame ([609 387]) pixels, robot_base frame (x=-2.243, y=40.232) cm
+* Ball location in: image frame ([1093  266]) pixels, robot_base frame (x=42.323, y=72.477) cm
+* Ball location in: image frame ([172 238]) pixels, robot_base frame (x=-48.294, y=80.334) cm
+* Ball location in: image frame ([635 199]) pixels, robot_base frame (x=-1.378, y=106.017) cm
