@@ -1,0 +1,16 @@
+= Team Name
+
+== Team members
+
+* Oskar Saarepera
+* Crismar
+* Duc Man Vo
+* Aditya Hishobkar 
+
+
+== Mechanics
+
+=== Design
+
+
+=== Thrower
