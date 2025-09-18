@@ -58,9 +58,9 @@ class OmniMotionRobot(IRobotMotion):
         # 1: [d*sin(240-150), cos(240), sin(240)] 
         # 2: [d*sin(0-270), cos(0), sin(0)]
         # 3: [d*sin(120-30), cos(120), sin(120)]
-        r = 35/1000  # wheel radius in meters
+        wheel_radius = 35/1000  # wheel radius in meters
         d = 129.5/1000  # distance from center to wheel in meters
-        self.H = 1/r*np.array([
+        self.H = 1/wheel_radius*np.array([
             [-d*np.sin(np.deg2rad(240-150)), np.cos(np.deg2rad(240)), np.sin(np.deg2rad(240))],
             [-d*np.sin(np.deg2rad(0-270)),   np.cos(np.deg2rad(0)),   np.sin(np.deg2rad(0))],
             [-d*np.sin(np.deg2rad(120-30)),  np.cos(np.deg2rad(120)),  np.sin(np.deg2rad(120))]
@@ -70,7 +70,7 @@ class OmniMotionRobot(IRobotMotion):
     def open(self) -> None:
         self.logger.info(f"Opening serial port {self.port} @ {self.baudrate}…")
         self._ser = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
-        # Some boards (e.g., Arduino) reset on DTR toggle; give them a moment
+        
         if self.dtr_reset:
             try:
                 self._ser.dtr = False
