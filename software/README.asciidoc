@@ -1,0 +1,4 @@
+== SOFTWARE DOCUMENTATION
+
+== Robot Motion Control
+The `robot_motion.py` module provides a Python class `OmniMotionRobot` for controlling a robot. Check this doc: link:docs/ROBOT_CONTROL.asciidoc[Robot Control Explanation].
