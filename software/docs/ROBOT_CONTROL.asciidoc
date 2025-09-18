@@ -33,14 +33,14 @@ The `move` method provides a higher-level abstraction for robot movement. It tak
 ----
 def move(self, x_speed: float, y_speed: float, rot_speed: float) -> None:
 ----
-- `x_speed`: Speed in the x direction (forward/backward).                       
-- `y_speed`: Speed in the y direction (left/right).
+- `x_speed`: Speed in the x direction (positive direction: right).                       
+- `y_speed`: Speed in the y direction (positive direction: forward).
 - `rot_speed`: Rotational speed (clockwise/counterclockwise).
 The method calculates the necessary wheel speeds using a predefined transformation matrix and calls `send_command` to execute the movement. 
 The thrower and servos are set to default values, and the failsafe is enabled by default.
 [source,python]
 ----
-self.send_command(s1, s2, s3, thrower_speed_percent=0, servo1=1500, servo2=1500, disable_failsafe=0)
+self.send_command(s1, s2, s3, thrower_speed_percent=0, servo1=1500, servo2=1500, disable_failsafe=False)
 ----    
 This approach allows for easy control of the robot's movement without needing to manage individual wheel speeds directly.
 
@@ -61,4 +61,10 @@ finally:
     bot.close()
 ----        
 This code initializes the robot, sends a command to set the thrower speed to 100%, and then moves the robot forward. Finally, it ensures that the connection to the robot is closed properly.
+
+== Test Script
+A simple test script is provided to demonstrate the functionality of the robot control library. It initializes the robot, opens the connection, and sends a series of commands to test movement and thrower functionality. The script also includes error handling to manage connection issues.
+run the test script using:
+[source,bash]
+python test/test_robot_motion.py
 
