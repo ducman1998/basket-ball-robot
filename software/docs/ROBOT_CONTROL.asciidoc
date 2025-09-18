@@ -1,0 +1,64 @@
+= Robot Control Explanation
+John <ducman@ut.ee>
+:toc:
+:sectnums:
+
+This document explains how to control the robot using the provided Python library. It covers both low-level commands for direct motor control and high-level commands for movement abstraction.
+
+== Low-Level Control
+The `send_command` method allows you to set individual wheel speeds, thrower speed, and servo positions. The parameters are as follows:
+[source,python]
+----
+def send_command(
+        self,   
+        speed1: int,
+        speed2: int,
+        speed3: int,
+        thrower_speed_percent: int = 0,
+        servo1: int = 1500,
+        servo2: int = 1500,     
+        disable_failsafe: int = 0,
+    ) -> None:
+----
+- `speed1`, `speed2`, `speed3`: Wheel speeds in the range -1000 to 1000.
+- `thrower_speed_percent`: Thrower speed as a percentage (0-100%).
+- `servo1`, `servo2`: Servo positions in microseconds (1000-2000).
+- `disable_failsafe`: Set to 1 to disable failsafe, 0 to enable.            
+The method ensures that the input values are within acceptable ranges and sends the command to the robot.
+The thrower speed is scaled from a percentage (0-100%) to the appropriate range for the hardware (48-2047).
+
+== High-Level Control
+The `move` method provides a higher-level abstraction for robot movement. It takes desired velocities in the x and y directions, as well as rotational speed:
+[source,python]
+----
+def move(self, x_speed: float, y_speed: float, rot_speed: float) -> None:
+----
+- `x_speed`: Speed in the x direction (forward/backward).                       
+- `y_speed`: Speed in the y direction (left/right).
+- `rot_speed`: Rotational speed (clockwise/counterclockwise).
+The method calculates the necessary wheel speeds using a predefined transformation matrix and calls `send_command` to execute the movement. 
+The thrower and servos are set to default values, and the failsafe is enabled by default.
+[source,python]
+----
+self.send_command(s1, s2, s3, thrower_speed_percent=0, servo1=1500, servo2=1500, disable_failsafe=0)
+----    
+This approach allows for easy control of the robot's movement without needing to manage individual wheel speeds directly.
+
+== Example Usage
+Here is an example of how to use the library to control the robot:
+[source,python]
+from robot_motion import RobotMotion
+bot = RobotMotion('/dev/ttyUSB0')  # Replace with your serial port  
+bot.open()
+try:
+    # Send raw wheel speeds directly
+    bot.send_command(speed1=0, speed2=0, speed3=0,
+                     thrower_speed_percent=100, servo1=0, servo2=0,
+                     disable_failsafe=0)            
+    # Or use the high-level move() (replace mapping with your kinematics)
+    bot.move(x_speed=0, y_speed=-1, rot_speed=0)  # forward
+finally:
+    bot.close()
+----        
+This code initializes the robot, sends a command to set the thrower speed to 100%, and then moves the robot forward. Finally, it ensures that the connection to the robot is closed properly.
+
