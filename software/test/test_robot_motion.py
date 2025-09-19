@@ -24,7 +24,7 @@ try:
     # Send raw wheel speeds directly
     bot.send_command(speed1=0, speed2=0, speed3=0,
                      thrower_speed_percent=50, servo1=0, servo2=0,
-                     disable_failsafe=0)
+                     disable_failsafe=False)
 
     # Or use the high-level move() (replace mapping with your kinematics)
     for i in range(50):
