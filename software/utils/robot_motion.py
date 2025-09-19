@@ -190,10 +190,8 @@ class OmniMotionRobot(IRobotMotion):
              servo1: int = 0, 
              servo2: int = 0) -> None: 
         """
-        Example shim: convert abstract (x,y,rot) into 3 wheel speeds.
+        Example shim: convert abstract (rot,x,y) into 3 wheel speeds.
         If you already have wheel speeds, call send_command(...) directly.
-
-        This uses a simple placeholder mapping; adjust to your kinematics.
         """
         if abs(rot_speed) > self.max_rot_speed:
             rot_speed = np.sign(rot_speed) * self.max_rot_speed
