@@ -128,7 +128,7 @@ class OmniMotionRobot(IRobotMotion):
 
     # ---------- port scanning ----------
     def _autoselect_port(self) -> Optional[str]:
-        """Pick a likely USB/ACM/tty port; honor port_hint if provided."""
+        """Auto-scan for a likely serial port based on hardware ID."""
         candidates = list_ports.comports()
         if not candidates:
             return
