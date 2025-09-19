@@ -12,7 +12,6 @@ from utils.number_utils import clip_int16, clip_uint16
 from utils.config_util import load_settings
 from utils.custom_exceptions import SerialPortNotFound
 
-STM_32_HWID = "USB VID:PID=0483:5740"
 
 class IRobotMotion:
     def open(self) -> None:
@@ -45,6 +44,7 @@ class OmniMotionRobot(IRobotMotion):
     PACK_FMT = "<hhhHHHBH"
     DELIMITER = 0xAAAA
     CONF = load_settings().get("robot_configuration", {})
+    STM_32_HWID = CONF.get("hwid", "USB VID:PID=0483:5740")  # default STM32CubeProgrammer USB PID/VID
 
     def __init__(
         self,
@@ -96,14 +96,7 @@ class OmniMotionRobot(IRobotMotion):
         self.max_rot_speed = self.CONF.get("max_rot_speed", 2.0)  # rad/s   
         self.max_xy_speed = self.CONF.get("max_xy_speed", 2.5)  # m/s
 
-    # ---------- lifecycle ----------
-    def _open_sport(self, port: str) -> serial.Serial:
-        ser = serial.Serial(port, self.baudrate, timeout=self.timeout)
-        ser.reset_input_buffer()
-        ser.reset_output_buffer()
-        self.logger.info("Serial ready.")
-        return ser 
-        
+    # ---------- lifecycle ----------        
     def open(self) -> None:
         if self.port != "auto":
             self.logger.info(f"Using specified serial port: {self.port}")
@@ -141,11 +134,18 @@ class OmniMotionRobot(IRobotMotion):
             return
         
         for device, _, hwid in candidates:
-            if STM_32_HWID in hwid:
+            if self.STM_32_HWID in hwid:
                 self.logger.info(f"Found port: {device}, hwid: {hwid}")
                 return device
             
         return 
+    
+    def _open_sport(self, port: str) -> serial.Serial:
+        ser = serial.Serial(port, self.baudrate, timeout=self.timeout)
+        ser.reset_input_buffer()
+        ser.reset_output_buffer()
+        self.logger.info("Serial ready.")
+        return ser 
         
     def send_command(
         self,

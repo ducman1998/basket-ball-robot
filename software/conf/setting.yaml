@@ -1,4 +1,5 @@
 robot_configuration:
+  hwid: 'USB VID:PID=0483:5740'
   motor_1:
     beta: 240  # rotation shift between X axis of robot base-frame vs drived direction of wheel (degrees)
     alpha: 150 # angle of wheel (from robot center to the wheel) vs X axis of robot base-frame (degrees)
