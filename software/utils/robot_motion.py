@@ -4,14 +4,15 @@ import os
 import logging
 import struct
 import time
-import serial  # pip install pyserial
+import serial
 from typing import Optional
 from serial.tools import list_ports
 from serial.serialutil import SerialException
 from utils.number_utils import clip_int16, clip_uint16
+from utils.config_util import load_settings
+from utils.custom_exceptions import SerialPortNotFound
 
-ROBOT_CONFIG_FILEPATH = "robot_config.yaml"
-
+STM_32_HWID = "USB VID:PID=0483:5740"
 
 class IRobotMotion:
     def open(self) -> None:
@@ -43,34 +44,34 @@ class OmniMotionRobot(IRobotMotion):
 
     PACK_FMT = "<hhhHHHBH"
     DELIMITER = 0xAAAA
+    CONF = load_settings().get("robot_configuration", {})
 
     def __init__(
         self,
-        polarity: int = 1,
-        port: str = "/dev/ttyACM0", # default port to try first
+        polarity: int = 1,  # set to -1 if motors spin in reverse
+        port: str = "auto",
         baudrate: int = 115200,
         timeout: float = 0.1
     ) -> None:
         self.polarity = 1 if polarity >= 0 else -1
-        self.port = port
+        self.port = port 
         self.baudrate = baudrate
         self.timeout = timeout
         self._ser: Optional[serial.Serial] = None
-        self.conf = self.load_config()
         
         # reference: https://hades.mech.northwestern.edu/images/7/7f/MR.pdf | Chapter 13. Wheeled Mobile Robots
         # wheel 1: beta = 180+60=240 deg, alpha = 150 deg
         # wheel 2: beta = 0 deg, alpha = 270 deg
         # wheel 3: beta = 120 deg, alpha = 30 deg
         
-        wheel_radius = self.conf["wheel_radius"]      # wheel radius in meters
-        dis = self.conf["center_distance"]            # distance from center to wheel in meters
-        m1_beta = self.conf["motor_1"]["beta"]   # rotation shift between X axis of robot base-frame vs drived direction of wheel (degrees)
-        m1_alpha = self.conf["motor_1"]["alpha"] # angle of wheel (from robot center to the wheel) vs X axis of robot base-frame (degrees)
-        m2_beta = self.conf["motor_2"]["beta"]
-        m2_alpha = self.conf["motor_2"]["alpha"]
-        m3_beta = self.conf["motor_3"]["beta"]
-        m3_alpha = self.conf["motor_3"]["alpha"]
+        wheel_radius = self.CONF["wheel_radius"]      # wheel radius in meters
+        dis = self.CONF["center_distance"]            # distance from center to wheel in meters
+        m1_beta = self.CONF["motor_1"]["beta"]   # rotation shift between X axis of robot base-frame vs drived direction of wheel (degrees)
+        m1_alpha = self.CONF["motor_1"]["alpha"] # angle of wheel (from robot center to the wheel) vs X axis of robot base-frame (degrees)
+        m2_beta = self.CONF["motor_2"]["beta"]
+        m2_alpha = self.CONF["motor_2"]["alpha"]
+        m3_beta = self.CONF["motor_3"]["beta"]
+        m3_alpha = self.CONF["motor_3"]["alpha"]
         # Jacobian matrix to convert robot velocity to wheel speeds, using in high-level API move()
         # column vector v = [rot_speed, x_speed, y_speed].T as robot velocity in robot base frame 
         # wheel speeds: [u1, u2, u3] = H * v
@@ -83,31 +84,45 @@ class OmniMotionRobot(IRobotMotion):
             [-dis*np.sin(np.deg2rad(m2_beta-m2_alpha)), np.cos(np.deg2rad(m2_beta)), np.sin(np.deg2rad(m2_beta))],
             [-dis*np.sin(np.deg2rad(m3_beta-m3_alpha)), np.cos(np.deg2rad(m3_beta)), np.sin(np.deg2rad(m3_beta))]
         ])
+        
+        gear_ratio = self.CONF["gear_ratio"]  # gear ratio (wheel to motor)
+        encoder_resolution = self.CONF["encoder_resolution"]  # encoder ticks per motor revolution
+        pid_contro_freq = self.CONF["pid_contro_freq"] # PID control frequency in Hz
+        # convert wheel angular speed (rad/s) to mainboard units (ticks/s)
+        self.wheel_to_mainboard_unit = gear_ratio * encoder_resolution / (2 * np.pi * pid_contro_freq)  
+        self.logger.info(f"Wheel speed to mainboard units: {self.wheel_to_mainboard_unit:.3f} ticks/s per rad/s")
+        
+        # max speeds from config
+        self.max_rot_speed = self.CONF.get("max_rot_speed", 2.0)  # rad/s   
+        self.max_xy_speed = self.CONF.get("max_xy_speed", 2.5)  # m/s
 
     # ---------- lifecycle ----------
-    def open(self) -> None:
-        self.logger.info(f"Opening serial port {self.port} @ {self.baudrate}…")
-        try:
-            self._ser = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
-
-        except (FileNotFoundError, SerialException) as e:
-            self.logger.warning(f"Port {self.port} not found. Scanning for available ports…")
-            auto_port = self._autoselect_port()
-            if not auto_port:
-                raise RuntimeError("No serial ports found.")
-            
-            self.logger.info(f"Auto-selected port: {auto_port}")
-            try:
-                self._ser = serial.Serial(auto_port, self.baudrate, timeout=self.timeout)
-            except:
-                raise RuntimeError(f"Could not open serial port {auto_port}.")
-            
-        except Exception as e:
-            raise RuntimeError(f"Could not open serial port {self.port}: {e}")  
-        
-        self._ser.reset_input_buffer()
-        self._ser.reset_output_buffer()
+    def _open_sport(self, port: str) -> serial.Serial:
+        ser = serial.Serial(port, self.baudrate, timeout=self.timeout)
+        ser.reset_input_buffer()
+        ser.reset_output_buffer()
         self.logger.info("Serial ready.")
+        return ser 
+        
+    def open(self) -> None:
+        if self.port != "auto":
+            self.logger.info(f"Using specified serial port: {self.port}")
+            try:
+                self._ser = self._open_sport(self.port)
+                return
+            except (FileNotFoundError, SerialException):
+                raise SerialPortNotFound(f"Failed to open specified serial port {self.port}.")
+                
+        auto_port = self._autoselect_port()
+        if not auto_port:
+            raise SerialPortNotFound("No serial ports found.")
+        self.logger.info(f"Opening scanned serial port {auto_port} @ {self.baudrate}…")
+        
+        try:
+            self._ser = self._open_sport(auto_port)
+            return 
+        except (FileNotFoundError, SerialException) as e:
+            raise SerialPortNotFound(f"Failed to open serial port {auto_port}: {e}")
 
     def close(self) -> None:
         self.logger.info("Shutting down…")
@@ -123,33 +138,15 @@ class OmniMotionRobot(IRobotMotion):
         """Pick a likely USB/ACM/tty port; honor port_hint if provided."""
         candidates = list_ports.comports()
         if not candidates:
-            return None
-
-        # Heuristics per platform
-        prefer_substrings = (
-            "ttyACM", "ttyUSB",        # Linux
-            "COM"                      # Windows
-        )
-        for sub in prefer_substrings:
-            for p in candidates:
-                if sub.lower() in p.device.lower():
-                    return p.device
-
-        # Fallback: first port
-        return candidates[0].device
-    
-    def load_config(self, filename: str = ROBOT_CONFIG_FILEPATH) -> None:
-        """Load robot's motors configuration from a YAML file."""
-        try:
-            conf_dir = os.environ.get("CONF_DIR", "conf") # default to "conf" if not set
-            with open(os.path.join(conf_dir, filename), 'r') as file:
-                config = yaml.safe_load(file)
-                self.logger.info(f"Loaded robot config from {filename}: {config}")
-                return config   
-        except Exception as e:
-            self.logger.error(f"Failed to load config from {filename}: {e}")
-            return None
-
+            return
+        
+        for device, _, hwid in candidates:
+            if STM_32_HWID in hwid:
+                self.logger.info(f"Found port: {device}, hwid: {hwid}")
+                return device
+            
+        return 
+        
     def send_command(
         self,
         speed1: int, # range -32768 to 32767 (int16)
@@ -170,30 +167,48 @@ class OmniMotionRobot(IRobotMotion):
         s3 = clip_int16(self.polarity * speed3)
 
         thrower_speed = 48 + int(thrower_speed_percent/100 * (2047-48))  # scale 0-100% to 0-65535
-        clipped_thrower_speed  = clip_uint16(thrower_speed)
+        thrower_speed  = clip_uint16(thrower_speed)
         sv1 = clip_uint16(servo1)
         sv2 = clip_uint16(servo2)
         df  = 1 if disable_failsafe else 0  # exactly 1 disables, else enables
 
-        frame = struct.pack(self.PACK_FMT, s1, s2, s3, clipped_thrower_speed, sv1, sv2, df, self.DELIMITER)
+        frame = struct.pack(self.PACK_FMT, s1, s2, s3, thrower_speed, sv1, sv2, df, self.DELIMITER)
         self._ser.write(frame)
         # Optional: self._ser.flush()  # uncomment if you need blocking send
 
         self.logger.debug(
             "TX frame: s1=%d s2=%d s3=%d thrower=%d servo1=%d servo2=%d df=%d delim=0x%04X",
-            s1, s2, s3, clipped_thrower_speed, sv1, sv2, df, self.DELIMITER
+            s1, s2, s3, thrower_speed, sv1, sv2, df, self.DELIMITER
         )
 
     # ---------- high-level API ----------
-    def move(self, x_speed: float, y_speed: float, rot_speed: float) -> None:
+    def move(self, 
+             x_speed: float, 
+             y_speed: float, 
+             rot_speed: float, 
+             thrower_speed_percent: int = 0, 
+             servo1: int = 0, 
+             servo2: int = 0) -> None: 
         """
         Example shim: convert abstract (x,y,rot) into 3 wheel speeds.
         If you already have wheel speeds, call send_command(...) directly.
 
         This uses a simple placeholder mapping; adjust to your kinematics.
         """
-        v = np.array([rot_speed, x_speed, y_speed])  # desired robot velocity
-        wheel_speeds = self.H @ v  # matrix multiply to get wheel speeds
-        s1, s2, s3 = (int(ws) for ws in wheel_speeds)
+        if abs(rot_speed) > self.max_rot_speed:
+            rot_speed = np.sign(rot_speed) * self.max_rot_speed
+        if abs(x_speed) > self.max_xy_speed:
+            x_speed = np.sign(x_speed) * self.max_xy_speed
+        if abs(y_speed) > self.max_xy_speed:
+            y_speed = np.sign(y_speed) * self.max_xy_speed
+            
+        v = np.array([rot_speed, x_speed, y_speed])  # desired robot velocity (m/s and rad/s)
+        wheel_speeds = self.wheel_to_mainboard_unit * (self.H @ v)  # matrix multiply to get wheel speeds (rad/s)
+        
+        s1, s2, s3 = (int(round(ws)) for ws in wheel_speeds)
         # No servos/thrower; failsafe enabled by default (False)
-        self.send_command(s1, s2, s3, thrower_speed_percent=0, servo1=1500, servo2=1500, disable_failsafe=False)
+        self.send_command(s1, s2, s3, 
+                          thrower_speed_percent=thrower_speed_percent, 
+                          servo1=servo1, 
+                          servo2=servo2, 
+                          disable_failsafe=False)

@@ -1,0 +1,3 @@
+    
+class SerialPortNotFound(Exception):
+    pass
