@@ -32,7 +32,7 @@ image:../images/rgb_817512071221_20250915_200258_814264.png[An example of checke
   3. Save the intrinsic parameters (camera matrix and distortion coefficients) for later use.
 
 * Step 3. Extrinsic calibration using Python (with known K, Tcw, and distortion coefficients from MATLAB).
-    1. Calculate the rotation matrix Rbc: Xb = [1,0,0]; Zb = -tcw; Yb = cross(Zb,Xb); Rbc = [Xb;Yb;Zb]' (ensure Rbc is a valid rotation matrix by orthonormalizing it with SVD).
+    1. Calculate the rotation matrix Rbc: Xb = [1,0,0]; Zb = -Zw; Yb = cross(Zb,Xb); Rbc = [Xb;Yb;Zb]' (ensure Rbc is a valid rotation matrix by orthonormalizing it with SVD).
     2. Calculate the translation vector tbc: tbc = -Rbc * tcw;
     3. Form the transformation matrix Tbc: Tbc = [Rbc, tbc; 0,0,0,1];
     4. Tbw = Tbc * Tcw;
