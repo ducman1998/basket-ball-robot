@@ -1,0 +1,12 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
+    hooks:
+    -   id: trailing-whitespace
+        files: ^software/
+    -   id: end-of-file-fixer
+        files: ^software/
+    -   id: check-yaml
+        files: ^software/
+    -   id: check-added-large-files
+        files: ^software/
