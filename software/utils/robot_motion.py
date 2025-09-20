@@ -1,6 +1,6 @@
 import logging
 import struct
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 import serial
@@ -52,10 +52,10 @@ class OmniMotionRobot(IRobotMotion):
 
     logger = logging.getLogger(__name__)
 
-    PACK_FMT = "<hhhHHHBH"
-    DELIMITER = 0xAAAA
-    CONF = load_settings().get("robot_configuration", {})
-    STM_32_HWID = CONF.get(
+    PACK_FMT: str = "<hhhHHHBH"
+    DELIMITER: int = 0xAAAA
+    CONF: dict[str, Any] = load_settings().get("robot_configuration", {})
+    STM_32_HWID: str = CONF.get(
         "hwid", "USB VID:PID=0483:5740"
     )  # default STM32CubeProgrammer USB PID/VID
 
@@ -78,18 +78,16 @@ class OmniMotionRobot(IRobotMotion):
         # wheel 2: beta = 0 deg, alpha = 270 deg
         # wheel 3: beta = 120 deg, alpha = 30 deg
 
-        wheel_radius = self.CONF["wheel_radius"]  # wheel radius in meters
-        dis = self.CONF["center_distance"]  # distance from center to wheel in meters
-        m1_beta = self.CONF["motor_1"][
-            "beta"
-        ]  # rotation shift between X axis of robot base-frame vs drived direction of wheel (deg)
-        m1_alpha = self.CONF["motor_1"][
-            "alpha"
-        ]  # angle of wheel (from robot center to the wheel) vs X axis of robot base-frame (deg)
-        m2_beta = self.CONF["motor_2"]["beta"]
-        m2_alpha = self.CONF["motor_2"]["alpha"]
-        m3_beta = self.CONF["motor_3"]["beta"]
-        m3_alpha = self.CONF["motor_3"]["alpha"]
+        wheel_radius: float = self.CONF["wheel_radius"]  # wheel radius in meters
+        dis: float = self.CONF["center_distance"]  # distance from center to wheel in meters
+        # rotation shift between X axis of robot base-frame vs drived direction of wheel (deg)
+        # angle of wheel (from robot center to the wheel) vs X axis of robot base-frame (deg)
+        m1_beta: float = self.CONF["motor_1"]["beta"]
+        m1_alpha: float = self.CONF["motor_1"]["alpha"]
+        m2_beta: float = self.CONF["motor_2"]["beta"]
+        m2_alpha: float = self.CONF["motor_2"]["alpha"]
+        m3_beta: float = self.CONF["motor_3"]["beta"]
+        m3_alpha: float = self.CONF["motor_3"]["alpha"]
         # Jacobian matrix to convert robot velocity to wheel speeds, using in high-level API move()
         # column vector v = [rot_speed, x_speed, y_speed].T as robot velocity in robot base frame
         # wheel speeds: [u1, u2, u3] = H * v
@@ -97,7 +95,7 @@ class OmniMotionRobot(IRobotMotion):
         #   motor 1: [d*sin(240-150), cos(240), sin(240)]
         #   motor 2: [d*sin(0-270),   cos(0),   sin(0)]
         #   motor 3: [d*sin(120-30),  cos(120), sin(120)]
-        self.H = (
+        self.H: np.ndarray = (
             1
             / wheel_radius
             * np.array(
@@ -121,11 +119,13 @@ class OmniMotionRobot(IRobotMotion):
             )
         )
 
-        gear_ratio = self.CONF["gear_ratio"]  # gear ratio (wheel to motor)
-        encoder_resolution = self.CONF["encoder_resolution"]  # encoder ticks per motor revolution
-        pid_contro_freq = self.CONF["pid_contro_freq"]  # PID control frequency in Hz
+        gear_ratio: float = self.CONF["gear_ratio"]  # gear ratio (wheel to motor)
+        encoder_resolution: int = self.CONF[
+            "encoder_resolution"
+        ]  # encoder ticks per motor revolution
+        pid_contro_freq: int = self.CONF["pid_contro_freq"]  # PID control frequency in Hz
         # convert wheel angular speed (rad/s) to mainboard units (ticks/s)
-        self.wheel_to_mainboard_unit = (
+        self.wheel_to_mainboard_unit: float = (
             gear_ratio * encoder_resolution / (2 * np.pi * pid_contro_freq)
         )
         self.logger.info(
@@ -133,8 +133,8 @@ class OmniMotionRobot(IRobotMotion):
         )
 
         # max speeds from config
-        self.max_rot_speed = self.CONF.get("max_rot_speed", 2.0)  # rad/s
-        self.max_xy_speed = self.CONF.get("max_xy_speed", 2.5)  # m/s
+        self.max_rot_speed: float = self.CONF.get("max_rot_speed", 2.0)  # rad/s
+        self.max_xy_speed: float = self.CONF.get("max_xy_speed", 2.5)  # m/s
 
     # ---------- lifecycle ----------
     def open(self) -> None:
