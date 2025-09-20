@@ -1,25 +1,30 @@
+import logging
+
 import yaml
-import logging  
-from typing import Optional
-from yaml.scanner import ScannerError
+from utils.custom_exceptions import InvalidYamlConfig, SettingFileNotFound
 from yaml.parser import ParserError
+from yaml.scanner import ScannerError
 
 SETTING_FILEPATH = "conf/setting.yaml"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def load_settings(filepath: str = SETTING_FILEPATH) -> dict:
     """Load application settings from a YAML file."""
     try:
-        with open(filepath, 'r') as file:
+        with open(filepath, "r") as file:
             settings = yaml.safe_load(file)
-            logger.info(f"Settings loaded from {filepath}") 
+            if not isinstance(settings, dict):
+                raise InvalidYamlConfig(
+                    "Settings file must contain a YAML dictionary at the top level."
+                )
+            logger.info(f"Settings loaded from {filepath}")
             return settings
+
     except FileNotFoundError as e:
-        logger.error(f"Settings file not found: {e}")
-        return 
+        raise SettingFileNotFound(f"Settings file not found: {e}")
+
     except (ScannerError, ParserError) as e:
-        logger.error(f"Error parsing settings file: {e}")
-        return
-    
+        raise InvalidYamlConfig(f"Error parsing settings file: {e}")

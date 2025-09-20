@@ -16,5 +16,3 @@ robot_configuration:
   pid_contro_freq: 100              # Hz
   max_rot_speed: 2.0    # rad/s
   max_xy_speed: 2.5     # m/s # max linear speed in x and y direction
-
-

@@ -1,5 +1,14 @@
 numpy
 pyserial
-tqdm 
+tqdm
 opencv-python
 pyyaml
+types-PyYAML
+pre-commit
+mypy
+pytest
+pytest-mock
+pytest-cov
+flake8
+black
+isort
