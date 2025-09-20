@@ -6,7 +6,7 @@ import numpy as np
 import serial
 from serial.serialutil import SerialException
 from serial.tools import list_ports
-from utils.config_util import load_settings
+from utils.config_utils import load_settings
 from utils.custom_exceptions import SerialPortNotFound
 from utils.number_utils import clip_int16, clip_uint16
 
