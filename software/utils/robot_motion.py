@@ -1,6 +1,6 @@
 import logging
 import struct
-from typing import Any, Optional
+from typing import Any, Literal, Optional, Union
 
 import numpy as np
 import serial
@@ -52,17 +52,10 @@ class OmniMotionRobot(IRobotMotion):
 
     logger = logging.getLogger(__name__)
 
-    PACK_FMT: str = "<hhhHHHBH"
-    DELIMITER: int = 0xAAAA
-    CONF: dict[str, Any] = load_settings().get("robot_configuration", {})
-    STM_32_HWID: str = CONF.get(
-        "hwid", "USB VID:PID=0483:5740"
-    )  # default STM32CubeProgrammer USB PID/VID
-
     def __init__(
         self,
         polarity: int = 1,  # set to -1 if motors spin in reverse
-        port: str = "auto",
+        port: Union[Literal["auto"], str] = "auto",
         baudrate: int = 115200,
         timeout: float = 0.1,
     ) -> None:
@@ -71,6 +64,10 @@ class OmniMotionRobot(IRobotMotion):
         self.baudrate = baudrate
         self.timeout = timeout
         self._ser: Optional[serial.Serial] = None
+        self.conf: dict[str, Any] = load_settings().get("robot_configuration", {})
+        self.pack_fmt: str = self.conf.get("package_fmt", "<hhhHHHBH")
+        self.delimiter: int = self.conf.get("delimiter", 0xAAAA)
+        self.stm_32_hwid: str = self.conf.get("hwid", "USB VID:PID=0483:5740")
 
         # reference: https://hades.mech.northwestern.edu/images/7/7f/MR.pdf
         # ==> Chapter 13. Wheeled Mobile Robots
@@ -78,16 +75,16 @@ class OmniMotionRobot(IRobotMotion):
         # wheel 2: beta = 0 deg, alpha = 270 deg
         # wheel 3: beta = 120 deg, alpha = 30 deg
 
-        wheel_radius: float = self.CONF["wheel_radius"]  # wheel radius in meters
-        dis: float = self.CONF["center_distance"]  # distance from center to wheel in meters
+        wheel_radius: float = self.conf["wheel_radius"]  # wheel radius in meters
+        dis: float = self.conf["center_distance"]  # distance from center to wheel in meters
         # rotation shift between X axis of robot base-frame vs drived direction of wheel (deg)
         # angle of wheel (from robot center to the wheel) vs X axis of robot base-frame (deg)
-        m1_beta: float = self.CONF["motor_1"]["beta"]
-        m1_alpha: float = self.CONF["motor_1"]["alpha"]
-        m2_beta: float = self.CONF["motor_2"]["beta"]
-        m2_alpha: float = self.CONF["motor_2"]["alpha"]
-        m3_beta: float = self.CONF["motor_3"]["beta"]
-        m3_alpha: float = self.CONF["motor_3"]["alpha"]
+        m1_beta: float = self.conf["motor_1"]["beta"]
+        m1_alpha: float = self.conf["motor_1"]["alpha"]
+        m2_beta: float = self.conf["motor_2"]["beta"]
+        m2_alpha: float = self.conf["motor_2"]["alpha"]
+        m3_beta: float = self.conf["motor_3"]["beta"]
+        m3_alpha: float = self.conf["motor_3"]["alpha"]
         # Jacobian matrix to convert robot velocity to wheel speeds, using in high-level API move()
         # column vector v = [rot_speed, x_speed, y_speed].T as robot velocity in robot base frame
         # wheel speeds: [u1, u2, u3] = H * v
@@ -119,11 +116,11 @@ class OmniMotionRobot(IRobotMotion):
             )
         )
 
-        gear_ratio: float = self.CONF["gear_ratio"]  # gear ratio (wheel to motor)
-        encoder_resolution: int = self.CONF[
+        gear_ratio: float = self.conf["gear_ratio"]  # gear ratio (wheel to motor)
+        encoder_resolution: int = self.conf[
             "encoder_resolution"
         ]  # encoder ticks per motor revolution
-        pid_contro_freq: int = self.CONF["pid_contro_freq"]  # PID control frequency in Hz
+        pid_contro_freq: int = self.conf["pid_contro_freq"]  # PID control frequency in Hz
         # convert wheel angular speed (rad/s) to mainboard units (ticks/s)
         self.wheel_to_mainboard_unit: float = (
             gear_ratio * encoder_resolution / (2 * np.pi * pid_contro_freq)
@@ -133,8 +130,8 @@ class OmniMotionRobot(IRobotMotion):
         )
 
         # max speeds from config
-        self.max_rot_speed: float = self.CONF.get("max_rot_speed", 2.0)  # rad/s
-        self.max_xy_speed: float = self.CONF.get("max_xy_speed", 2.5)  # m/s
+        self.max_rot_speed: float = self.conf.get("max_rot_speed", 2.0)  # rad/s
+        self.max_xy_speed: float = self.conf.get("max_xy_speed", 2.5)  # m/s
 
     # ---------- lifecycle ----------
     def open(self) -> None:
@@ -175,7 +172,7 @@ class OmniMotionRobot(IRobotMotion):
             return None  # none found
 
         for device, _, hwid in candidates:
-            if self.STM_32_HWID in hwid:
+            if self.stm_32_hwid in hwid:
                 self.logger.info(f"Found port: {device}, hwid: {hwid}")
                 return str(device)
 
@@ -215,7 +212,7 @@ class OmniMotionRobot(IRobotMotion):
         sv2 = clip_uint16(servo2)
         df = 1 if disable_failsafe else 0  # exactly 1 disables, else enables
 
-        frame = struct.pack(self.PACK_FMT, s1, s2, s3, thrower_speed, sv1, sv2, df, self.DELIMITER)
+        frame = struct.pack(self.pack_fmt, s1, s2, s3, thrower_speed, sv1, sv2, df, self.delimiter)
         self._ser.write(frame)
         # Optional: self._ser.flush()  # uncomment if you need blocking send
 
@@ -228,7 +225,7 @@ class OmniMotionRobot(IRobotMotion):
             sv1,
             sv2,
             df,
-            self.DELIMITER,
+            self.delimiter,
         )
 
     # ---------- high-level API ----------
