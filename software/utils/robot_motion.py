@@ -92,7 +92,7 @@ class OmniMotionRobot(IRobotMotion):
         #   motor 1: [d*sin(240-150), cos(240), sin(240)]
         #   motor 2: [d*sin(0-270),   cos(0),   sin(0)]
         #   motor 3: [d*sin(120-30),  cos(120), sin(120)]
-        self.H: np.ndarray = (
+        self.jacobian: np.ndarray = (
             1
             / wheel_radius
             * np.array(
@@ -251,7 +251,7 @@ class OmniMotionRobot(IRobotMotion):
 
         v = np.array([rot_speed, x_speed, y_speed])  # desired robot velocity (m/s and rad/s)
         wheel_speeds = self.wheel_to_mainboard_unit * (
-            self.H @ v
+            self.jacobian @ v
         )  # matrix multiply to get wheel speeds (rad/s)
 
         s1, s2, s3 = (int(round(ws)) for ws in wheel_speeds)
