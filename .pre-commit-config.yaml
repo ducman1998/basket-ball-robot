@@ -1,0 +1,35 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+    -   id: trailing-whitespace
+        files: ^software/
+    -   id: end-of-file-fixer
+        files: ^software/
+    -   id: check-yaml
+        files: ^software/
+    -   id: check-added-large-files
+        files: ^software/
+- repo: https://github.com/psf/black
+  rev: 23.12.1
+  hooks:
+    - id: black
+      files: ^software/
+      language_version: python3.10
+- repo: https://github.com/PyCQA/isort
+  rev: 5.12.0
+  hooks:
+    - id: isort
+      files: ^software/
+      language_version: python3.10
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.8.0
+  hooks:
+    - id: mypy
+      files: ^software/
+      additional_dependencies: [types-PyYAML]
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.13.1
+  hooks:
+    - id: ruff
+      files: ^software/

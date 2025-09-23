@@ -1,0 +1,30 @@
+== SOFTWARE DOCUMENTATION
+
+== 🚀 Development Setup
+
+This project uses https://pre-commit.com/[pre-commit] to enforce code style and quality
+(Black, isort, Ruff, Mypy, and more).
+
+=== 1. Install dev dependencies
+[source,shell]
+----
+pip install -e .[dev]
+cd software && pip install -r requirements.txt
+----
+
+=== 2. Install Git hooks
+[source,shell]
+----
+pre-commit install
+----
+
+This sets up a Git pre-commit hook so checks run automatically on every commit.
+
+=== 3. (Optional) Run on all files once
+[source,shell]
+----
+pre-commit run --all-files
+----
+
+== Robot Motion Control
+The `robot_motion.py` module provides a Python class `OmniMotionRobot` for controlling a robot. Check this doc: link:docs/ROBOT_CONTROL.asciidoc[Robot Control Explanation].
