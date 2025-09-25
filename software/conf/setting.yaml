@@ -1,20 +1,19 @@
+logging:
+  log_level: INFO
 robot_configuration:
   hwid: 'USB VID:PID=0483:5740'
-  package_fmt: '<hhhHHHBH'
-  lelimiter: 0xAAAA
-  motor_1:
-    beta: 240  # rotation shift between X axis of robot base-frame vs drived direction of wheel (degrees)
-    alpha: 150 # angle of wheel (from robot center to the wheel) vs X axis of robot base-frame (degrees)
-  motor_2:
-    beta: 0    # degrees
-    alpha: 270 # degrees
-  motor_3:
-    beta: 120  # degrees
-    alpha: 30  # degrees
+  cmd_fmt: '<hhhHHHBH'
+  fbk_fmt: '<hhhhhhBH'
+  delimiter: 0xAAAA
+  # beta: rotation shift between X axis of robot base-frame vs drived direction of wheel (degrees)
+  # alpha: angle of wheel (from robot center to the wheel) vs X axis of robot base-frame (degrees)
+  motor_01: [240, 150] # [beta, alpha] in degrees
+  motor_02: [0, 270]
+  motor_03: [120, 30]
   wheel_radius: 0.035  # meters
-  center_distance: 0.1295           # meters  # distance from center to wheel
-  gear_ratio: 18.75                 # wheel to motor ratio
-  encoder_resolution: 64            # ticks per motor shaft revolution
-  pid_contro_freq: 100              # Hz
+  center_to_wheel_dis: 0.1295  # meters  # distance from center to wheel
+  gear_ratio: 18.75            # wheel to motor ratio
+  encoder_resolution: 64       # ticks per motor shaft revolution
+  pid_control_freq: 100         # Hz
   max_rot_speed: 2.0    # rad/s
   max_xy_speed: 2.5     # m/s # max linear speed in x and y direction

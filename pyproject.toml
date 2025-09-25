@@ -40,3 +40,4 @@ strict_equality = true
 show_error_codes = true
 pretty = true
 files = 'software/.*\.py'
+exclude = '(setup\.py$|/test/.*\.py$)'

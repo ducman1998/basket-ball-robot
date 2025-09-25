@@ -1,9 +1,10 @@
 import logging
 
 import yaml
-from utils.custom_exceptions import InvalidYamlConfig, SettingFileNotFound
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
+
+from .custom_exceptions import InvalidYamlConfig, SettingFileNotFound
 
 SETTING_FILEPATH = "conf/setting.yaml"
 
