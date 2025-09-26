@@ -1,6 +1,12 @@
+import os
+from glob import glob
+
 from setuptools import find_packages, setup
 
-package_name = "basket_robot_nodes"
+package_name = "basket_robot_bringup"
+
+launch_files = glob(os.path.join("launch", "*.launch.py"))  # or '*.py' if you prefer
+params_files = glob(os.path.join("params", "*.yaml"))
 
 setup(
     name=package_name,
@@ -9,18 +15,17 @@ setup(
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),
+        ("share/" + package_name + "/launch", launch_files),
+        ("share/" + package_name + "/params", params_files),
     ],
     install_requires=["setuptools"],
     zip_safe=True,
-    maintainer="johnvo",
+    maintainer="Duc-Man Vo",
     maintainer_email="ducman@ut.ee",
-    description="TODO: Package description",
+    description="Bringup package for the Basket Robot",
     license="Apache-2.0",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": [
-            "start_base_controller = basket_robot_nodes.mainboard_controller:main",
-            "start_odometry = basket_robot_nodes.odometry:main",
-        ],
+        "console_scripts": [],
     },
 )

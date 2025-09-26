@@ -66,8 +66,8 @@ class OmniMotionRobot(IRobotMotion):
         gear_ratio: float,  # gear ratio (wheel to motor)
         encoder_resolution: int,  # encoder ticks per motor revolution
         pid_control_freq: int,  # PID control frequency in Hz
-        max_rot_speed: float,  # rad/s
-        max_xy_speed: float,  # m/s
+        max_rot_speed: float = 2.0,  # rad/s
+        max_xy_speed: float = 1.5,  # m/s
         # serial settings
         hwid: str = "USB VID:PID=0483:5740",
         cmd_fmt: str = "<hhhHHHBH",
@@ -92,6 +92,8 @@ class OmniMotionRobot(IRobotMotion):
         m2_beta, m2_alpha = motor_02_angles
         m3_beta, m3_alpha = motor_03_angles
 
+        self.encoder_resolution = encoder_resolution
+        self.gear_ratio = gear_ratio
         self.hwid = hwid
         self.cmd_fmt = cmd_fmt
         self.fbk_fmt = fbk_fmt
@@ -134,6 +136,7 @@ class OmniMotionRobot(IRobotMotion):
                 ]
             )
         )
+        self.inv_jacobian = np.linalg.pinv(self.jacobian)
 
         # convert wheel angular speed (rad/s) to mainboard units (ticks/s)
         self.wheel_to_mb_unit: float = (
@@ -245,7 +248,7 @@ class OmniMotionRobot(IRobotMotion):
             self.delimiter,
         )
 
-    def read_feedback(self, timeout: float = 0.05):
+    def read_feedback(self, timeout: float = 0.05) -> list[Union[int, float]]:
         """
         Read one feedback frame with delimiter-based resynchronization.
 
@@ -267,6 +270,9 @@ class OmniMotionRobot(IRobotMotion):
                 continue
             buf += chunk
 
+            # update read timestamp
+            timestamp = time.time()
+
             # search for delimiter occurrences
             search_from = 0
             while True:
@@ -287,7 +293,7 @@ class OmniMotionRobot(IRobotMotion):
                         if fb_delim == self.delimiter:
                             # consume up to frame_end and return
                             del buf[:frame_end]
-                            return vals
+                            return [*vals, timestamp]
                         else:
                             # false positive; move search window
                             search_from = idx + 1
@@ -341,10 +347,28 @@ class OmniMotionRobot(IRobotMotion):
             return None
 
         try:
-            feedback_struct = self.read_feedback(timeout=self.timeout)
-            (actual_s1, actual_s2, actual_s3, pos1, pos2, pos3, sensors, fb_delim) = feedback_struct
+            feedback_values = self.read_feedback(timeout=self.timeout)
+            (
+                actual_s1,
+                actual_s2,
+                actual_s3,
+                pos1,
+                pos2,
+                pos3,
+                sensors,
+                fb_delim,
+                timestamp,
+            ) = feedback_values
             return FeedbackSerial(
-                actual_s1, actual_s2, actual_s3, pos1, pos2, pos3, sensors, fb_delim
+                actual_s1,
+                actual_s2,
+                actual_s3,
+                int(pos1),
+                int(pos2),
+                int(pos3),
+                int(sensors),
+                int(fb_delim),
+                timestamp,
             )
         except TimeoutError:
             return None

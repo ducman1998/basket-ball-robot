@@ -2,8 +2,8 @@ logging:
   log_level: INFO
 robot_configuration:
   hwid: 'USB VID:PID=0483:5740'
-  cmd_fmt: '<hhhHHHBH'
-  fbk_fmt: '<hhhhhhBH'
+  cmd_fmt: '<hhhHHHBH'  # cmd format to send to mainboard
+  fbk_fmt: '<hhhhhhBH'  # feedback format from mainboard
   delimiter: 0xAAAA
   # beta: rotation shift between X axis of robot base-frame vs drived direction of wheel (degrees)
   # alpha: angle of wheel (from robot center to the wheel) vs X axis of robot base-frame (degrees)

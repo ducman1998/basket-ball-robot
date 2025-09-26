@@ -1,4 +1,5 @@
 import time
+from typing import Optional
 
 import rclpy
 from basket_robot_nodes.utils.feedback import FeedbackSerial
@@ -6,12 +7,17 @@ from basket_robot_nodes.utils.number_utils import thrower_clip
 from basket_robot_nodes.utils.robot_motion import OmniMotionRobot
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
-from rclpy.timer import Timer
-from shared_interfaces.msg import TwistStamped
+from shared_interfaces.msg import TwistStamped, WheelPositions
 
 
 class MainboardController(Node):
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Mainboard controller node.
+        Subscribes to "cmd_vel" topic to receive velocity commands and thrower percentage.
+        Communicates with the mainboard to control the robot's motion and thrower.
+        Publishes wheel positions for odometry.
+        """
         super().__init__("mainboard_controller")
 
         # declare params (defaults are used only if launch doesn't override)
@@ -44,11 +50,12 @@ class MainboardController(Node):
         max_xy_speed = self.get_parameter("max_xy_speed").get_parameter_value().double_value
         hwid = self.get_parameter("hwid").get_parameter_value().string_value
 
-        self.timer: Timer = self.create_timer(0.1, self.controller_placeholder_func)
-        self.control_callback = self.create_subscription(
+        self.timer = self.create_timer(0.1, self.controller_placeholder_func)
+        self.cmd_vel_sub = self.create_subscription(
             TwistStamped, "cmd_vel", self.control_callback, QoSProfile(depth=10)
         )
-        self.ommi_motion_ctl = OmniMotionRobot(
+        # setup ommiwheel robot controller
+        self.controller_kin = OmniMotionRobot(
             wheel_radius=w_radius,
             c2w_dis=c2w_dis,
             motor_01_angles=motor_01_angles.tolist(),
@@ -61,14 +68,25 @@ class MainboardController(Node):
             max_xy_speed=max_xy_speed,
             hwid=hwid,
         )
-        self.ommi_motion_ctl.open()
+        self.controller_kin.open()  # open serial port
         self.timestamp = time.time()
+
+        # Publisher for wheel positions
+        self.wheel_pos_pub = self.create_publisher(
+            WheelPositions, "wheel_positions", QoSProfile(depth=10)
+        )
 
     def controller_placeholder_func(self) -> None:
         # do nothing to keep this package running
         pass
 
     def control_callback(self, msg: TwistStamped) -> None:
+        """Callback for "cmd_vel" topic subscription.
+        Inputs:
+            msg: TwistStamped message containing velocity commands and thrower percentage.
+        """
+        self.timestamp = time.time()
+        # extract values from message
         vx: float = msg.twist.linear.x
         vy: float = msg.twist.linear.y
         wz: float = msg.twist.angular.z
@@ -77,25 +95,33 @@ class MainboardController(Node):
         self.get_logger().info(
             f"vx: {vx:.2f}, vy: {vy:.2f}, wz: {wz:.2f}, tp: {thrower_percent:.2f}"
         )
-        feedback: FeedbackSerial = self.ommi_motion_ctl.move(
+        feedback: Optional[FeedbackSerial] = self.controller_kin.move(
             x_speed=vx,
             y_speed=vy,
             rot_speed=wz,
             thrower_speed_percent=thrower_percent,
             read_feedback=True,
         )
+
         if not feedback:
             self.get_logger().warn("No feedback from mainboard!")
-        # handel odometry from feedback if needed
-        self.get_logger().debug(
-            f"Feedback: pos1: {feedback.pos1}, pos2: {feedback.pos2}, pos3: {feedback.pos3}"
-        )
+        else:
+            # log feedback for debugging
+            self.get_logger().info(
+                f"Feedback: pos1: {feedback.pos1}, pos2: {feedback.pos2}, pos3: {feedback.pos3}"
+            )
+            # Publish wheel positions for odometry
+            wheel_msg = WheelPositions()
+            wheel_msg.pos1 = feedback.pos1
+            wheel_msg.pos2 = feedback.pos2
+            wheel_msg.pos3 = feedback.pos3
+            self.wheel_pos_pub.publish(wheel_msg)
 
         return
 
 
-def main(args=None) -> None:
-    rclpy.init(args=args)
+def main() -> None:
+    rclpy.init()
     controller = MainboardController()
     rclpy.spin(controller)
     controller.destroy_node()
