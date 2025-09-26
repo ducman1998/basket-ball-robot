@@ -18,7 +18,7 @@ class MainboardController(Node):
         Communicates with the mainboard to control the robot's motion and thrower.
         Publishes wheel positions for odometry.
         """
-        super().__init__("mainboard_controller")
+        super().__init__("mainboard_controller_node")
 
         # declare params (defaults are used only if launch doesn't override)
         self.declare_parameter("wheel_radius", 0.035)

@@ -19,7 +19,7 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "start_base_controller = basket_robot_nodes.mainboard_controller:main",
+            "start_mainboard_controller = basket_robot_nodes.mainboard_controller:main",
             "start_odometry = basket_robot_nodes.odometry:main",
         ],
     },

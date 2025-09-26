@@ -49,11 +49,11 @@ def _launch_setup(context: Any, *args: Any, **kwargs: Any) -> List[Node]:
 
     params, log_level = _load_params_from_yaml(param_file)
 
-    # Mainboard controller node (matches your console_scripts entry: start_base_controller)
+    # Mainboard controller node (matches your console_scripts entry: start_mainboard_controller)
     nodes = [
         Node(
             package="basket_robot_nodes",
-            executable="start_base_controller",
+            executable="start_mainboard_controller",
             name="mainboard_controller",
             parameters=[params],
             arguments=["--ros-args", "--log-level", log_level],
