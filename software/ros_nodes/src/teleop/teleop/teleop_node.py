@@ -1,3 +1,7 @@
+"""
+This is a teleop keyboard node for ROS2. It is inspired by the package: turtlebot3_teleop
+Link: https://github.com/ROBOTIS-GIT/turtlebot3/tree/main/turtlebot3_teleop
+"""
 import sys
 import termios
 
