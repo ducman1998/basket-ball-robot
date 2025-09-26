@@ -34,6 +34,18 @@ pre-commit run --all-files
 == ROS2 Nodes Overview
 This section provides an overview of the ROS2 nodes used in the robot's software architecture. The main nodes are the `mainboard_controller` and `odometry` nodes, which handle motor control and position tracking, respectively.
 
+=== Teleoperation Node
+The `teleop` node allows for manual control of the robot using keyboard inputs. It captures key presses and translates them into velocity commands, which are then published to the `/cmd_vel` topic. This node is useful for testing and debugging the robot's movement capabilities.
+
+==== Usage
+To run the `teleop` node, use the following command:
+[source,shell]
+----
+# start the teleop node
+ros2 run teleop start_teleop
+----
+Make sure your terminal is focused when using the teleop node, as it captures keyboard inputs directly.
+
 === Mainboard Controller Node
 The `mainboard_controller` node is responsible for controlling the robot's movement by sending velocity commands to the motor controllers. It subscribes to the `/cmd_vel` topic, which provides linear and angular velocity commands, and translates these commands into individual wheel speeds. The node then get feedback from the motor controllers to ensure accurate movement and publishes the current wheel positions to the `/wheel_positions` topic.
 
@@ -69,7 +81,7 @@ ros2 launch basket_robot_bringup robot.launch.py
 ----
 This command will start both the `mainboard_controller` and `odometry` nodes with the parameters specified in the launch file.
 
-== Run Nodes with Custom Parameters
+=== Run Nodes with Custom Parameters
 Both nodes can be configured using parameters defined in a YAML file. The launch file allows you to specify a custom parameter file if needed. By default, it uses the `params.yaml` file located in the `basket_robot_bringup` package.
 [source,shell]
 ----
