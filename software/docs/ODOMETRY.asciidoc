@@ -5,7 +5,7 @@ John <ducman@ut.ee>
 
 == Overview
 The `odometry` is a ROS2 node that calculates the robot's position and orientation based on wheel encoder data. It subscribes to the `WheelPositions` topic, which provides the current positions of the robot's wheels, and publishes the calculated odometry information to the `odom` topic.
-The node uses the robot's kinematic model to convert wheel movements into changes in position and orientation. It also broadcasts the transform between the `odom` and `base_link` frames, allowing other nodes to understand the robot's position in space.
+The node uses the robot's kinematic model to convert wheel movements into changes in position and orientation. It also broadcasts the transform between the `odom` and `base_footprint` frames, allowing other nodes to understand the robot's position in space.
 
 == Kinematics
 The robot uses a three-wheeled omnidirectional drive system. The kinematic model is defined by a transformation matrix that relates wheel speeds to the robot's linear and angular velocities. The change in wheel positions is used to compute the robot's movement over time. From feedback of the wheel encoders, the node calculates the change in position and orientation using the following equations:
