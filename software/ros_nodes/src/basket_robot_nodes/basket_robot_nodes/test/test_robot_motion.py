@@ -11,7 +11,19 @@ logging.basicConfig(level=logging.INFO)
 # Example usage for this file:
 #   python test/test_robot_motion.py or python test_robot_motion.py
 
-bot = OmniMotionRobot()  # defaults to /dev/ttyACM0 @ 115200
+bot = OmniMotionRobot(
+    wheel_radius=0.035,
+    c2w_dis=0.1295,
+    motor_01_angles=[240.0, 150.0],
+    motor_02_angles=[0.0, 270.0],
+    motor_03_angles=[120.0, 30.0],
+    hwid="USB VID:PID=0483:5740",
+    max_rot_speed=2.0,
+    max_xy_speed=2.5,
+    pid_control_freq=100,
+    gear_ratio=18.75,
+    encoder_resolution=64,
+)  # defaults to /dev/ttyACM0 @ 115200
 try:
     bot.open()
     print("Connected to robot.")
@@ -35,8 +47,8 @@ try:
     )
 
     # Or use the high-level move() (replace mapping with your kinematics)
-    for i in range(50):
-        bot.move(x_speed=0, y_speed=0.2, rot_speed=0)  # forward
+    for i in range(10):
+        bot.move(x_speed=0, y_speed=0.0, rot_speed=0.5)  # forward
         time.sleep(0.1)
 finally:
     bot.close()

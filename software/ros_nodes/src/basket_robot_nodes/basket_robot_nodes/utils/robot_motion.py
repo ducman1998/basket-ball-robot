@@ -119,17 +119,17 @@ class OmniMotionRobot(IRobotMotion):
             * np.array(
                 [
                     [
-                        -c2w_dis * np.sin(np.deg2rad(m1_beta - m1_alpha)),
+                        c2w_dis * np.sin(np.deg2rad(m1_beta - m1_alpha)),
                         np.cos(np.deg2rad(m1_beta)),
                         np.sin(np.deg2rad(m1_beta)),
                     ],
                     [
-                        -c2w_dis * np.sin(np.deg2rad(m2_beta - m2_alpha)),
+                        c2w_dis * np.sin(np.deg2rad(m2_beta - m2_alpha)),
                         np.cos(np.deg2rad(m2_beta)),
                         np.sin(np.deg2rad(m2_beta)),
                     ],
                     [
-                        -c2w_dis * np.sin(np.deg2rad(m3_beta - m3_alpha)),
+                        c2w_dis * np.sin(np.deg2rad(m3_beta - m3_alpha)),
                         np.cos(np.deg2rad(m3_beta)),
                         np.sin(np.deg2rad(m3_beta)),
                     ],
@@ -145,6 +145,7 @@ class OmniMotionRobot(IRobotMotion):
         self.logger.info(
             f"Wheel speed to mainboard units: {self.wheel_to_mb_unit:.3f} ticks/s per rad/s"
         )
+        self.logger.info(f"Jacobian matrix:\n{self.jacobian}")
 
     # ---------- lifecycle ----------
     def open(self) -> None:
@@ -262,7 +263,7 @@ class OmniMotionRobot(IRobotMotion):
 
         buf = bytearray()
         deadline = time.monotonic() + timeout
-
+        delimiter = self.delimiter.to_bytes(2, byteorder="little")
         while time.monotonic() < deadline:
             n_waiting = self._ser.in_waiting or 1
             chunk = self._ser.read(n_waiting)
@@ -276,7 +277,7 @@ class OmniMotionRobot(IRobotMotion):
             # search for delimiter occurrences
             search_from = 0
             while True:
-                idx = buf.find(self.delimiter, search_from)
+                idx = buf.find(delimiter, search_from)
                 if idx == -1:
                     # trim runaway buffer
                     if len(buf) > self.fbk_size * 4:

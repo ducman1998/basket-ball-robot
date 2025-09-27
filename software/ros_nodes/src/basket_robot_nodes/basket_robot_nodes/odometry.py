@@ -100,13 +100,14 @@ class OdometryNode(Node):
         q = euler_to_quaternion(yaw)
         t.transform.rotation = q
         self.tf_broadcaster.sendTransform(t)
+        self.get_logger().info(f"Published TF: x={x:.2f}, y={y:.2f}, yaw={yaw:.2f}")
 
     def wheel_callback(self, msg: WheelPositions) -> None:
         # msg.pos1, msg.pos2, msg.pos3 are encoder positions (ticks)
         pos: NDArray[np.int32] = np.array([msg.pos1, msg.pos2, msg.pos3], dtype=np.int32)
         cur_time = self.get_clock().now().nanoseconds * 1e-9
 
-        if self.last_pos is not None:
+        if self.last_pos is not None and self.last_time is not None:
             dt = cur_time - self.last_time
             if dt <= 0.0:
                 return  # skip invalid dt
@@ -117,14 +118,13 @@ class OdometryNode(Node):
             dtheta = dpos * 2 * np.pi / ticks_per_rev
 
             # Wheel angular velocities (rad/s), considering dt = 1.0s
-            w_speeds = dtheta
-
+            w_speeds = dtheta.reshape((3, 1))
             # Inverse kinematics: robot velocities in base frame
             # [rot_speed, x_speed, y_speed] = inv_jacobian @ wheel_speeds
             v_robot = self.controller_kin.inv_jacobian @ w_speeds
 
             # Integrate to update (x, y, yaw)
-            v_x, v_y, omega_z = v_robot
+            omega_z, v_x, v_y = v_robot.ravel().tolist()
             if abs(omega_z) < 1e-6:
                 dx = v_x
                 dy = v_y
@@ -145,12 +145,12 @@ class OdometryNode(Node):
             odom_msg.header.stamp = self.get_clock().now().to_msg()
             odom_msg.header.frame_id = "odom"
             odom_msg.child_frame_id = "base_footprint"
-            odom_msg.pose.pose.position.x = self.x
-            odom_msg.pose.pose.position.y = self.y
-            odom_msg.pose.pose.orientation = euler_to_quaternion(self.yaw)
-            odom_msg.twist.twist.linear.x = v_robot[1]
-            odom_msg.twist.twist.linear.y = v_robot[2]
-            odom_msg.twist.twist.angular.z = v_robot[0]
+            odom_msg.pose.pose.position.x = float(self.x)
+            odom_msg.pose.pose.position.y = float(self.y)
+            odom_msg.pose.pose.orientation = euler_to_quaternion(float(self.yaw))
+            odom_msg.twist.twist.linear.x = float(v_robot[1])
+            odom_msg.twist.twist.linear.y = float(v_robot[2])
+            odom_msg.twist.twist.angular.z = float(v_robot[0])
 
             self.odom_pub.publish(odom_msg)
             self.publish_tf(self.x, self.y, self.yaw, odom_msg.header.stamp)
