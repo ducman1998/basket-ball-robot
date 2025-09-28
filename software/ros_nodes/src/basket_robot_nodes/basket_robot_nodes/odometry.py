@@ -12,6 +12,11 @@ from rclpy.qos import QoSProfile
 from shared_interfaces.msg import WheelPositions
 from std_msgs.msg import Header
 
+from .mainboard_controller import MainboardController
+
+ODOM_FRAME_ID = "odom"
+BASE_FRAME_ID = "base_footprint"
+
 
 def euler_to_quaternion(yaw: float) -> Quaternion:
     q = Quaternion()
@@ -45,36 +50,11 @@ def compute_dpos(new_pos: NDArray[np.int32], last_pos: NDArray[np.int32]) -> NDA
 class OdometryNode(Node):
     def __init__(self) -> None:
         super().__init__("odometry_node")
-        # Declare and fetch parameters as in mainboard_controller, ignoring unused ones
-        self.declare_parameter("wheel_radius", 0.035)
-        self.declare_parameter("c2w_dis", 0.1295)
-        self.declare_parameter("motor_01", [240.0, 150.0])
-        self.declare_parameter("motor_02", [0.0, 270.0])
-        self.declare_parameter("motor_03", [120.0, 30.0])
-        self.declare_parameter("gear_ratio", 18.75)
-        self.declare_parameter("encoder_resolution", 64)
-        self.declare_parameter("pid_control_freq", 100)
+        # Declare common parameters from MainboardController
+        MainboardController.declare_common_parameters(self)
 
-        wheel_radius = self.get_parameter("wheel_radius").get_parameter_value().double_value
-        c2w_dis = self.get_parameter("c2w_dis").get_parameter_value().double_value
-        motor_01_angles = self.get_parameter("motor_01").get_parameter_value().double_array_value
-        motor_02_angles = self.get_parameter("motor_02").get_parameter_value().double_array_value
-        motor_03_angles = self.get_parameter("motor_03").get_parameter_value().double_array_value
-        gear_ratio = self.get_parameter("gear_ratio").get_parameter_value().double_value
-        encoder_res = self.get_parameter("encoder_resolution").get_parameter_value().integer_value
-        pid_freq = self.get_parameter("pid_control_freq").get_parameter_value().integer_value
-
-        # Set up kinematics
-        self.controller_kin = OmniMotionRobot(
-            wheel_radius=wheel_radius,
-            c2w_dis=c2w_dis,
-            motor_01_angles=motor_01_angles.tolist(),
-            motor_02_angles=motor_02_angles.tolist(),
-            motor_03_angles=motor_03_angles.tolist(),
-            gear_ratio=gear_ratio,
-            encoder_resolution=encoder_res,
-            pid_control_freq=pid_freq,
-        )
+        # Set up kinematics controller
+        self.controller_kin: OmniMotionRobot = MainboardController.init_ommi_controller(self)
 
         self.last_pos: Optional[np.ndarray] = None
         self.last_time: Optional[float] = None
@@ -83,7 +63,7 @@ class OdometryNode(Node):
         self.y: float = 0.0
         self.yaw: float = 0.0
 
-        self.odom_pub = self.create_publisher(Odometry, "odom", QoSProfile(depth=10))
+        self.odom_pub = self.create_publisher(Odometry, ODOM_FRAME_ID, QoSProfile(depth=10))
         self.sub = self.create_subscription(
             WheelPositions, "wheel_positions", self.wheel_callback, QoSProfile(depth=10)
         )
@@ -92,8 +72,8 @@ class OdometryNode(Node):
     def publish_tf(self, x: float, y: float, yaw: float, stamp: float) -> None:
         t = TransformStamped()
         t.header.stamp = stamp
-        t.header.frame_id = "odom"
-        t.child_frame_id = "base_footprint"
+        t.header.frame_id = ODOM_FRAME_ID
+        t.child_frame_id = BASE_FRAME_ID
         t.transform.translation.x = x
         t.transform.translation.y = y
         t.transform.translation.z = 0.0
@@ -143,8 +123,8 @@ class OdometryNode(Node):
             odom_msg = Odometry()
             odom_msg.header = Header()
             odom_msg.header.stamp = self.get_clock().now().to_msg()
-            odom_msg.header.frame_id = "odom"
-            odom_msg.child_frame_id = "base_footprint"
+            odom_msg.header.frame_id = ODOM_FRAME_ID
+            odom_msg.child_frame_id = BASE_FRAME_ID
             odom_msg.pose.pose.position.x = float(self.x)
             odom_msg.pose.pose.position.y = float(self.y)
             odom_msg.pose.pose.orientation = euler_to_quaternion(float(self.yaw))

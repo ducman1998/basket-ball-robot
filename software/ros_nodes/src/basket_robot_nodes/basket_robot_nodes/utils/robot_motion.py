@@ -66,17 +66,17 @@ class OmniMotionRobot(IRobotMotion):
         gear_ratio: float,  # gear ratio (wheel to motor)
         encoder_resolution: int,  # encoder ticks per motor revolution
         pid_control_freq: int,  # PID control frequency in Hz
-        max_rot_speed: float = 2.0,  # rad/s
-        max_xy_speed: float = 1.5,  # m/s
+        max_rot_speed: float,  # rad/s
+        max_xy_speed: float,  # m/s
         # serial settings
-        hwid: str = "USB VID:PID=0483:5740",
-        cmd_fmt: str = "<hhhHHHBH",
-        fbk_fmt: str = "<hhhhhhBH",
-        delimieter: int = 0xAAAA,
-        polarity: int = 1,  # set to -1 if motors spin in reverse
-        port: Union[Literal["auto"], str] = "auto",
-        baudrate: int = 115200,
-        timeout: float = 0.1,
+        hwid: str,
+        cmd_fmt: str,
+        fbk_fmt: str,
+        delimieter: int,
+        polarity: int,  # set to -1 if motors spin in reverse
+        baudrate: int,
+        timeout: float,
+        port: Union[Literal["auto"], str],
     ) -> None:
         self.max_rot_speed = max_rot_speed
         self.max_xy_speed = max_xy_speed

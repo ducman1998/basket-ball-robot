@@ -1,19 +1,25 @@
 logging:
-  log_level: INFO
-robot_configuration:
-  hwid: 'USB VID:PID=0483:5740'
-  cmd_fmt: '<hhhHHHBH'  # cmd format to send to mainboard
-  fbk_fmt: '<hhhhhhBH'  # feedback format from mainboard
-  delimiter: 0xAAAA
-  # beta: rotation shift between X axis of robot base-frame vs drived direction of wheel (degrees)
-  # alpha: angle of wheel (from robot center to the wheel) vs X axis of robot base-frame (degrees)
-  motor_01: [240, 150] # [beta, alpha] in degrees
-  motor_02: [0, 270]
-  motor_03: [120, 30]
-  wheel_radius: 0.035  # meters
-  center_to_wheel_dis: 0.1295  # meters  # distance from center to wheel
-  gear_ratio: 18.75            # wheel to motor ratio
-  encoder_resolution: 64       # ticks per motor shaft revolution
-  pid_control_freq: 100         # Hz
-  max_rot_speed: 2.0    # rad/s
-  max_xy_speed: 2.5     # m/s # max linear speed in x and y direction
+  mainboard_controller_node: 'info'
+  odometry_node: 'info'
+
+shared_robot_setting:
+    hwid: 'USB VID:PID=0483:5740'
+    cmd_fmt: '<hhhHHHBH'  # cmd format to send to mainboard
+    fbk_fmt: '<hhhhhhBH'  # feedback format from mainboard
+    delimiter: 0xAAAA
+    # beta: rotation shift between X axis of robot base-frame vs drived direction of wheel (degrees)
+    # alpha: angle of wheel (from robot center to the wheel) vs X axis of robot base-frame (degrees)
+    motor_01: [240, 150] # [beta, alpha] in degrees
+    motor_02: [0, 270]
+    motor_03: [120, 30]
+    wheel_radius: 0.035  # meters
+    center_to_wheel_dis: 0.1295  # meters  # distance from center to wheel
+    gear_ratio: 18.75            # wheel to motor ratio
+    encoder_resolution: 64       # ticks per motor shaft revolution
+    pid_control_freq: 100         # Hz
+    max_rot_speed: 2.0    # rad/s
+    max_xy_speed: 1.0     # m/s # max linear speed in x and y direction
+    baudrate: 115200
+    polarity: 1  # set to -1 if motors spin in reverse
+    serial_timeout: 0.05  # seconds
+    port: 'auto'  # 'auto' or '/dev/ttyUSB0' etc
