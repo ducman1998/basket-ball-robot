@@ -50,7 +50,7 @@ def _load_params_from_yaml(param_file_path: str) -> Tuple[Dict[str, Any], dict[s
             "baudrate": rcfg["baudrate"],
             "polarity": rcfg["polarity"],
             "serial_timeout": rcfg["serial_timeout"],
-            "port": rcfg.get("port", "auto"),
+            "port": rcfg["port"],
         }
     except (KeyError, ValueError) as e:
         raise Exception(f"Missing required parameter in {param_file_path}: {e}")
