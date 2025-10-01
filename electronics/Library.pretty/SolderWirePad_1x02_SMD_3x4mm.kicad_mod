@@ -1,0 +1,125 @@
+(footprint "SolderWirePad_1x02_SMD_3x4mm"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "Wire Pad, Square, SMD Pad,  3mm x 6mm")
+	(tags "MeasurementPoint Square SMDPad 3mmx6mm ")
+	(property "Reference" "REF**"
+		(at 3.4 -4.15 0)
+		(layer "F.SilkS")
+		(uuid "d50c0c69-f390-4e59-8995-52ae8afc5d2c")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "Conn_01x02_Socket"
+		(at 0 2.54 0)
+		(layer "F.Fab")
+		(uuid "86b5a533-81e1-4c0a-8a00-bed751dfa6e8")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" "~"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "53257e54-d924-41b5-8fe1-eea8298dc34b")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "Generic connector, single row, 01x02, script generated"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "694d8e83-7a01-4dae-bb55-f001e3192af6")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr exclude_from_pos_files)
+	(fp_rect
+		(start -1.75 -3.25)
+		(end 1.75 3.25)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "8e09b602-a052-4cfe-bff9-3f179a516f37")
+	)
+	(fp_rect
+		(start 4.25 -3.25)
+		(end 7.75 3.25)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "cfb5f975-59bd-44a7-b4da-76a99696d4dc")
+	)
+	(fp_rect
+		(start -1.65 -3.15)
+		(end 1.65 3.15)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "6c789e22-894d-4fbb-b74c-1970f64b6bf2")
+	)
+	(fp_rect
+		(start 4.35 -3.15)
+		(end 7.65 3.15)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "1d701dad-6013-46be-9244-f4a6690b747d")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(uuid "1b40d310-1711-402d-ab3d-408bf42d92df")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" smd roundrect
+		(at 0 1)
+		(size 3 4)
+		(layers "F.Cu" "F.Mask")
+		(roundrect_rratio 0.25)
+		(uuid "31acbc3a-068a-4a16-8538-94e06ec753cf")
+	)
+	(pad "2" smd roundrect
+		(at 6 1)
+		(size 3 4)
+		(layers "F.Cu" "F.Mask")
+		(roundrect_rratio 0.25)
+		(uuid "951ebc9e-5c31-446e-8851-4a0018f0f482")
+	)
+	(embedded_fonts no)
+)
