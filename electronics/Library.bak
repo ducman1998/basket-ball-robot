@@ -3579,7 +3579,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Library:SOIC-8_L4.9-W3.9-P1.27-LS6.0-BL"
+		(property "Footprint" "ProLib_pcs_2025-10-04:SOIC-8_L4.9-W3.9-P1.27-LS6.0-BL"
 			(at 0 0 0)
 			(effects
 				(font
