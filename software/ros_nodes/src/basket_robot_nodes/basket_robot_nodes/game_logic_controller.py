@@ -180,9 +180,9 @@ class GameLogicController(Node):
             )
             ball_pos = closet_ball.position_2d
             # if close enough to the ball, stop
-            if math.hypot(ball_pos[0], ball_pos[1]) <= 100.0 and math.atan2(
-                ball_pos[0], ball_pos[1]
-            ) <= math.radians(5):
+            distance_check = math.hypot(ball_pos[0], ball_pos[1]) <= 100.0  # 100mm threshold
+            angle_check = abs(math.atan2(ball_pos[0], ball_pos[1])) <= math.radians(5)  # 5 degrees
+            if distance_check and angle_check:
                 self.get_logger().info(
                     "Reached the ball! Stopping and returning to SEARCHING_BALL state."
                 )
