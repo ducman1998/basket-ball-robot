@@ -151,7 +151,6 @@ class GameLogicController(Node):
 
     def handle_searching_ball_state(self) -> None:
         self.get_logger().info("Game State: SEARCHING_BALL")
-        self.move_robot(0.0, 0.0, self.search_rot, 0)  # rotate in place (e.g., 0.5 rad/s)
         # Here, you would check image_info_msg for detected balls
         # If a ball is detected, transition to REACHING_BALL state
         if self.image_info_msg and len(self.image_info_msg.detected_balls) > 0:
@@ -187,7 +186,8 @@ class GameLogicController(Node):
             )
             ball_pos = closet_ball.position_2d
             # if close enough to the ball, stop
-            distance_check = math.hypot(ball_pos[0], ball_pos[1]) <= 350.0  # 100mm threshold
+            # 350mm distance threshold (robot center to the ball)
+            distance_check = math.hypot(ball_pos[0], ball_pos[1]) <= 350.0  
             angle_check = abs(math.atan2(ball_pos[0], ball_pos[1])) <= math.radians(3)  # 5 degrees
             if distance_check and angle_check:
                 self.get_logger().info(
@@ -242,7 +242,7 @@ class GameLogicController(Node):
             self.prev_vx_error = vx_error
             self.prev_vy_error = vy_error
             self.prev_wz_error = wz_error
-            # move the robot
+            # move the robot towards the ball
             self.move_robot(vx, vy, 0.0, 0)
             self.get_logger().info(
                 f"Moving towards ball: vx={vx:.2f}, vy={vy:.2f}, wz={wz:.2f}, "
@@ -259,8 +259,8 @@ class GameLogicController(Node):
         self.get_logger().info("Game State: END")
         self.reset_to_search_state()
         self.move_robot(0.0, 0.0, 0.0, 0)  # stop robot
+        # Game over, exit the programe here
         exit(0)
-        # Game over, do nothing or reset
 
     def move_robot(self, vx: float, vy: float, wz: float, thrower_percent: int) -> None:
         """Send velocity commands to the robot."""
