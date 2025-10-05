@@ -138,7 +138,7 @@ class ImageProcessor(Node):
 
         # Warm up for auto-exposure to settle and wait for the first good frame set
         self.get_logger().info("Warming up camera (10 frames)...")
-        for _ in range(5):
+        for _ in range(10):
             self.pipeline.wait_for_frames()
         return True
 
@@ -163,7 +163,12 @@ class ImageProcessor(Node):
         t2 = time()
         try:
             detected_balls, viz_image = detect_green_balls(
-                color_frame_rgb, center_rgb=self.ref_ball_color
+                color_frame_rgb,
+                center_rgb=self.ref_ball_color,
+                min_area=40,
+                min_radius=7,
+                circularity_thresh=0.6,
+                visualize=True,  # set to True for debugging (will slow down processing a lot
             )
             if not np.isclose(self.pub_viz_resize, 1.0, rtol=1e-09, atol=1e-09):
                 viz_image = cv2.resize(

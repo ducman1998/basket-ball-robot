@@ -65,7 +65,7 @@ class GameLogicController(Node):
         # INIT: initial state
 
         # SEARCHING_BALL: look for balls
-        self.start_angle: Optional[float] = None  # starting angle for searching
+        self.last_angle: float = 0.0  # starting angle for searching
         self.cummulative_rotation: float = 0.0  # track rotation during searching
 
         # REACHING_BALL: move towards the closest ball
@@ -131,8 +131,6 @@ class GameLogicController(Node):
         else:  # GameState.END
             self.handle_end_state()
 
-        vx, vy, wz, thrower_percent = 0.0, 0.0, 0.0, 0  # Example values
-        self.move_robot(vx, vy, wz, thrower_percent)
         end_time = time()
         self.get_logger().info(f"Game logic loop took {end_time - start_time:.4f} seconds.")
 
@@ -144,9 +142,9 @@ class GameLogicController(Node):
 
         if self.odom_msg:
             yaw = self.yaw_from_odom(self.odom_msg)  # yaw is always not None here
-            self.start_angle = yaw
+            self.last_angle = yaw
             self.cummulative_rotation = 0.0
-            self.get_logger().info(f"Starting angle set to {self.start_angle:.2f} degrees.")
+            self.get_logger().info(f"Last angle set to {self.last_angle:.2f} degrees.")
             # transition to searching state
             self.cur_state = GameState.SEARCHING_BALL
             self.get_logger().info("Transitioning to SEARCHING_BALL state.")
@@ -164,14 +162,20 @@ class GameLogicController(Node):
 
         # If no ball detected after a full rotation, transition to END state
         yaw_now = self.yaw_from_odom(self.odom_msg)
-        if self.start_angle is None:
-            raise ValueError("start_angle should have been set in INIT state.")
-
-        self.cummulative_rotation += yaw_now - self.start_angle
+        delta_yaw = self.shortest_angular_difference(yaw_now, self.last_angle)
+        self.cummulative_rotation += delta_yaw
+        self.last_angle = yaw_now
         if abs(self.cummulative_rotation) >= 360.0:
             self.move_robot(0.0, 0.0, 0.0, 0)  # stop rotation
             self.cur_state = GameState.END
             self.get_logger().info("No ball found after full rotation. Transitioning to END state.")
+
+        # rotate the robot to find balls
+        self.move_robot(0.0, 0.0, self.search_rot, 0)
+        self.get_logger().info(
+            f"Searching... Current yaw: {yaw_now:.2f} degrees, "
+            f"Cumulative rotation: {self.cummulative_rotation:.2f} degrees."
+        )
 
     def handle_reaching_ball_state(self) -> None:
         self.get_logger().info("Game State: REACHING_BALL")
@@ -183,8 +187,8 @@ class GameLogicController(Node):
             )
             ball_pos = closet_ball.position_2d
             # if close enough to the ball, stop
-            distance_check = math.hypot(ball_pos[0], ball_pos[1]) <= 100.0  # 100mm threshold
-            angle_check = abs(math.atan2(ball_pos[0], ball_pos[1])) <= math.radians(5)  # 5 degrees
+            distance_check = math.hypot(ball_pos[0], ball_pos[1]) <= 350.0  # 100mm threshold
+            angle_check = abs(math.atan2(ball_pos[0], ball_pos[1])) <= math.radians(3)  # 5 degrees
             if distance_check and angle_check:
                 self.get_logger().info(
                     "Reached the ball! Stopping and returning to SEARCHING_BALL state."
@@ -200,13 +204,13 @@ class GameLogicController(Node):
                 np.cos(heading_error),
                 -np.sin(heading_error),
                 0.0,
-                ball_pos[0],
+                ball_pos[0] / 1000.0,
             ]
             x_desired[1, :] = [
                 np.sin(heading_error),
                 np.cos(heading_error),
                 0.0,
-                ball_pos[1],
+                ball_pos[1] / 1000.0 - 0.25,  # stop 250mm before the ball
             ]
             x_desired[2, :] = [0.0, 0.0, 1.0, 0.0]
             x_desired[3, :] = [0.0, 0.0, 0.0, 1.0]
@@ -239,7 +243,7 @@ class GameLogicController(Node):
             self.prev_vy_error = vy_error
             self.prev_wz_error = wz_error
             # move the robot
-            self.move_robot(vx, vy, wz, 0)
+            self.move_robot(vx, vy, 0.0, 0)
             self.get_logger().info(
                 f"Moving towards ball: vx={vx:.2f}, vy={vy:.2f}, wz={wz:.2f}, "
                 f"pos=({ball_pos[0]:.1f}, {ball_pos[1]:.1f})mm"
@@ -262,8 +266,8 @@ class GameLogicController(Node):
         """Send velocity commands to the robot."""
         self.control_msg.header.stamp = Clock().now().to_msg()
         self.control_msg.header.frame_id = "base_footprint"
-        self.control_msg.twist.linear.y = float(vx)
-        self.control_msg.twist.linear.x = float(vy)
+        self.control_msg.twist.linear.x = float(vx)
+        self.control_msg.twist.linear.y = float(vy)
         self.control_msg.twist.linear.z = 0.0
         self.control_msg.twist.angular.x = 0.0
         self.control_msg.twist.angular.y = 0.0
@@ -283,8 +287,20 @@ class GameLogicController(Node):
 
     def reset_to_search_state(self) -> None:
         """Reset variables to prepare for searching state."""
-        self.start_angle = self.yaw_from_odom(self.odom_msg)
+        self.last_angle = self.yaw_from_odom(self.odom_msg)
         self.cummulative_rotation = 0.0
+
+    def shortest_angular_difference(self, cur_angle: float, prev_angle: float) -> float:
+        """
+        Calculates the shortest angular difference (target - current) in degrees,
+        normalized to the range [-180, 180].
+        """
+        raw_error = cur_angle - prev_angle
+        if raw_error > 180.0:
+            raw_error -= 360.0
+        elif raw_error < -180.0:
+            raw_error += 360.0
+        return raw_error
 
 
 def main() -> None:
