@@ -6,13 +6,12 @@ from yaml.scanner import ScannerError
 
 from .custom_exceptions import InvalidYamlConfig, SettingFileNotFound
 
-SETTING_FILEPATH = "conf/setting.yaml"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def load_settings(filepath: str = SETTING_FILEPATH) -> dict:
+def load_settings(filepath: str) -> dict:
     """Load application settings from a YAML file."""
     try:
         with open(filepath, "r") as file:
