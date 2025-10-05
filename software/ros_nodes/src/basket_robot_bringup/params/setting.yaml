@@ -27,7 +27,7 @@ shared_robot_setting:
     port: 'auto'  # 'auto' or '/dev/ttyUSB0' etc
 
 image_processor_setting:
-  ref_ball_color: [38, 72, 82] # rgb color space
+  ref_colors_flat: [32, 111, 109, 2, 94, 94, 6, 106, 99] # rgb color space of the balls to detect, can add more colors
   resolution: [1280, 720]      # width, height
   fps: 30                      # camera fps
   enable_depth: True           # enable depth stream

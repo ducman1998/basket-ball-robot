@@ -66,7 +66,7 @@ class ImageProcessor(Node):
         float_descriptor = ParameterDescriptor(
             type=ParameterType.PARAMETER_DOUBLE, description="A floating point parameter."
         )
-        self.declare_parameter("ref_ball_color", descriptor=fint_array_descriptor)
+        self.declare_parameter("ref_colors_flat", descriptor=fint_array_descriptor)
         self.declare_parameter("resolution", descriptor=fint_array_descriptor)
         self.declare_parameter("fps", descriptor=int_descriptor)
         self.declare_parameter("enable_depth", descriptor=bool_descriptor)
@@ -76,14 +76,22 @@ class ImageProcessor(Node):
 
     def _read_node_parameters(self) -> None:
         """Read and validate parameters."""
-        self.ref_ball_color: List[int] = (
-            self.get_parameter("ref_ball_color").get_parameter_value().integer_array_value.tolist()
+        self.ref_colors_flat: List[int] = (
+            self.get_parameter("ref_colors_flat").get_parameter_value().integer_array_value.tolist()
         )
-        if len(self.ref_ball_color) != 3 or any((c < 0 or c > 255) for c in self.ref_ball_color):
+        if len(self.ref_colors_flat) % 3 != 0 or any(
+            (c < 0 or c > 255) for c in self.ref_colors_flat
+        ):
             self.get_logger().error(
-                "Parameter 'ref_ball_color' must be a list of three integers [R, G, B] in [0, 255]."
+                "Parameter 'ref_colors_flat' must be a list of RGB integers "
+                + "[R1, G1, B1, R2, G2, B2,..] "
+                + "where all values are in [0, 255] and the total length is a multiple of 3."
             )
-            raise ValueError("Invalid ref_ball_color parameter.")
+            raise ValueError("Invalid ref_colors_flat parameter.")
+        self.ref_ball_color: List[List[int]] = [
+            self.ref_colors_flat[i : i + 3]
+            for i in range(0, len(self.ref_colors_flat), 3)  # noqa: E203
+        ]
         res: List[int] = (
             self.get_parameter("resolution").get_parameter_value().integer_array_value.tolist()
         )
@@ -164,11 +172,13 @@ class ImageProcessor(Node):
         try:
             detected_balls, viz_image = detect_green_balls(
                 color_frame_rgb,
-                center_rgb=self.ref_ball_color,
-                min_area=40,
-                min_radius=7,
-                circularity_thresh=0.6,
-                visualize=True,  # set to True for debugging (will slow down processing a lot
+                ref_ball_rgb=self.ref_ball_color,
+                h_tol=20,
+                s_min=40,
+                min_area=100.0,
+                min_radius=8,
+                circularity_thresh=0.65,
+                visualize=True,
             )
             if not np.isclose(self.pub_viz_resize, 1.0, rtol=1e-09, atol=1e-09):
                 viz_image = cv2.resize(

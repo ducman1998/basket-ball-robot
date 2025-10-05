@@ -27,23 +27,26 @@ T_BW = np.array(
 
 def detect_green_balls(
     rgb_img: np.ndarray,
-    center_rgb: Union[Tuple[int, ...], List[int]] = (34, 95, 7),  # reference ball color in RGB
+    ref_ball_rgb: Union[
+        List[List[int]], List[Tuple[int, ...]]
+    ],  # reference ball colors in RGB (must be a list of lists/tuples)
     h_tol: int = 20,  # +/- hue tolerance (OpenCV H in [0..179])
-    s_min: int = 50,  # minimum saturation to avoid grays
+    s_min: int = 40,  # minimum saturation to avoid grays
     min_area: float = 40.0,  # contour area filter
     min_radius: int = 8,  # min radius in pixels
     circularity_thresh: float = 0.6,  # 0..1, higher = more circular
     visualize: bool = True,  # whether to generate visualization image
 ) -> Tuple[List[GreenBall], NDArray[np.uint8]]:
     """
-    Detect teal/green balls using HS-only masking (brightness ignored).
+    Detect teal/green balls using HS-only masking (brightness ignored)
+    based on a list of reference RGB colors.
 
     Parameters
     ----------
     rgb_img : np.ndarray
         RGB image (H,W,3), dtype uint8.
-    center_rgb : tuple
-        Reference RGB color used to compute target hue (e.g., your ball color).
+    ref_ball_rgb : list of lists/tuples
+        A list of reference RGB colors. E.g., [[34, 95, 7], [40, 100, 10]].
     h_tol : int
         +/- tolerance around the target hue (OpenCV hue in [0..179]).
     s_min : int
@@ -57,34 +60,54 @@ def detect_green_balls(
 
     Returns
     -------
-    List[GreenBall] : list of detected balls with attributes:
-        - center: (x, y) in pixels
-        - radius: in pixels
-        - area: contour area in pixels^2
-        - circularity: float in [0..1]
-        - bbox: (x, y, w, h) bounding rectangle
+    List[GreenBall] : list of detected balls.
     vis_img : np.ndarray
         BGR visualization image with contours, circles, and labels.
     """
-    # Runtime check for unsigned [0, 255]
-    if any((c < 0 or c > 255) for c in center_rgb):
-        raise ValueError(f"center_rgb must contain unsigned 8-bit values, got {center_rgb}")
 
+    # --- Input Validation ---
     if rgb_img is None or rgb_img.ndim != 3 or rgb_img.shape[2] != 3:
         raise ValueError("rgb_img must be an RGB image with shape (H, W, 3).")
 
-    # --- derive target hue from the provided RGB color
-    ref_rgb = np.array([[center_rgb]], dtype=np.uint8)
-    ref_hsv = cv2.cvtColor(ref_rgb, cv2.COLOR_RGB2HSV)[0, 0]
-    h0 = int(ref_hsv[0])  # OpenCV H in [0..179]
+    # Enforce list-of-lists/tuples structure and non-empty check
+    if not isinstance(ref_ball_rgb, list) or not ref_ball_rgb:
+        raise ValueError(
+            "ref_ball_rgb must be a non-empty list of RGB lists/tuples \
+            (e.g., [[r1, g1, b1], [r2, g2, b2]])."
+        )
 
-    # --- convert image to HSV
+    for color in ref_ball_rgb:
+        if len(color) != 3 or any((c < 0 or c > 255) for c in color):
+            raise ValueError(
+                f"Each color in ref_ball_rgb must be an RGB 3-tuple/list \
+                    with unsigned 8-bit values, got {color}"
+            )
+
+    # --- Convert Image to HSV ---
     hsv = cv2.cvtColor(rgb_img, cv2.COLOR_RGB2HSV)
-    mask: NDArray[np.uint8] = _hs_mask(hsv, h0, h_tol, s_min)
-    # --- clean up mask
+
+    # Initialize the total mask to be all zeros
+    total_mask = np.zeros(hsv.shape[:2], dtype=np.uint8)
+
+    # --- Generate and Combine Masks for Multiple Colors ---
+    for color_rgb in ref_ball_rgb:
+        # 1. Derive target hue (h0) from the current RGB color
+        ref_rgb_array = np.array([[color_rgb]], dtype=np.uint8)
+        ref_hsv = cv2.cvtColor(ref_rgb_array, cv2.COLOR_RGB2HSV)[0, 0]
+        h0 = int(ref_hsv[0])  # OpenCV H in [0..179]
+
+        # 2. Get mask for current color range
+        current_mask: NDArray[np.uint8] = _hs_mask(hsv, h0, h_tol, s_min)
+
+        # 3. Combine with total mask using a logical OR
+        total_mask = cv2.bitwise_or(total_mask, current_mask).astype(np.uint8, copy=False)
+
+    mask = total_mask
+
+    # --- Clean up Mask ---
     mask = _morph_clean(mask)
 
-    # --- find contours
+    # --- Find Contours and Filter Balls ---
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     vis = rgb_img.copy()
     balls: List[GreenBall] = []
@@ -175,6 +198,10 @@ def _contour_to_ball(
 
     circ = float(4.0 * np.pi * (area / (perim * perim)))
     if circ < circularity_thresh:
+        return None
+
+    # the balls at distances cannot have a high radius
+    if cy <= 200 and r >= 30:
         return None
 
     x, y, w, h = cv2.boundingRect(cnt)

@@ -67,7 +67,7 @@ def _load_params_from_yaml(param_file_path: str, key: str) -> Tuple[Dict[str, An
     elif key == "image_processor_setting":
         try:
             params = {
-                "ref_ball_color": _as_list(rcfg["ref_ball_color"], "int"),
+                "ref_colors_flat": _as_list(rcfg["ref_colors_flat"], "int"),
                 "resolution": _as_list(rcfg["resolution"], "int"),
                 "fps": rcfg["fps"],
                 "enable_depth": rcfg["enable_depth"],
