@@ -72,7 +72,8 @@ ros2 run basket_robot_nodes start_odometry
 
 For more details on how the odometry calculations are performed, refer to this doc: link:docs/ODOMETRY.asciidoc[Odometry documentation].
 
-=== Launching All Nodes Together
+== Launching All Nodes Together
+=== Launch All Functional Nodes
 To launch both the `mainboard_controller` and `odometry` nodes together, you can use the provided launch file. This file sets up the necessary parameters and starts both nodes in a single command.
 [source,shell]
 ----
@@ -81,12 +82,11 @@ ros2 launch basket_robot_bringup robot.launch.py
 ----
 This command will start both the `mainboard_controller` and `odometry` nodes with the parameters specified in the launch file.
 
-=== Run Nodes with Custom Parameters
-Both nodes can be configured using parameters defined in a YAML file. The launch file allows you to specify a custom parameter file if needed. By default, it uses the `params.yaml` file located in the `basket_robot_bringup` package.
+=== Lauch Game Logic Node (Robot Finds A Ball)
+To launch the game logic node along with the other nodes, you can use the following command:
 [source,shell]
 ----
-# specify a custom parameter file when launching
-ros2 launch basket_robot_bringup robot.launch.py params_file:=/path/to/your_params.yaml
+# launch game logic node along with other nodes
+ros2 launch basket_robot_bringup robot_find_a_ball.launch.py
 ----
-Replace `/path/to/your_params.yaml` with the actual path to your custom parameter file.
-Make sure to adjust the parameters in the YAML file according to your robot's specifications and requirements.
+This command will start the Game Logic Node only. Other functional nodes (mainboard_controller, odometry, image_processor) need to be launched separately.
