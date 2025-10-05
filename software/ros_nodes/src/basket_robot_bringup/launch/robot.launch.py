@@ -70,6 +70,7 @@ def _load_params_from_yaml(param_file_path: str, key: str) -> Tuple[Dict[str, An
                 "ref_ball_color": _as_list(rcfg["ref_ball_color"], "int"),
                 "resolution": _as_list(rcfg["resolution"], "int"),
                 "fps": rcfg["fps"],
+                "enable_depth": rcfg["enable_depth"],
                 "publish_viz_image": rcfg["publish_viz_image"],
                 "publish_viz_fps": rcfg["publish_viz_fps"],
                 "publish_viz_resize": rcfg["publish_viz_resize"],

@@ -196,20 +196,20 @@ class GameLogicController(Node):
             # transformation matrix from the ball frame to robot base_footprint frame
             x_desired = np.eye(4)
             heading_error = -math.atan2(ball_pos[0], ball_pos[1])
-            x_desired[0, :3] = [
+            x_desired[0, :] = [
                 np.cos(heading_error),
                 -np.sin(heading_error),
                 0.0,
                 ball_pos[0],
             ]
-            x_desired[1, :3] = [
+            x_desired[1, :] = [
                 np.sin(heading_error),
                 np.cos(heading_error),
                 0.0,
                 ball_pos[1],
             ]
-            x_desired[2, :3] = [0.0, 0.0, 1.0, 0.0]
-            x_desired[3, :3] = [0.0, 0.0, 0.0, 1.0]
+            x_desired[2, :] = [0.0, 0.0, 1.0, 0.0]
+            x_desired[3, :] = [0.0, 0.0, 0.0, 1.0]
             xe_log = mr.MatrixLog6(x_desired)
             xe_vec = mr.se3ToVec(xe_log)
             vx_error = xe_vec[3]  # velocity error in x
@@ -283,7 +283,7 @@ class GameLogicController(Node):
 
     def reset_to_search_state(self) -> None:
         """Reset variables to prepare for searching state."""
-        self.start_angle = None
+        self.start_angle = self.yaw_from_odom(self.odom_msg)
         self.cummulative_rotation = 0.0
 
 

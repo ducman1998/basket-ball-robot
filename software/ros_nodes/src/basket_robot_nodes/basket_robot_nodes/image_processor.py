@@ -30,7 +30,11 @@ class ImageProcessor(Node):
         log_initialized_parameters(self)
 
         # setup camera
-        self._init_camera()
+        ret = self._init_camera()
+        if not ret:
+            self.get_logger().error("Camera initialization failed. Exiting node.")
+            raise RuntimeError("Camera initialization failed.")
+
         self.get_logger().info(
             f"Camera initialized with resolution {self.resolution} at {self.fps} FPS."
         )
@@ -44,6 +48,8 @@ class ImageProcessor(Node):
         self.handler = self.create_timer(1.0 / float(self.fps), self.process_frame)
         self.timestamp = self.get_clock().now().nanoseconds * 1e-9
         self.last_pub_viz_time = self.timestamp
+        # internal queue to monitor fps
+        self.fps_queue: List[float] = []
 
     def _declare_node_parameters(self) -> None:
         """Declare parameters with descriptors."""
@@ -63,6 +69,7 @@ class ImageProcessor(Node):
         self.declare_parameter("ref_ball_color", descriptor=fint_array_descriptor)
         self.declare_parameter("resolution", descriptor=fint_array_descriptor)
         self.declare_parameter("fps", descriptor=int_descriptor)
+        self.declare_parameter("enable_depth", descriptor=bool_descriptor)
         self.declare_parameter("publish_viz_image", descriptor=bool_descriptor)
         self.declare_parameter("publish_viz_fps", descriptor=int_descriptor)
         self.declare_parameter("publish_viz_resize", descriptor=float_descriptor)
@@ -88,6 +95,9 @@ class ImageProcessor(Node):
             raise ValueError("Invalid resolution parameter.")
         self.resolution: Tuple[int, int] = (res[0], res[1])
         self.fps: int = self.get_parameter("fps").get_parameter_value().integer_value
+        self.enable_depth: bool = (
+            self.get_parameter("enable_depth").get_parameter_value().bool_value
+        )
         self.pub_viz_image: bool = (
             self.get_parameter("publish_viz_image").get_parameter_value().bool_value
         )
@@ -105,45 +115,51 @@ class ImageProcessor(Node):
             raise ValueError("Invalid publish_viz_fps parameter.")
         return None
 
-    def _init_camera(self) -> None:
+    def _init_camera(self) -> bool:
         """Initialize RealSense camera pipeline."""
         self.pipeline = rs.pipeline()
         cfg = rs.config()
         # Enable color and depthn streams
         cfg.enable_stream(
-            rs.stream.color, self.resolution[0], self.resolution[1], rs.format.rgb8, self.fps
+            rs.stream.color, self.resolution[0], self.resolution[1], rs.format.bgr8, self.fps
         )
-        # cfg.enable_stream(
-        #     rs.stream.depth, self.resolution[0], self.resolution[1], rs.format.z16, self.fps
-        # )
+        if self.enable_depth:
+            cfg.enable_stream(
+                rs.stream.depth, self.resolution[0], self.resolution[1], rs.format.z16, self.fps
+            )
+            self.align = rs.align(rs.stream.color)
         try:
             self.get_logger().info("Starting RealSense pipeline...")
             self.pipeline.start(cfg)
         except RuntimeError as e:
             self.get_logger().error(f"Failed to start RealSense pipeline: {e}")
             # raise RuntimeError("Camera initialization failed.")
-            return None  # for testing without camera
-
-        self.align = rs.align(rs.stream.color)
+            return False  # for testing without camera
 
         # Warm up for auto-exposure to settle and wait for the first good frame set
         self.get_logger().info("Warming up camera (10 frames)...")
-        for _ in range(10):
+        for _ in range(5):
             self.pipeline.wait_for_frames()
-        return None
+        return True
 
     def process_frame(self) -> None:
         """Capture and process a single frame from the camera."""
+        self.timestamp = self.get_clock().now().nanoseconds * 1e-9
         t1 = time()
         frames = self.pipeline.wait_for_frames()
-        aligned_frames = self.align.process(frames)
-        color_frame_rgb = aligned_frames.get_color_frame()  # in bgr8 format
+        if self.enable_depth:
+            aligned_frames = self.align.process(frames)
+            color_frame_bgr = aligned_frames.get_color_frame()  # in bgr8 format
+        else:
+            color_frame_bgr = frames.get_color_frame()  # in bgr8 format
 
-        if not color_frame_rgb:
-            self.get_logger().warn("No color or depth frame available.")
+        if not color_frame_bgr:
+            self.get_logger().error("No color or depth frame available.")
             return None
 
-        color_frame_rgb = np.asanyarray(color_frame_rgb.get_data())
+        color_frame_rgb = cv2.cvtColor(
+            np.asanyarray(color_frame_bgr.get_data()), cv2.COLOR_BGR2RGB
+        )  # convert to rgb
         t2 = time()
         try:
             detected_balls, viz_image = detect_green_balls(
@@ -165,10 +181,10 @@ class ImageProcessor(Node):
             return None  # skip this frame
 
         t3 = time()
-        self.timestamp = self.get_clock().now().nanoseconds * 1e-9
-        if self.pub_viz_image and (self.timestamp - self.last_pub_viz_time) >= 1.0 / float(
-            self.pub_viz_fps
-        ):
+        pub_viz_cond = self.pub_viz_image and (
+            self.timestamp - self.last_pub_viz_time
+        ) >= 1.0 / float(self.pub_viz_fps)
+        if pub_viz_cond:
             # publish visualized image
             viz_msg = Image()
             viz_msg.header.stamp = self.get_clock().now().to_msg()
@@ -189,17 +205,23 @@ class ImageProcessor(Node):
         self.processed_info_pub.publish(info_msg)
 
         elapsed_time = self.get_clock().now().nanoseconds * 1e-9 - self.timestamp
+        self.fps_queue.append(1.0 / elapsed_time)
+        if len(self.fps_queue) >= 10:
+            self.fps_queue.pop(0)
+        avg_fps = sum(self.fps_queue) / len(self.fps_queue)
         if elapsed_time >= 1.0 / float(self.fps):
             self.get_logger().warn(
-                f"Processing is too slow! FPS={1.0/elapsed_time:.2f} < {self.fps}."
+                f"Processing is too slow! FPS={1.0/elapsed_time:.2f} < {self.fps}"
+                + f" (avg over last {len(self.fps_queue)} frames: {avg_fps:.2f})"
             )
 
-        self.get_logger().info(f"Processed frame: detected {len(detected_balls)} green balls.")
         t5 = time()
-        self.get_logger().info(
-            f"Timings (s): read={t2-t1:.3f}, detect={t3-t2:.3f}, pub_img={t4-t3:.3f}, \
-                pub_info={t5-t4:.3f}"
-        )
+        if pub_viz_cond:
+            self.get_logger().info(
+                f"Timings (s): read={t2-t1:.3f}, detect={t3-t2:.3f}, pub_img={t4-t3:.3f}, "
+                + f"pub_info={t5-t4:.3f}, detected={len(detected_balls)} balls"
+            )
+
         return None
 
 
