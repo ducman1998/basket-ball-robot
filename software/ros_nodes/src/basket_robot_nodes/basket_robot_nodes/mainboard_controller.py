@@ -4,6 +4,7 @@ from typing import Optional
 import rclpy
 from basket_robot_nodes.utils.feedback import FeedbackSerial
 from basket_robot_nodes.utils.robot_motion import OmniMotionRobot
+from basket_robot_nodes.utils.ros_utils import log_initialized_parameters
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
@@ -29,35 +30,17 @@ class MainboardController(Node):
         # create a timer to keep the node alive
         self.timer = self.create_timer(0.1, self.controller_placeholder_func)
         self.cmd_vel_sub = self.create_subscription(
-            TwistStamped, "cmd_vel", self.control_callback, QoSProfile(depth=10)
+            TwistStamped, "cmd_vel", self.control_callback, QoSProfile(depth=3)
         )
 
         self.timestamp = time.time()
 
         # Publisher for wheel positions
         self.wheel_pos_pub = self.create_publisher(
-            WheelPositions, "wheel_positions", QoSProfile(depth=10)
+            WheelPositions, "wheel_positions", QoSProfile(depth=3)
         )
         # for checking: log all initialized parameters
-        self.log_initialized_parameters()
-
-    def log_initialized_parameters(self) -> None:
-        """Fetches and logs all parameters initialized for this node."""
-
-        # Using an empty string prefix ('') retrieves ALL initialized parameters
-        all_params = self.get_parameters_by_prefix("")
-
-        if not all_params:
-            self.get_logger().warn("No parameters were initialized for this node.")
-            return
-
-        self.get_logger().info("--- Initialized parameters loaded from YAML file---")
-
-        for name, param in all_params.items():
-            # The value is accessed via the 'value' property of the rclpy.Parameter object
-            self.get_logger().info(f"  {name}: {param.value}")
-
-        self.get_logger().info("------------------------------")
+        log_initialized_parameters(self)
 
     @staticmethod
     def declare_common_parameters(node: Node) -> None:

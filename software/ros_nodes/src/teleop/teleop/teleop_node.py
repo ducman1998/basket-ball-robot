@@ -60,7 +60,7 @@ def main() -> None:
     settings = termios.tcgetattr(sys.stdin)  # save terminal settings
 
     rclpy.init()
-    qos = QoSProfile(depth=10)
+    qos = QoSProfile(depth=3)
     node = rclpy.create_node("teleop_keyboard")  # create ROS2 node
 
     pub = node.create_publisher(TwistStamped, "cmd_vel", qos)  # publisher for cmd_vel

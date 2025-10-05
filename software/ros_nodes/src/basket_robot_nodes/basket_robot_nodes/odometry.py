@@ -4,6 +4,7 @@ import numpy as np
 import rclpy
 import tf2_ros
 from basket_robot_nodes.utils.robot_motion import OmniMotionRobot
+from basket_robot_nodes.utils.ros_utils import log_initialized_parameters
 from geometry_msgs.msg import Quaternion, TransformStamped
 from nav_msgs.msg import Odometry
 from numpy.typing import NDArray
@@ -63,11 +64,13 @@ class OdometryNode(Node):
         self.y: float = 0.0
         self.yaw: float = 0.0
 
-        self.odom_pub = self.create_publisher(Odometry, ODOM_FRAME_ID, QoSProfile(depth=10))
+        self.odom_pub = self.create_publisher(Odometry, ODOM_FRAME_ID, QoSProfile(depth=3))
         self.sub = self.create_subscription(
-            WheelPositions, "wheel_positions", self.wheel_callback, QoSProfile(depth=10)
+            WheelPositions, "wheel_positions", self.wheel_callback, QoSProfile(depth=3)
         )
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
+        # for checking: log all initialized parameters
+        log_initialized_parameters(self)
 
     def publish_tf(self, x: float, y: float, yaw: float, stamp: float) -> None:
         t = TransformStamped()
