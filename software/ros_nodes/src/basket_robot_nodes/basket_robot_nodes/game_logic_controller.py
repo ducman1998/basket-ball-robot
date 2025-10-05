@@ -115,6 +115,7 @@ class GameLogicController(Node):
         """Main game logic loop, called periodically by a timer."""
         # Implement game logic here
         # For example, decide on robot movement based on state and sensor data
+        start_time = time()
         if self.cur_state == GameState.INIT:
             self.handle_init_state()
 
@@ -129,14 +130,17 @@ class GameLogicController(Node):
 
         vx, vy, wz, thrower_percent = 0.0, 0.0, 0.0, 0  # Example values
         self.move_robot(vx, vy, wz, thrower_percent)
+        end_time = time()
+        self.get_logger().info(f"Game logic loop took {end_time - start_time:.4f} seconds.")
 
+    # state handlers
     def handle_init_state(self) -> None:
         self.get_logger().info("Game State: INIT")
         for _ in range(3):
             self.move_robot(0.0, 0.0, 0.0, 0)  # stop robot
-        self.start_angle = 0.0  # reset start angle
+
         if self.odom_msg:
-            yaw = self.yaw_from_odom()  # yaw is always not None here
+            yaw = self.yaw_from_odom(self.odom_msg)  # yaw is always not None here
             self.start_angle = yaw
             self.cummulative_rotation = 0.0
             self.get_logger().info(f"Starting angle set to {self.start_angle:.2f} degrees.")
@@ -153,11 +157,14 @@ class GameLogicController(Node):
             self.move_robot(0.0, 0.0, 0.0, 0)  # stop rotation
             self.cur_state = GameState.REACHING_BALL
             self.get_logger().info("Ball detected! Transitioning to REACHING_BALL state.")
+            return None
 
         # If no ball detected after a full rotation, transition to END state
-        yaw_now = self.yaw_from_odom()
-        if yaw_now is not None and self.start_angle is not None:
-            self.cummulative_rotation += yaw_now - self.start_angle
+        yaw_now = self.yaw_from_odom(self.odom_msg)
+        if self.start_angle is None:
+            raise ValueError("start_angle should have been set in INIT state.")
+
+        self.cummulative_rotation += yaw_now - self.start_angle
         if abs(self.cummulative_rotation) >= 360.0:
             self.move_robot(0.0, 0.0, 0.0, 0)  # stop rotation
             self.cur_state = GameState.END
@@ -171,20 +178,32 @@ class GameLogicController(Node):
                 self.image_info_msg.detected_balls,
                 key=lambda b: math.hypot(*b.position_2d) if b.position_2d else float("inf"),
             )
-            # transformation matrix from the ball's pose to robot footprint frame
+            ball_pos = closet_ball.position_2d
+            # if close enough to the ball, stop
+            if math.hypot(ball_pos[0], ball_pos[1]) <= 100.0 and math.atan2(
+                ball_pos[0], ball_pos[1]
+            ) <= math.radians(5):
+                self.get_logger().info(
+                    "Reached the ball! Stopping and returning to SEARCHING_BALL state."
+                )
+                self.cur_state = GameState.END
+                self.reset_to_search_state()
+                return None
+
+            # transformation matrix from the ball frame to robot base_footprint frame
             x_desired = np.eye(4)
-            heading_error = -math.atan2(closet_ball.position_2d[0], closet_ball.position_2d[1])
+            heading_error = -math.atan2(ball_pos[0], ball_pos[1])
             x_desired[0, :3] = [
                 np.cos(heading_error),
                 -np.sin(heading_error),
                 0.0,
-                closet_ball.position_2d[0],
+                ball_pos[0],
             ]
             x_desired[1, :3] = [
                 np.sin(heading_error),
                 np.cos(heading_error),
                 0.0,
-                closet_ball.position_2d[1],
+                ball_pos[1],
             ]
             x_desired[2, :3] = [0.0, 0.0, 1.0, 0.0]
             x_desired[3, :3] = [0.0, 0.0, 0.0, 1.0]
@@ -193,21 +212,6 @@ class GameLogicController(Node):
             vx_error = xe_vec[3]  # velocity error in x
             vy_error = xe_vec[4]  # velocity error in y
             wz_error = xe_vec[2]  # angular velocity error in z
-
-            # if close enough to the ball, stop
-            if math.hypot(
-                closet_ball.position_2d[0], closet_ball.position_2d[1]
-            ) <= 100.0 and math.atan2(
-                closet_ball.position_2d[0], closet_ball.position_2d[1]
-            ) <= math.radians(
-                5
-            ):
-                self.get_logger().info(
-                    "Reached the ball! Stopping and returning to SEARCHING_BALL state."
-                )
-                self.cur_state = GameState.END
-                self.reset_to_search_state()
-                return
 
             # PD control
             vx = np.clip(
@@ -235,17 +239,21 @@ class GameLogicController(Node):
             self.move_robot(vx, vy, wz, 0)
             self.get_logger().info(
                 f"Moving towards ball: vx={vx:.2f}, vy={vy:.2f}, wz={wz:.2f}, "
-                f"pos=({closet_ball.position_2d[0]:.1f}, {closet_ball.position_2d[1]:.1f})mm"
+                f"pos=({ball_pos[0]:.1f}, {ball_pos[1]:.1f})mm"
             )
 
         else:
             self.get_logger().info("Lost sight of the ball. Returning to SEARCHING_BALL state.")
             self.reset_to_search_state()
             self.cur_state = GameState.SEARCHING_BALL
-            return
+            return None
 
     def handle_end_state(self) -> None:
         self.get_logger().info("Game State: END")
+        self.reset_to_search_state()
+        self.move_robot(0.0, 0.0, 0.0, 0)  # stop robot
+        exit(0)
+        # Game over, do nothing or reset
 
     def move_robot(self, vx: float, vy: float, wz: float, thrower_percent: int) -> None:
         """Send velocity commands to the robot."""
@@ -261,14 +269,15 @@ class GameLogicController(Node):
         out.thrower_percent = int(thrower_percent)
         self.mainboard_controller_pub.publish(out)
 
-    def yaw_from_odom(self) -> Optional[float]:
+    def yaw_from_odom(self, odom_msg: Odometry) -> float:
         """Extract yaw angle in degrees from odometry message."""
-        if self.odom_msg:
-            quat = self.odom_msg.pose.pose.orientation
-            yaw_rad = 2.0 * math.atan2(quat.z, quat.w)
-            yaw_deg = math.degrees(yaw_rad)
-            return yaw_deg
-        return None
+        if not odom_msg:
+            raise ValueError("No odometry message available.")
+
+        quat = odom_msg.pose.pose.orientation
+        yaw_rad = 2.0 * math.atan2(quat.z, quat.w)
+        yaw_deg = math.degrees(yaw_rad)
+        return yaw_deg
 
     def reset_to_search_state(self) -> None:
         """Reset variables to prepare for searching state."""
