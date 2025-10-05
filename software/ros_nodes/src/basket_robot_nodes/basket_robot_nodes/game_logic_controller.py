@@ -74,6 +74,9 @@ class GameLogicController(Node):
         self.prev_wz_error: float = 0.0
         # END: stop
 
+        # reusable control msg
+        self.control_msg = TwistStamped()
+
     def _declare_node_parameter(self) -> None:
         """Declare parameters with descriptors."""
         float_descriptor = ParameterDescriptor(
@@ -257,17 +260,16 @@ class GameLogicController(Node):
 
     def move_robot(self, vx: float, vy: float, wz: float, thrower_percent: int) -> None:
         """Send velocity commands to the robot."""
-        out = TwistStamped()
-        out.header.stamp = Clock().now().to_msg()
-        out.header.frame_id = "base_footprint"
-        out.twist.linear.y = float(vx)
-        out.twist.linear.x = float(vy)
-        out.twist.linear.z = 0.0
-        out.twist.angular.x = 0.0
-        out.twist.angular.y = 0.0
-        out.twist.angular.z = float(wz)
-        out.thrower_percent = int(thrower_percent)
-        self.mainboard_controller_pub.publish(out)
+        self.control_msg.header.stamp = Clock().now().to_msg()
+        self.control_msg.header.frame_id = "base_footprint"
+        self.control_msg.twist.linear.y = float(vx)
+        self.control_msg.twist.linear.x = float(vy)
+        self.control_msg.twist.linear.z = 0.0
+        self.control_msg.twist.angular.x = 0.0
+        self.control_msg.twist.angular.y = 0.0
+        self.control_msg.twist.angular.z = float(wz)
+        self.control_msg.thrower_percent = int(thrower_percent)
+        self.mainboard_controller_pub.publish(self.control_msg)
 
     def yaw_from_odom(self, odom_msg: Odometry) -> float:
         """Extract yaw angle in degrees from odometry message."""
