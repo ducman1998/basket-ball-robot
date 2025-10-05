@@ -144,12 +144,9 @@ def _draw_ball(vis: np.ndarray, c: np.ndarray, ball: GreenBall) -> None:
     cv2.circle(vis, (cx, cy), r, (0, 255, 0), 2)
     cv2.circle(vis, (cx, cy), 3, (255, 0, 0), -1)
     cv2.drawContours(vis, [c], -1, (255, 0, 0), 2)
-    if ball.position_2d is None:
-        label = f"r={r}px, pos=N/A, A={int(ball.area)}"
-    else:
-        x, y = ball.position_2d
-        x_cm, y_cm = round(x / 10, 1), round(y / 10, 1)  # convert mm to cm
-        label = f"r={r}px, pos=({x_cm},{y_cm})cm, A={int(ball.area)}"
+    x, y = ball.position_2d
+    x_cm, y_cm = round(x / 10, 1), round(y / 10, 1)  # convert mm to cm
+    label = f"r={r}px, pos=({x_cm},{y_cm})cm, A={int(ball.area)}"
     org = (max(0, cx - r), max(15, cy - r - 5))
     cv2.putText(vis, label, org, cv2.FONT_HERSHEY_SIMPLEX, 0.75, (10, 10, 10), 3, cv2.LINE_AA)
     cv2.putText(vis, label, org, cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 1, cv2.LINE_AA)
