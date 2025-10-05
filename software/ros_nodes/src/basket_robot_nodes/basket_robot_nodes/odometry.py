@@ -56,6 +56,8 @@ class OdometryNode(Node):
 
         # Set up kinematics controller
         self.controller_kin: OmniMotionRobot = MainboardController.init_ommi_controller(self)
+        # for checking: log all initialized parameters
+        log_initialized_parameters(self)
 
         self.last_pos: Optional[np.ndarray] = None
         self.last_time: Optional[float] = None
@@ -69,8 +71,6 @@ class OdometryNode(Node):
             WheelPositions, "wheel_positions", self.wheel_callback, QoSProfile(depth=3)
         )
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
-        # for checking: log all initialized parameters
-        log_initialized_parameters(self)
 
     def publish_tf(self, x: float, y: float, yaw: float, stamp: float) -> None:
         t = TransformStamped()

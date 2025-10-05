@@ -6,6 +6,7 @@ import modern_robotics as mr
 import numpy as np
 import rclpy
 from basket_robot_nodes.utils.image_info import GreenBall, ImageInfo
+from basket_robot_nodes.utils.ros_utils import log_initialized_parameters
 from nav_msgs.msg import Odometry
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from rclpy.clock import Clock
@@ -31,9 +32,11 @@ class GameLogicController(Node):
         # Initialize the Game Logic Controller node
         super().__init__("game_logic_controller")
         # declare parameters
-        self.declare_node_parameter()
+        self._declare_node_parameter()
         # read parameters
-        self.read_node_parameters()
+        self._read_node_parameters()
+        # for checking: log all initialized parameters
+        log_initialized_parameters(self)
 
         # init subscribers and publishers
         self.odom_sub = self.create_subscription(
@@ -71,7 +74,7 @@ class GameLogicController(Node):
         self.prev_wz_error: float = 0.0
         # END: stop
 
-    def declare_node_parameter(self) -> None:
+    def _declare_node_parameter(self) -> None:
         """Declare parameters with descriptors."""
         float_descriptor = ParameterDescriptor(
             type=ParameterType.PARAMETER_DOUBLE, description="A floating point parameter."
@@ -84,7 +87,7 @@ class GameLogicController(Node):
         self.declare_parameter("kp_rot", descriptor=float_descriptor)
         self.declare_parameter("kd_rot", descriptor=float_descriptor)
 
-    def read_node_parameters(self) -> None:
+    def _read_node_parameters(self) -> None:
         """Read parameters into class variables."""
         self.max_rot = self.get_parameter("max_rot_speed").get_parameter_value().double_value
         self.max_xy = self.get_parameter("max_xy_speed").get_parameter_value().double_value
