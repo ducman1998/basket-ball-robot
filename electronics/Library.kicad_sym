@@ -4153,15 +4153,6 @@
 				(hide yes)
 			)
 		)
-		(property "ki_fp_filters" "Choke_* *Coil* Inductor_* L_*"
-			(at 0 0 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
 		(symbol "L_0_1"
 			(arc
 				(start 0 2.54)

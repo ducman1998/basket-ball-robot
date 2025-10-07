@@ -1,0 +1,130 @@
+(footprint "SRP4021HMCT-1R5M_custom"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "Inductor, Bourns, SRP6060FA, 6.4x6.6x5.8mm, (https://www.bourns.com/docs/Product-Datasheets/SRP6060FA.pdf), generated with kicad-footprint-generator gen_inductor.py")
+	(tags "power shielded")
+	(property "Reference" "REF**"
+		(at 0 -4.25 0)
+		(layer "F.SilkS")
+		(uuid "586eff97-82b2-4340-baa9-a2ea151f8b21")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "1.5u"
+		(at 0 4.25 0)
+		(layer "F.Fab")
+		(uuid "461039c9-f637-41d7-970e-86b3c1dd5105")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" "~"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "751bec71-d159-47aa-b0a0-080ffcc5a97f")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "Inductor"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "51c3391b-7123-4046-b6be-18c4a8d6838f")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_line
+		(start -3.31 3.41)
+		(end -3.31 -3.41)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "dc1bc6f0-3c83-4c7a-8453-e354cb2d2eb3")
+	)
+	(fp_line
+		(start 3.31 -3.45)
+		(end -3.31 -3.45)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "778dbb94-c81c-4d93-a0b8-8e6b11c89212")
+	)
+	(fp_line
+		(start 3.31 -3.41)
+		(end 3.31 3.41)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "c8a423bb-4e25-43b1-8495-dee73bce12e0")
+	)
+	(fp_line
+		(start 3.31 3.41)
+		(end -3.31 3.41)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "dcd03a4d-d8b5-4ecd-a809-40966c2ddc8c")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(uuid "b97d51f6-42f2-46c5-b75f-bc96d5137038")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" smd rect
+		(at -1.725 0)
+		(size 1.5 3.5)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "22f3db73-2511-4054-8f0a-0d40e7784cba")
+	)
+	(pad "2" smd rect
+		(at 1.975 0)
+		(size 1.5 3.5)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "0eac2cb0-bab6-4853-a076-3d829b55901d")
+	)
+	(embedded_fonts no)
+	(model "${KICAD9_3DMODEL_DIR}/Inductor_SMD.3dshapes/L_Bourns_SRP6060FA.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)
