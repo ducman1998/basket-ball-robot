@@ -188,7 +188,7 @@ class GameLogicController(Node):
             # if close enough to the ball, stop
             # 350mm distance threshold (robot center to the ball)
             distance_check = math.hypot(ball_pos[0], ball_pos[1]) <= 350.0  
-            angle_check = abs(math.atan2(ball_pos[0], ball_pos[1])) <= math.radians(3)  # 5 degrees
+            angle_check = abs(math.atan2(ball_pos[0], ball_pos[1])) <= math.radians(3)  # 3 degrees
             if distance_check and angle_check:
                 self.get_logger().info(
                     "Reached the ball! Stopping and returning to SEARCHING_BALL state."
