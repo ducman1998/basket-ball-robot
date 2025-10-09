@@ -20,7 +20,7 @@ shared_robot_setting:
     encoder_resolution: 64       # ticks per motor shaft revolution
     pid_control_freq: 100         # Hz
     max_rot_speed: 1.25    # rad/s
-    max_xy_speed: 0.25     # m/s # max linear speed in x and y direction
+    max_xy_speed: 0.5     # m/s # max linear speed in x and y direction
     baudrate: 115200
     polarity: 1  # set to -1 if motors spin in reverse
     serial_timeout: 0.05  # seconds
@@ -38,6 +38,6 @@ image_processor_setting:
 game_logic_controller:
   search_ball_rot_speed: 1.25  # rad/s
   kp_xy: 0.5  # proportional gain for linear velocity
-  kp_rot: 2.0  # proportional gain for angular velocity
+  kp_rot: 1.0  # proportional gain for angular velocity
   kd_xy: 0.001  # derivative gain for linear velocity
   kd_rot: 0.001  # derivative gain for angular velocity

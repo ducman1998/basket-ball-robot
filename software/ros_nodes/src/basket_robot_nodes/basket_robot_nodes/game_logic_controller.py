@@ -247,7 +247,7 @@ class GameLogicController(Node):
             self.prev_vy_error = vy_error
             self.prev_wz_error = wz_error
             # move the robot towards the ball
-            self.move_robot(vx, vy, 0.0, 0)
+            self.move_robot(vx, vy, wz, 0, normalize=True)
             self.get_logger().info(
                 f"Moving towards ball: vx={vx:.2f}, vy={vy:.2f}, wz={wz:.2f}, "
                 f"pos=({ball_pos[0]:.1f}, {ball_pos[1]:.1f})mm"
@@ -266,8 +266,16 @@ class GameLogicController(Node):
         # Game over, exit the programe here
         exit(0)
 
-    def move_robot(self, vx: float, vy: float, wz: float, thrower_percent: int) -> None:
+    def move_robot(
+        self, vx: float, vy: float, wz: float, thrower_percent: int, normalize: bool = False
+    ) -> None:
         """Send velocity commands to the robot."""
+        if normalize:
+            if np.linalg.norm([vx, vy]) > self.max_xy:
+                scale = self.max_xy / np.linalg.norm([vx, vy])
+                vx *= scale
+                vy *= scale
+
         self.control_msg.header.stamp = Clock().now().to_msg()
         self.control_msg.header.frame_id = BASE_FRAME_ID
         self.control_msg.twist.linear.x = float(vx)
