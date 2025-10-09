@@ -6,9 +6,10 @@
 	(descr "Wire Pad, Square, SMD Pad,  3mm x 6mm")
 	(tags "MeasurementPoint Square SMDPad 3mmx6mm ")
 	(property "Reference" "REF**"
-		(at 3.4 -4.15 0)
+		(at 4.4 -4.15 0)
 		(layer "F.SilkS")
-		(uuid "7cfd2f0a-4201-4b3b-9c0c-5ff4fb9707a6")
+		(hide yes)
+		(uuid "ebec9e37-65a2-41df-b824-88eff93d6a2f")
 		(effects
 			(font
 				(size 1 1)
@@ -17,9 +18,9 @@
 		)
 	)
 	(property "Value" "Conn_01x02_Socket"
-		(at 0 2.54 0)
+		(at -0.6 10.6 0)
 		(layer "F.Fab")
-		(uuid "49a2d8d7-96ab-4071-a6d2-0583be29afea")
+		(uuid "cb059487-ee23-4ab8-b8d2-f95c1374f9af")
 		(effects
 			(font
 				(size 1 1)
@@ -31,7 +32,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "3805cc2d-5233-4c8b-8362-81a5d394dc33")
+		(uuid "5f2bb725-5bfa-465b-8a80-3527e3ca2b19")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -43,7 +44,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "d02c331c-274d-4b8a-9d55-b41941208dd9")
+		(uuid "c2fb0ffa-0de3-44c5-abb5-146ca4b2469e")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -53,7 +54,7 @@
 	)
 	(attr exclude_from_pos_files)
 	(fp_rect
-		(start -1.75 -3.25)
+		(start -1.75 -1.35)
 		(end 1.75 3.25)
 		(stroke
 			(width 0.05)
@@ -61,21 +62,21 @@
 		)
 		(fill no)
 		(layer "F.CrtYd")
-		(uuid "d8482c62-25b5-4772-abbd-a922248397a9")
+		(uuid "7c7b216e-1074-4bde-b559-cfd5d02e8fe5")
 	)
 	(fp_rect
-		(start 4.25 -3.25)
-		(end 7.75 3.25)
+		(start 8.15 -1.35)
+		(end 11.65 3.25)
 		(stroke
 			(width 0.05)
 			(type solid)
 		)
 		(fill no)
 		(layer "F.CrtYd")
-		(uuid "fd64288d-3e1c-4c5d-9d72-1495040f63b0")
+		(uuid "b187f179-3c41-4a56-97f5-0b104b01e09a")
 	)
 	(fp_rect
-		(start -1.65 -3.15)
+		(start -1.65 -1.35)
 		(end 1.65 3.15)
 		(stroke
 			(width 0.1)
@@ -83,23 +84,23 @@
 		)
 		(fill no)
 		(layer "F.Fab")
-		(uuid "ab845d85-88b3-41c9-a8e9-281551769c08")
+		(uuid "d70f5409-8260-490d-a3c8-cfcc13d78631")
 	)
 	(fp_rect
-		(start 4.35 -3.15)
-		(end 7.65 3.15)
+		(start 8.25 -1.35)
+		(end 11.55 3.15)
 		(stroke
 			(width 0.1)
 			(type solid)
 		)
 		(fill no)
 		(layer "F.Fab")
-		(uuid "ba0b1cfd-ef4c-409c-b564-25da4fe79d3a")
+		(uuid "fbdc242c-aad7-4526-b23f-d4301440e3ba")
 	)
 	(fp_text user "${REFERENCE}"
-		(at 0 0 0)
+		(at 1.8 11.7 0)
 		(layer "F.Fab")
-		(uuid "4aa27e32-8745-4758-943d-b545d5f720dc")
+		(uuid "47016e76-7197-4557-b477-5cd5b03cc0c2")
 		(effects
 			(font
 				(size 1 1)
@@ -112,14 +113,14 @@
 		(size 3 4)
 		(layers "F.Cu" "F.Mask")
 		(roundrect_rratio 0.25)
-		(uuid "e3134585-4d9e-4ffc-9900-637c2b520ef0")
+		(uuid "b69a8ad7-c507-40d1-a0d2-8a15725dd63b")
 	)
 	(pad "2" smd roundrect
-		(at 6 1)
+		(at 9.9 1)
 		(size 3 4)
 		(layers "F.Cu" "F.Mask")
 		(roundrect_rratio 0.25)
-		(uuid "0fd43dfc-df98-48a9-87c2-d91c2f4074d4")
+		(uuid "44114a6b-a0fe-441a-acba-8f08b3bc3eb4")
 	)
 	(embedded_fonts no)
 )
