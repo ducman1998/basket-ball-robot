@@ -860,7 +860,7 @@
 				)
 			)
 		)
-		(property "Footprint" "ProLib_pcs_2025-09-19:CONN-TH_4P-P2.54-S2.54_L5.2-W7.1"
+		(property "Footprint" "Library:TE_Micro-MaTch_215079-4_2x02_P1.27mm_Vertical"
 			(at -4.064 -11.176 0)
 			(effects
 				(font

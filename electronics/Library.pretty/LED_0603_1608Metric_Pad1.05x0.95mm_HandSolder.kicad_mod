@@ -8,7 +8,7 @@
 	(property "Reference" "REF**"
 		(at 0 -1.43 0)
 		(layer "F.SilkS")
-		(uuid "98f50543-2592-42b8-881e-f4eac4425b6a")
+		(uuid "2fe2448b-afad-4ec8-bc11-0ee8cb9e8d66")
 		(effects
 			(font
 				(size 1 1)
@@ -19,7 +19,7 @@
 	(property "Value" "RF-WUB190DS-DD"
 		(at 0 1.43 0)
 		(layer "F.Fab")
-		(uuid "32a529dc-51a6-456e-9e66-7c333f42376e")
+		(uuid "f61874e7-5fbb-4d59-8de4-106a437270b5")
 		(effects
 			(font
 				(size 1 1)
@@ -31,7 +31,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "617b3c54-ecfb-4473-ab0c-f05250f78a51")
+		(uuid "cb39ae06-9334-44c8-8557-be31646b2d9b")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -43,7 +43,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "ba9d7dfa-95f1-4d97-a832-572a87591a67")
+		(uuid "31df2d74-b502-4ebb-9b72-bad45c56fdc9")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -56,7 +56,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "fe6e3556-386f-4fcc-a8ba-be64f544e342")
+		(uuid "2d04c083-fa6f-4ec0-a42c-f9d620fcef1c")
 		(effects
 			(font
 				(size 1 1)
@@ -73,7 +73,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "b5ed1451-5111-4238-92fc-98002c327eab")
+		(uuid "fd3d2e03-a5f1-4d03-a949-f118615bde72")
 	)
 	(fp_line
 		(start -1.66 0.735)
@@ -83,7 +83,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "71b3affb-a269-4053-8c57-b92d2f057827")
+		(uuid "69b5eeb4-a3b0-4355-9eb9-6b7121bf1808")
 	)
 	(fp_line
 		(start 0.8 -0.735)
@@ -93,7 +93,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "e9c79801-d28a-4ece-bd9f-adabadb82baa")
+		(uuid "050e73d6-02de-4af1-aac2-edba5f69e3be")
 	)
 	(fp_line
 		(start -1.65 -0.73)
@@ -103,7 +103,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "93c976cd-e5b7-4b57-9a50-5c7e8871a74e")
+		(uuid "86cccc9f-cff2-4a70-ba67-90c47f5b92cf")
 	)
 	(fp_line
 		(start -1.65 0.73)
@@ -113,7 +113,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "a9ef8f5a-ec56-485d-becc-6eb57869831e")
+		(uuid "ad506c5c-fa61-4c43-95f2-43e241007218")
 	)
 	(fp_line
 		(start 1.65 -0.73)
@@ -123,7 +123,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "7c5b2218-24b4-4930-abda-e8d3f3bbdf37")
+		(uuid "28833264-bd15-40f9-bbd6-4d249c2ea073")
 	)
 	(fp_line
 		(start 1.65 0.73)
@@ -133,7 +133,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "c7e71421-155c-4f70-9a72-0887402bfd6c")
+		(uuid "71338b09-6b8d-44ea-8f82-9022691b079a")
 	)
 	(fp_line
 		(start -0.8 -0.1)
@@ -143,7 +143,7 @@
 			(type solid)
 		)
 		(layer "F.Fab")
-		(uuid "636f4b22-6cac-4cad-a44e-3843ef7e0204")
+		(uuid "67800fa1-e999-4103-9df8-f27568f3ed1d")
 	)
 	(fp_line
 		(start -0.8 0.4)
@@ -153,7 +153,7 @@
 			(type solid)
 		)
 		(layer "F.Fab")
-		(uuid "3d284b3b-900e-43b8-a63e-f6c92475c291")
+		(uuid "30efd1f1-4a45-4160-a061-f03c65822ee9")
 	)
 	(fp_line
 		(start -0.5 -0.4)
@@ -163,7 +163,7 @@
 			(type solid)
 		)
 		(layer "F.Fab")
-		(uuid "774e40e1-7314-4564-969e-4ca0feae702b")
+		(uuid "17bf6475-89dc-4b0d-9f51-9e31c662f2c7")
 	)
 	(fp_line
 		(start 0.8 -0.4)
@@ -173,7 +173,7 @@
 			(type solid)
 		)
 		(layer "F.Fab")
-		(uuid "4c74ab27-6f56-4cd3-b4f7-8c952d07db15")
+		(uuid "f4bf0018-8d8b-4543-aeac-6614c07ffb2e")
 	)
 	(fp_line
 		(start 0.8 0.4)
@@ -183,12 +183,12 @@
 			(type solid)
 		)
 		(layer "F.Fab")
-		(uuid "43b5c01f-8230-4824-8924-dd5e97e91723")
+		(uuid "82c4a150-206b-4721-9434-2f61c3a70329")
 	)
 	(fp_text user "${REFERENCE}"
 		(at 0 0 0)
 		(layer "F.Fab")
-		(uuid "d24e2e2a-7d6e-4ee2-9925-c152814752a1")
+		(uuid "ebb06c16-57d1-4a0b-a663-ec079200ffed")
 		(effects
 			(font
 				(size 0.4 0.4)
@@ -201,14 +201,14 @@
 		(size 1.05 0.95)
 		(layers "F.Cu" "F.Mask" "F.Paste")
 		(roundrect_rratio 0.25)
-		(uuid "04c89b1f-4689-45f7-8f72-78040cd3e95f")
+		(uuid "a023d42a-6484-4a96-803a-d274d8740e9f")
 	)
 	(pad "2" smd roundrect
 		(at 0.875 0)
 		(size 1.05 0.95)
 		(layers "F.Cu" "F.Mask" "F.Paste")
 		(roundrect_rratio 0.25)
-		(uuid "3dbfbffe-a33d-4463-bcef-8efbbd3b0cd5")
+		(uuid "b002d9eb-c62e-4c3a-80ff-788cc2d71bf6")
 	)
 	(embedded_fonts no)
 	(model "${KICAD9_3DMODEL_DIR}/LED_SMD.3dshapes/LED_0603_1608Metric.step"

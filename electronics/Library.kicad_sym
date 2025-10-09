@@ -3401,7 +3401,7 @@
 				(alternate "UCPD1_FRSTX1" bidirectional line)
 				(alternate "UCPD1_FRSTX2" bidirectional line)
 			)
-			(pin no_connect line
+			(pin passive line
 				(at -12.7 -6.35 0)
 				(length 2.54)
 				(name "PB3"

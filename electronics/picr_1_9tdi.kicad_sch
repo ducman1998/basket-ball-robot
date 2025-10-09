@@ -2558,7 +2558,7 @@
 					(alternate "UCPD1_FRSTX1" bidirectional line)
 					(alternate "UCPD1_FRSTX2" bidirectional line)
 				)
-				(pin no_connect line
+				(pin passive line
 					(at -12.7 -6.35 0)
 					(length 2.54)
 					(name "PB3"
@@ -11072,6 +11072,16 @@
 	)
 	(wire
 		(pts
+			(xy 321.31 185.42) (xy 326.39 185.42)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fd55aea4-dc2e-4be4-be4b-bc9fbcb61adb")
+	)
+	(wire
+		(pts
 			(xy 29.21 328.93) (xy 29.21 331.47)
 		)
 		(stroke
@@ -11119,16 +11129,6 @@
 			(type default)
 		)
 		(uuid "ffa39c40-b48c-4f25-a902-b7ef4a586a87")
-	)
-	(label "VUSB"
-		(at 191.77 139.7 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "050ce129-6689-4309-afc1-59e9efab760f")
 	)
 	(label "E_M3_A"
 		(at 435.61 308.61 180)
@@ -11289,6 +11289,16 @@
 			(justify left bottom)
 		)
 		(uuid "2b6e8dc4-411c-43c8-9df1-311ba89f1a02")
+	)
+	(label "MCU_LED"
+		(at 191.77 139.7 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "2de65ef3-389a-4e4f-a087-cddda920c525")
 	)
 	(label "M_NSLEEP_O"
 		(at 57.15 316.23 180)
@@ -12079,6 +12089,16 @@
 			(justify right bottom)
 		)
 		(uuid "f6287866-760e-45f1-80b0-ec59ec0a5bee")
+	)
+	(label "MCU_LED"
+		(at 321.31 185.42 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "f7062f96-70a5-4d59-868e-2ee30b0595bc")
 	)
 	(label "VUSB"
 		(at 124.46 143.51 180)
