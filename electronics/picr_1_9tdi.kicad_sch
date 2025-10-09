@@ -5892,7 +5892,7 @@
 		)
 		(uuid "25c78daa-f927-42e4-88f1-c27bec162a01")
 	)
-	(text "TX (IR LED 3mm)"
+	(text "TO IR TX (IR LED 3mm)"
 		(exclude_from_sim no)
 		(at 480.314 333.756 0)
 		(effects
@@ -5931,6 +5931,16 @@
 			)
 		)
 		(uuid "41ba4fb8-db3f-43d2-a5bd-5231ccab6505")
+	)
+	(text "gpio_input"
+		(exclude_from_sim no)
+		(at 311.404 176.784 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "4bcf76f4-41e2-4acc-ad34-f271a0576744")
 	)
 	(text "GRABBER SERVO"
 		(exclude_from_sim no)
@@ -6094,7 +6104,7 @@
 	)
 	(text "TX (IR LED)"
 		(exclude_from_sim no)
-		(at 146.812 139.954 0)
+		(at 144.526 138.684 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -6102,9 +6112,9 @@
 		)
 		(uuid "c037403b-7500-4d57-a11a-3fa4fe5d387e")
 	)
-	(text "RX (IS471FE)"
+	(text "FROM IR RX (IS471FE)"
 		(exclude_from_sim no)
-		(at 436.626 332.994 0)
+		(at 440.944 332.994 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8792,7 +8802,7 @@
 	)
 	(wire
 		(pts
-			(xy 436.88 342.9) (xy 436.88 349.25)
+			(xy 435.61 342.9) (xy 435.61 349.25)
 		)
 		(stroke
 			(width 0)
@@ -9632,6 +9642,16 @@
 	)
 	(wire
 		(pts
+			(xy 435.61 342.9) (xy 436.88 342.9)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a561d84c-a2b5-48a1-8f19-4b7a77413c2f")
+	)
+	(wire
+		(pts
 			(xy 444.5 191.77) (xy 447.04 191.77)
 		)
 		(stroke
@@ -10332,7 +10352,7 @@
 	)
 	(wire
 		(pts
-			(xy 430.53 337.82) (xy 436.88 337.82)
+			(xy 425.45 337.82) (xy 436.88 337.82)
 		)
 		(stroke
 			(width 0)
@@ -10762,7 +10782,7 @@
 	)
 	(wire
 		(pts
-			(xy 430.53 340.36) (xy 436.88 340.36)
+			(xy 425.45 340.36) (xy 436.88 340.36)
 		)
 		(stroke
 			(width 0)
@@ -11781,7 +11801,7 @@
 		(uuid "b169ddb6-26b0-4564-95e7-c7eca1d2335f")
 	)
 	(label "VUSB"
-		(at 430.53 337.82 180)
+		(at 425.45 337.82 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -11971,7 +11991,7 @@
 		(uuid "d9f4741d-d631-4670-85ac-47bf876a9ec7")
 	)
 	(label "IR_RX"
-		(at 430.53 340.36 180)
+		(at 425.45 340.36 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -17773,7 +17793,7 @@
 	)
 	(symbol
 		(lib_id "Library:GND")
-		(at 436.88 349.25 0)
+		(at 435.61 349.25 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -17782,7 +17802,7 @@
 		(fields_autoplaced yes)
 		(uuid "8ce046b3-a6c7-49f5-be71-bfd4df47dc84")
 		(property "Reference" "#PWR035"
-			(at 436.88 355.6 0)
+			(at 435.61 355.6 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -17791,7 +17811,7 @@
 			)
 		)
 		(property "Value" "GND_MCU"
-			(at 436.88 354.33 0)
+			(at 435.61 354.33 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -17799,7 +17819,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 436.88 349.25 0)
+			(at 435.61 349.25 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -17808,7 +17828,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 436.88 349.25 0)
+			(at 435.61 349.25 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -17817,7 +17837,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 436.88 349.25 0)
+			(at 435.61 349.25 0)
 			(effects
 				(font
 					(size 1.27 1.27)
