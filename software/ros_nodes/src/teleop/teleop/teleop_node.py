@@ -81,7 +81,7 @@ def main() -> None:
     thrower_percent = 0.0
 
     try:
-        print(msg)
+        node.get_logger().info(msg)
         while rclpy.ok():
             key = get_key(settings)
 
@@ -122,7 +122,7 @@ def main() -> None:
                     break
 
             if status == 20:
-                print(msg)
+                node.get_logger().info(msg)
                 status = 0
 
             # Smooth
@@ -130,7 +130,7 @@ def main() -> None:
             ctrl_vx = make_simple_profile(ctrl_vx, target_vx, LIN_VEL_STEP_SIZE / 2.0)
             ctrl_wz = make_simple_profile(ctrl_wz, target_wz, ANG_VEL_STEP_SIZE / 2.0)
 
-            print_status(ctrl_vy, ctrl_vx, ctrl_wz, thrower_percent)
+            print_status(node, ctrl_vy, ctrl_vx, ctrl_wz, thrower_percent)
 
             # Publish (your custom TwistStamped has thrower_percent)
             out = TwistStamped()
@@ -147,9 +147,9 @@ def main() -> None:
             pub.publish(out)
 
     except (KeyboardInterrupt, EOFError):
-        print("Exiting...")
+        node.get_logger().info("Exiting...")
     except Exception as e:
-        print("Error:", e)
+        node.get_logger().info("Error:", e)
     finally:
         # Zero on exit
         out = TwistStamped()

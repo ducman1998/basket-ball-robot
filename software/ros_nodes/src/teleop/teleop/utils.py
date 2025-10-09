@@ -4,6 +4,8 @@ import termios
 import tty
 from typing import Any, List
 
+from rclpy.node import Node
+
 
 def get_key(settings: List[Any]) -> str:
     """
@@ -20,7 +22,7 @@ def get_key(settings: List[Any]) -> str:
     return key
 
 
-def print_status(vy: float, vx: float, wz: float, thrower_percent: float) -> None:
+def print_status(node: Node, vy: float, vx: float, wz: float, thrower_percent: float) -> None:
     """
     Inputs:
         vy: forward/backward speed
@@ -30,7 +32,9 @@ def print_status(vy: float, vx: float, wz: float, thrower_percent: float) -> Non
 
     Print the current control status.
     """
-    print(f"currently:\tvy {vy:.2f}\tvx {vx:.2f}\twz {wz:.2f}\tthrower {thrower_percent:.0f}%")
+    node.get_logger().info(
+        f"currently:\tvy {vy:.2f}\tvx {vx:.2f}\twz {wz:.2f}\tthrower {thrower_percent:.0f}%"
+    )
 
 
 def make_simple_profile(output_val: float, input_val: float, slop: float) -> float:
