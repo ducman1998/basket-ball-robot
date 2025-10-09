@@ -5,6 +5,7 @@ from typing import Optional
 import modern_robotics as mr
 import numpy as np
 import rclpy
+from basket_robot_nodes.utils.constant_utils import BASE_FRAME_ID
 from basket_robot_nodes.utils.image_info import GreenBall, ImageInfo
 from basket_robot_nodes.utils.ros_utils import log_initialized_parameters
 from nav_msgs.msg import Odometry
@@ -119,17 +120,20 @@ class GameLogicController(Node):
         # Implement game logic here
         # For example, decide on robot movement based on state and sensor data
         start_time = time()
-        if self.cur_state == GameState.INIT:
-            self.handle_init_state()
+        match self.cur_state:
+            case GameState.INIT:
+                self.handle_init_state()
 
-        elif self.cur_state == GameState.SEARCHING_BALL:
-            self.handle_searching_ball_state()
+            case GameState.SEARCHING_BALL:
+                self.handle_searching_ball_state()
 
-        elif self.cur_state == GameState.REACHING_BALL:
-            self.handle_reaching_ball_state()
+            case GameState.REACHING_BALL:
+                self.handle_reaching_ball_state()
 
-        else:  # GameState.END
-            self.handle_end_state()
+            case GameState.END:
+                self.handle_end_state()
+            case _:
+                raise RuntimeError("Unknown game state!")
 
         end_time = time()
         self.get_logger().info(f"Game logic loop took {end_time - start_time:.4f} seconds.")
@@ -187,7 +191,7 @@ class GameLogicController(Node):
             ball_pos = closet_ball.position_2d
             # if close enough to the ball, stop
             # 350mm distance threshold (robot center to the ball)
-            distance_check = math.hypot(ball_pos[0], ball_pos[1]) <= 350.0  
+            distance_check = math.hypot(ball_pos[0], ball_pos[1]) <= 350.0
             angle_check = abs(math.atan2(ball_pos[0], ball_pos[1])) <= math.radians(3)  # 3 degrees
             if distance_check and angle_check:
                 self.get_logger().info(
@@ -265,7 +269,7 @@ class GameLogicController(Node):
     def move_robot(self, vx: float, vy: float, wz: float, thrower_percent: int) -> None:
         """Send velocity commands to the robot."""
         self.control_msg.header.stamp = Clock().now().to_msg()
-        self.control_msg.header.frame_id = "base_footprint"
+        self.control_msg.header.frame_id = BASE_FRAME_ID
         self.control_msg.twist.linear.x = float(vx)
         self.control_msg.twist.linear.y = float(vy)
         self.control_msg.twist.linear.z = 0.0

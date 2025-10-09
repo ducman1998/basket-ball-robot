@@ -361,9 +361,9 @@ class OmniMotionRobot(IRobotMotion):
                 timestamp,
             ) = feedback_values
             return FeedbackSerial(
-                actual_s1,
-                actual_s2,
-                actual_s3,
+                int(actual_s1),
+                int(actual_s2),
+                int(actual_s3),
                 int(pos1),
                 int(pos2),
                 int(pos3),

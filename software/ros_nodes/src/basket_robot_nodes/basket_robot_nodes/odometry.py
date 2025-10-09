@@ -3,6 +3,7 @@ from typing import Optional
 import numpy as np
 import rclpy
 import tf2_ros
+from basket_robot_nodes.utils.constant_utils import BASE_FRAME_ID, ODOM_FRAME_ID
 from basket_robot_nodes.utils.robot_motion import OmniMotionRobot
 from basket_robot_nodes.utils.ros_utils import log_initialized_parameters
 from geometry_msgs.msg import Quaternion, TransformStamped
@@ -14,9 +15,6 @@ from shared_interfaces.msg import WheelPositions
 from std_msgs.msg import Header
 
 from .mainboard_controller import MainboardController
-
-ODOM_FRAME_ID = "odom"
-BASE_FRAME_ID = "base_footprint"
 
 
 def euler_to_quaternion(yaw: float) -> Quaternion:

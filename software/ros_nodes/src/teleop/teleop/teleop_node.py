@@ -2,6 +2,7 @@
 This is a teleop keyboard node for ROS2. It is inspired by the package: turtlebot3_teleop
 Link: https://github.com/ROBOTIS-GIT/turtlebot3/tree/main/turtlebot3_teleop
 """
+
 import sys
 import termios
 
@@ -84,40 +85,41 @@ def main() -> None:
         while rclpy.ok():
             key = get_key(settings)
 
-            if key == "w":
-                target_vy = check_lin_limit(target_vy + LIN_VEL_STEP_SIZE, MAX_LIN_VEL)
-                status += 1
-            elif key == "x":
-                target_vy = check_lin_limit(target_vy - LIN_VEL_STEP_SIZE, MAX_LIN_VEL)
-                status += 1
-            elif key == "d":
-                target_vx = check_lin_limit(target_vx + LIN_VEL_STEP_SIZE, MAX_LIN_VEL)
-                status += 1
-            elif key == "a":
-                target_vx = check_lin_limit(target_vx - LIN_VEL_STEP_SIZE, MAX_LIN_VEL)
-                status += 1
-            elif key == "e":
-                # CW (negative)
-                target_wz = check_ang_limit(target_wz - ANG_VEL_STEP_SIZE, MAX_ANG_VEL)
-                status += 1
-            elif key == "q":
-                # CCW (positive)
-                target_wz = check_ang_limit(target_wz + ANG_VEL_STEP_SIZE, MAX_ANG_VEL)
-                status += 1
-            elif key in ("+", "="):
-                thrower_percent = constrain(
-                    thrower_percent + THROWER_STEP, THROWER_MIN, THROWER_MAX
-                )
-            elif key == "-":
-                thrower_percent = constrain(
-                    thrower_percent - THROWER_STEP, THROWER_MIN, THROWER_MAX
-                )
-            elif key in (" ", "s"):
-                target_vy = target_vx = target_wz = 0.0
-                ctrl_vy = ctrl_vx = ctrl_wz = 0.0
-                thrower_percent = 0.0
-            elif key == "\x03":  # CTRL-C
-                break
+            match key:
+                case "w":
+                    target_vy = check_lin_limit(target_vy + LIN_VEL_STEP_SIZE, MAX_LIN_VEL)
+                    status += 1
+                case "x":
+                    target_vy = check_lin_limit(target_vy - LIN_VEL_STEP_SIZE, MAX_LIN_VEL)
+                    status += 1
+                case "d":
+                    target_vx = check_lin_limit(target_vx + LIN_VEL_STEP_SIZE, MAX_LIN_VEL)
+                    status += 1
+                case "a":
+                    target_vx = check_lin_limit(target_vx - LIN_VEL_STEP_SIZE, MAX_LIN_VEL)
+                    status += 1
+                case "e":
+                    # CW (negative)
+                    target_wz = check_ang_limit(target_wz - ANG_VEL_STEP_SIZE, MAX_ANG_VEL)
+                    status += 1
+                case "q":
+                    # CCW (positive)
+                    target_wz = check_ang_limit(target_wz + ANG_VEL_STEP_SIZE, MAX_ANG_VEL)
+                    status += 1
+                case "+" | "=":
+                    thrower_percent = constrain(
+                        thrower_percent + THROWER_STEP, THROWER_MIN, THROWER_MAX
+                    )
+                case "-":
+                    thrower_percent = constrain(
+                        thrower_percent - THROWER_STEP, THROWER_MIN, THROWER_MAX
+                    )
+                case " " | "s":
+                    target_vy = target_vx = target_wz = 0.0
+                    ctrl_vy = ctrl_vx = ctrl_wz = 0.0
+                    thrower_percent = 0.0
+                case "\x03":  # CTRL-C
+                    break
 
             if status == 20:
                 print(msg)
@@ -133,6 +135,7 @@ def main() -> None:
             # Publish (your custom TwistStamped has thrower_percent)
             out = TwistStamped()
             out.header.stamp = Clock().now().to_msg()
+            # don't use BASE_FRAME_ID here to avoid dependency issues
             out.header.frame_id = "base_footprint"
             out.twist.linear.y = ctrl_vy
             out.twist.linear.x = ctrl_vx
