@@ -14047,7 +14047,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical"
+		(property "Footprint" "Library:PinHeader_1x03_P2.54mm_Vertical"
 			(at 505.46 242.57 0)
 			(effects
 				(font
@@ -14117,7 +14117,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-5"
+		(property "Footprint" "Library:SOT-23-5"
 			(at 207.01 232.41 0)
 			(effects
 				(font
@@ -15393,7 +15393,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_TO_SOT_SMD:SOT-583-8"
+		(property "Footprint" "Library:SOT-583-8"
 			(at 113.03 213.36 0)
 			(effects
 				(font
@@ -16024,7 +16024,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Inductor_SMD:SRP4021HMCT-1R5M_custom"
+		(property "Footprint" "Library:SRP4021HMCT-1R5M_custom"
 			(at 132.08 187.96 0)
 			(effects
 				(font
@@ -16595,7 +16595,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Connector_Wire:SolderWirePad_1x02_SMD_3x4mm"
+		(property "Footprint" "Library:SolderWirePad_1x02_SMD_3x4mm"
 			(at 542.29 337.82 0)
 			(effects
 				(font
@@ -17002,7 +17002,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical"
+		(property "Footprint" "Library:PinHeader_1x03_P2.54mm_Vertical"
 			(at 450.85 241.3 0)
 			(effects
 				(font
@@ -18731,7 +18731,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Connector_Wire:SolderWirePad_1x02_SMD_3x4mm"
+		(property "Footprint" "Library:SolderWirePad_1x02_SMD_3x4mm"
 			(at 35.56 193.04 0)
 			(effects
 				(font
@@ -19548,7 +19548,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Connector_Wire:SolderWirePad_1x02_SMD_3x4mm"
+		(property "Footprint" "Library:SolderWirePad_1x02_SMD_3x4mm"
 			(at 543.56 290.83 0)
 			(effects
 				(font
@@ -20685,7 +20685,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical"
+		(property "Footprint" "Library:PinHeader_1x04_P2.54mm_Vertical"
 			(at 447.04 340.36 0)
 			(effects
 				(font
@@ -20965,7 +20965,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Connector_Wire:SolderWirePad_1x02_SMD_3x4mm"
+		(property "Footprint" "Library:SolderWirePad_1x02_SMD_3x4mm"
 			(at 544.83 313.69 0)
 			(effects
 				(font
