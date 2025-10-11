@@ -231,7 +231,7 @@
 	(net 83 "unconnected-(U13-NC-Pad7)")
 	(net 84 "unconnected-(U15-Pad4)")
 	(net 85 "unconnected-(U15-Pad3)")
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "00221fc6-9815-4888-a846-07d1569ca304")
 		(at 193.34 75.42)
@@ -430,7 +430,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+	(footprint "Library:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "0524e95a-318e-43be-afa8-48ec9e238aed")
 		(at 77.1 123.7925 -90)
@@ -1717,7 +1717,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "0f6c8033-24cc-42d2-92cd-b46ae7424498")
 		(at 197.69 85.46)
@@ -1916,7 +1916,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "0f94187f-209f-4be2-8d62-9965acccefe5")
 		(at 88.2875 78.2 180)
@@ -2115,7 +2115,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+	(footprint "Library:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "130143b8-f3e6-4a85-b7f1-2a82179a195c")
 		(at 206.62 103.14)
@@ -2512,7 +2512,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "1374b5a9-28af-492d-9935-18304af7e3e9")
 		(at 49.6375 46.5)
@@ -3246,7 +3246,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "1810f435-4281-44ea-abb4-6b7f5ec78df2")
 		(at 202.04 72.91)
@@ -3578,7 +3578,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "235bc513-9973-467d-9975-ff4b3ee0fadf")
 		(at 197.69 65.38)
@@ -4205,7 +4205,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+	(footprint "Library:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "2ba7d904-e8e4-4e52-a0fb-2355f0904b25")
 		(at 211.43 97.12)
@@ -4404,7 +4404,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "2dbb0036-f94d-4878-bb2c-aedace65ddb6")
 		(at 197.69 70.4)
@@ -4603,7 +4603,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "303a8a35-d0d2-4b4d-be67-20f13de2aab8")
 		(at 188.99 85.46)
@@ -4802,7 +4802,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "3398424c-4e32-46e7-92f8-432bb2a3b6b3")
 		(at 78.2 76.8625 -90)
@@ -5001,7 +5001,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "35bcfbb2-1d50-42cf-a650-ab6c5e6ad209")
 		(at 93.1875 74.65 180)
@@ -5200,7 +5200,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "384773cf-5f5f-48c5-965e-fb70a6af7202")
 		(at 202.04 65.38)
@@ -5399,7 +5399,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+	(footprint "Library:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "3f57dda3-9049-4434-80d1-4f53b73a6f08")
 		(at 79.1 123.8175 -90)
@@ -5598,7 +5598,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+	(footprint "Library:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "3fa3bcd0-748d-488d-821d-12fae7d4ec46")
 		(at 216.24 100.13)
@@ -7547,7 +7547,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "4295c7eb-8360-4826-9ae6-e267cc392992")
 		(at 123.3875 81.3625)
@@ -7811,7 +7811,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "74e6b72f-72cc-46bb-a53f-d532d42b3bb5")
+			(uuid "addc0cd0-1324-4811-911b-ea4e48d72314")
 		)
 		(fp_line
 			(start -1.38 0)
@@ -7821,7 +7821,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "46797c0b-a9a0-4df1-96b0-c9686a3aad37")
+			(uuid "ae62175a-f581-4251-8838-1a9503783176")
 		)
 		(fp_line
 			(start -1.38 1.27)
@@ -7831,7 +7831,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "1c767f83-eb89-4fe6-bf68-4937b7c56ad0")
+			(uuid "0d47ec11-dd46-4925-a905-7045b31ce79c")
 		)
 		(fp_line
 			(start -1.38 1.27)
@@ -7841,7 +7841,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "1fb450e3-2782-40ca-93ec-5ed051204b9a")
+			(uuid "cc6a0b64-13d6-4509-a3e3-7b8dc080437e")
 		)
 		(fp_line
 			(start -1.38 9)
@@ -7851,7 +7851,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "1a1753c8-4f57-4d56-871d-e07bf31783a9")
+			(uuid "f4893efc-cdba-4e5e-8f5b-53c48e79bf93")
 		)
 		(fp_line
 			(start 1.38 1.27)
@@ -7861,7 +7861,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "a2d9617f-d846-4b04-a12f-e16f8eea4a71")
+			(uuid "0f779bff-3666-4377-9b06-85947860fb15")
 		)
 		(fp_line
 			(start -1.77 -1.77)
@@ -7871,7 +7871,7 @@
 				(type solid)
 			)
 			(layer "F.CrtYd")
-			(uuid "c7024bb6-8879-43ae-b537-348c5bf4bf1f")
+			(uuid "fbabdbf3-1c87-43f2-b0af-b01a7ee7ba1d")
 		)
 		(fp_line
 			(start -1.77 9.39)
@@ -7881,7 +7881,7 @@
 				(type solid)
 			)
 			(layer "F.CrtYd")
-			(uuid "c761568f-87d0-47b7-9ff5-e46d52e1d9e8")
+			(uuid "24ff8dcf-9df4-4585-a17a-4852c6fd9814")
 		)
 		(fp_line
 			(start 1.77 -1.77)
@@ -7891,7 +7891,7 @@
 				(type solid)
 			)
 			(layer "F.CrtYd")
-			(uuid "8051bda4-890a-4682-967e-98164b84c6d0")
+			(uuid "bedbf5f3-84f9-48cf-b858-c209b1cc41f3")
 		)
 		(fp_line
 			(start 1.77 9.39)
@@ -7901,7 +7901,7 @@
 				(type solid)
 			)
 			(layer "F.CrtYd")
-			(uuid "543918d4-a2fc-46c3-a977-401455d58a23")
+			(uuid "b5bcbb6a-00ff-41d9-8312-eef2ed35f7c7")
 		)
 		(fp_line
 			(start -1.27 -0.635)
@@ -7911,7 +7911,7 @@
 				(type solid)
 			)
 			(layer "F.Fab")
-			(uuid "85ca2bf0-dd8b-47ef-9b10-f52d963dbd28")
+			(uuid "d8eebac9-9b40-4291-a92c-41db9bd4ebfb")
 		)
 		(fp_line
 			(start -1.27 8.89)
@@ -7921,7 +7921,7 @@
 				(type solid)
 			)
 			(layer "F.Fab")
-			(uuid "13073a74-ae0f-43f3-a61d-c8009be55517")
+			(uuid "cd983c79-cce4-4fc9-8268-e373f30472a4")
 		)
 		(fp_line
 			(start -0.635 -1.27)
@@ -7931,7 +7931,7 @@
 				(type solid)
 			)
 			(layer "F.Fab")
-			(uuid "412dccb2-887b-4708-a39b-92197660afc1")
+			(uuid "317cd242-b824-4b05-a126-3189448f7df2")
 		)
 		(fp_line
 			(start 1.27 -1.27)
@@ -7941,7 +7941,7 @@
 				(type solid)
 			)
 			(layer "F.Fab")
-			(uuid "8861b01f-1ec0-4eea-91fd-7d509a825beb")
+			(uuid "8b0e8846-fd21-4ec2-ba96-b1d43fda9e55")
 		)
 		(fp_line
 			(start 1.27 8.89)
@@ -7951,7 +7951,7 @@
 				(type solid)
 			)
 			(layer "F.Fab")
-			(uuid "fcf2e197-9fbd-4972-a8c5-9b4b3ecd9cff")
+			(uuid "45ec449f-a57f-495c-a260-80d227f4c10a")
 		)
 		(fp_text user "${REFERENCE}"
 			(at 0 3.81 90)
@@ -8021,7 +8021,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "49098f74-df0e-4ec6-b211-35fa22099ba5")
 		(at 193.34 72.91)
@@ -8220,7 +8220,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "4935c288-0249-48fe-92ad-f4f7e26404f9")
 		(at 197.69 67.89)
@@ -8419,7 +8419,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "4c222cab-a5f7-45d8-b3a5-33f840b9eeba")
 		(at 197.69 72.91)
@@ -10433,7 +10433,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "f42af17d-4979-4c8a-ba88-136dc588bbb7")
+			(uuid "08a1feb3-14aa-499a-800d-0598fe442f02")
 		)
 		(fp_line
 			(start -1.38 6.46)
@@ -10443,7 +10443,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "3bfedb31-9a89-45db-bad3-b630e59e7d63")
+			(uuid "04308f84-058a-41e8-adef-f2351f4c26be")
 		)
 		(fp_line
 			(start -1.38 1.27)
@@ -10453,7 +10453,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "7f04092e-b9b3-45f0-a419-0a5b59430fdb")
+			(uuid "15b5b620-c8f8-4dc0-9009-948896d3b951")
 		)
 		(fp_line
 			(start -1.38 1.27)
@@ -10463,7 +10463,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "645dd17c-5a35-44a9-ba35-37740dfc3d24")
+			(uuid "4678e2a0-b0aa-4b7a-9413-52011ce9c846")
 		)
 		(fp_line
 			(start -1.38 0)
@@ -10473,7 +10473,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "faf67eaf-fb5a-41f4-b78a-ba1f2227e042")
+			(uuid "0072e7ce-c3ec-4a7c-bd69-923e82edbdf2")
 		)
 		(fp_line
 			(start -1.38 -1.38)
@@ -10483,7 +10483,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "c85f23fa-b2c1-4903-a990-4500804f7fd6")
+			(uuid "d23a38a1-5768-45db-b3c1-df3b654ad943")
 		)
 		(fp_line
 			(start 1.77 6.85)
@@ -10493,7 +10493,7 @@
 				(type solid)
 			)
 			(layer "F.CrtYd")
-			(uuid "f0512ea5-7fbc-459f-861f-36bd030175c0")
+			(uuid "f14965d3-6ec1-4c2c-9b90-a44bc76c539c")
 		)
 		(fp_line
 			(start 1.77 -1.77)
@@ -10503,7 +10503,7 @@
 				(type solid)
 			)
 			(layer "F.CrtYd")
-			(uuid "161df9fb-ed9c-425d-9506-f97433dee409")
+			(uuid "b981e90c-bebf-4c01-8968-507d4f17cae1")
 		)
 		(fp_line
 			(start -1.77 6.85)
@@ -10513,7 +10513,7 @@
 				(type solid)
 			)
 			(layer "F.CrtYd")
-			(uuid "6773c9aa-325f-429f-acb6-1ad3df54a411")
+			(uuid "aef50a12-9ac3-4bf5-a347-a0798b2d412b")
 		)
 		(fp_line
 			(start -1.77 -1.77)
@@ -10523,7 +10523,7 @@
 				(type solid)
 			)
 			(layer "F.CrtYd")
-			(uuid "70bc2f16-d140-4864-b7c8-16b96232ac70")
+			(uuid "211e7498-a6e3-4adf-900c-0ce7c0a62f4b")
 		)
 		(fp_line
 			(start 1.27 6.35)
@@ -10533,7 +10533,7 @@
 				(type solid)
 			)
 			(layer "F.Fab")
-			(uuid "fdac01fa-663f-4384-ac69-0842b94f4aa1")
+			(uuid "046f0969-c038-4c11-bb6f-fae65a00dee4")
 		)
 		(fp_line
 			(start 1.27 -1.27)
@@ -10543,7 +10543,7 @@
 				(type solid)
 			)
 			(layer "F.Fab")
-			(uuid "5b23b73d-19d3-4586-8f33-52ea433c2b9b")
+			(uuid "f14301d9-db45-420f-88ca-fa6222e31722")
 		)
 		(fp_line
 			(start -0.635 -1.27)
@@ -10553,7 +10553,7 @@
 				(type solid)
 			)
 			(layer "F.Fab")
-			(uuid "60f185fa-fc91-46d0-8a93-8ceddf7e7ba0")
+			(uuid "e2a24269-14e9-4a06-930d-e2c9718d836b")
 		)
 		(fp_line
 			(start -1.27 6.35)
@@ -10563,7 +10563,7 @@
 				(type solid)
 			)
 			(layer "F.Fab")
-			(uuid "19417190-f494-4acf-ad1d-246631b259b7")
+			(uuid "edf4c2f9-b531-4207-b368-212a76706662")
 		)
 		(fp_line
 			(start -1.27 -0.635)
@@ -10573,7 +10573,7 @@
 				(type solid)
 			)
 			(layer "F.Fab")
-			(uuid "75e61092-daf4-4d35-b486-06df25498f49")
+			(uuid "f7476fe5-40ca-487f-b2b0-c667eee39dea")
 		)
 		(fp_text user "${REFERENCE}"
 			(at 0 2.54 270)
@@ -10632,7 +10632,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "511599f2-1052-4596-a89a-754cb5493604")
 		(at 197.69 80.44)
@@ -10965,7 +10965,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+	(footprint "Library:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "5431cf50-4c3e-4d3d-85b4-8f83cbdee76e")
 		(at 59.3375 82.1)
@@ -11164,7 +11164,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+	(footprint "Library:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "5a470c5a-2708-4c5e-8199-9950fd242ef6")
 		(at 216.24 91.1)
@@ -11363,7 +11363,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "5c94af60-84c1-405d-9bc8-cf763bf01f8a")
 		(at 188.99 67.89)
@@ -11562,7 +11562,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+	(footprint "Library:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "5cedfdfb-652d-4ac4-a20f-25c11797b534")
 		(at 121.9625 138)
@@ -11761,7 +11761,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "5f01e6e0-3cca-4c7c-b69c-201558feb06b")
 		(at 188.99 80.44)
@@ -12228,7 +12228,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+	(footprint "Library:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "652f10af-42ec-4e61-a66c-20ddd42686ca")
 		(at 211.43 91.1)
@@ -13786,7 +13786,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "77b8c6bd-7996-46e8-923e-2cad9a9ebc90")
 		(at 49.6375 43.99)
@@ -15068,7 +15068,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "83b55520-61b4-403b-97fe-b7137d172d6c")
 		(at 128.8 83.9625 -90)
@@ -15267,7 +15267,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "8418122e-c528-494a-bf52-6867c1ebe199")
 		(at 197.69 75.42)
@@ -15466,7 +15466,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "88951e4c-e5ae-49eb-bb7d-3c6720648a0e")
 		(at 184.64 72.91)
@@ -15665,7 +15665,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+	(footprint "Library:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "89b08208-f9d6-426a-a40c-8ef5b610c254")
 		(at 119.8625 130.1)
@@ -16062,7 +16062,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "8b875db2-2469-4057-a72c-e747d519842f")
 		(at 193.34 82.95)
@@ -16261,7 +16261,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "8ddc2b74-cea0-4258-afc2-e490394b2043")
 		(at 188.99 82.95)
@@ -17027,7 +17027,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+	(footprint "Library:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "98953000-3220-4fe6-8317-23396ebd31f8")
 		(at 75.1 123.8175 -90)
@@ -17226,7 +17226,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "99509ca8-b4c4-459c-a6d9-3d0725d6fe4c")
 		(at 184.64 87.97)
@@ -17425,7 +17425,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+	(footprint "Library:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "9abf6b6e-82a0-491f-bd04-19301f91328b")
 		(at 81.1 123.8175 -90)
@@ -18596,7 +18596,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "a1157418-4d61-4d12-9dac-c7523e1869b2")
 		(at 49.6375 41.48)
@@ -18795,7 +18795,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "a82da568-9797-40fc-9096-0c3a7a0fb858")
 		(at 202.04 70.4)
@@ -18994,7 +18994,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "ae99cfa8-8b55-4676-b518-014fb06a371e")
 		(at 101.1 124.2 90)
@@ -19193,7 +19193,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "b0940f3b-0e41-4309-9ca9-e48007745644")
 		(at 184.64 85.46)
@@ -19457,7 +19457,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "e0bbc414-e8bc-4500-bf7a-d0744fd5c3e7")
+			(uuid "bf3aa2e3-35a9-4168-9e10-d6011599288e")
 		)
 		(fp_line
 			(start -1.38 6.46)
@@ -19467,7 +19467,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "ea634b34-6e64-40a1-9d13-eb2675538fcc")
+			(uuid "a20aa543-841a-43dc-bd2e-3beb5922c004")
 		)
 		(fp_line
 			(start -1.38 1.27)
@@ -19477,7 +19477,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "94fb6a8a-cfd3-4090-8ba5-1f5333ba8fb5")
+			(uuid "faa8437f-4f64-4178-9d39-70c746a7c393")
 		)
 		(fp_line
 			(start -1.38 1.27)
@@ -19487,7 +19487,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "e634ae7f-6d77-4687-a47a-9d0358542739")
+			(uuid "58f6aae4-76d1-4eb0-950b-572dd36ec3cd")
 		)
 		(fp_line
 			(start -1.38 0)
@@ -19497,7 +19497,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "4cc3bbb4-b88c-40b2-bfe4-877952330159")
+			(uuid "aeb6df5a-c4f1-4a96-9b5c-029c8d91d19e")
 		)
 		(fp_line
 			(start -1.38 -1.38)
@@ -19507,7 +19507,7 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "215b0667-d589-4839-8b24-4f6f9d50f4d4")
+			(uuid "779b66a2-5682-417a-b15c-60108766a518")
 		)
 		(fp_line
 			(start 1.77 6.85)
@@ -19517,7 +19517,7 @@
 				(type solid)
 			)
 			(layer "F.CrtYd")
-			(uuid "c908f6ab-d2c8-48e2-918e-aeb194c49c3a")
+			(uuid "28b91263-f70a-4bdb-9198-99d6a8b7f6f0")
 		)
 		(fp_line
 			(start 1.77 -1.77)
@@ -19527,7 +19527,7 @@
 				(type solid)
 			)
 			(layer "F.CrtYd")
-			(uuid "77d41f1a-7c99-4e51-bba2-723bb6f1fc50")
+			(uuid "a7ba1a50-31fc-46ec-8da9-140409ae5c1c")
 		)
 		(fp_line
 			(start -1.77 6.85)
@@ -19537,7 +19537,7 @@
 				(type solid)
 			)
 			(layer "F.CrtYd")
-			(uuid "0b4ff068-ae07-4e45-9f0a-6af52b9d7f21")
+			(uuid "692762cb-ca7b-4463-852f-f15213c6d903")
 		)
 		(fp_line
 			(start -1.77 -1.77)
@@ -19547,7 +19547,7 @@
 				(type solid)
 			)
 			(layer "F.CrtYd")
-			(uuid "045ee3b6-e68b-44af-957d-5a808d22081e")
+			(uuid "7905222a-66e9-46fa-8477-6037f19e7b60")
 		)
 		(fp_line
 			(start 1.27 6.35)
@@ -19557,7 +19557,7 @@
 				(type solid)
 			)
 			(layer "F.Fab")
-			(uuid "f43e0ccb-170b-42ce-9404-7e86d2d3a518")
+			(uuid "83cece64-921b-4398-9e62-e618e9cd958a")
 		)
 		(fp_line
 			(start 1.27 -1.27)
@@ -19567,7 +19567,7 @@
 				(type solid)
 			)
 			(layer "F.Fab")
-			(uuid "cf157012-9754-41a6-9252-df1558b41a9b")
+			(uuid "add5b79f-7b81-4896-b476-2849b6c96a39")
 		)
 		(fp_line
 			(start -0.635 -1.27)
@@ -19577,7 +19577,7 @@
 				(type solid)
 			)
 			(layer "F.Fab")
-			(uuid "eff4f456-3215-4811-9a33-7ad3d20d3d99")
+			(uuid "27f847ca-f4e5-4270-9b75-420d3be6aa1a")
 		)
 		(fp_line
 			(start -1.27 6.35)
@@ -19587,7 +19587,7 @@
 				(type solid)
 			)
 			(layer "F.Fab")
-			(uuid "b188d156-c047-4797-9abd-3af0203c069d")
+			(uuid "be8d5006-5394-4423-bb31-a11d20d58035")
 		)
 		(fp_line
 			(start -1.27 -0.635)
@@ -19597,7 +19597,7 @@
 				(type solid)
 			)
 			(layer "F.Fab")
-			(uuid "87a8d98f-445d-4b3f-8fc9-726dc1ac4eb1")
+			(uuid "47634872-902f-4a88-8ca5-19e8ee9f572c")
 		)
 		(fp_text user "${REFERENCE}"
 			(at 0 2.54 270)
@@ -21754,7 +21754,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "bf3db50b-7d1c-420d-a4f7-7b15feba4841")
 		(at 184.64 67.89)
@@ -21953,7 +21953,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "c79ba8cd-e263-403c-8cd2-82460ed9ff75")
 		(at 193.34 70.4)
@@ -22152,7 +22152,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "c8c81f84-501e-4866-9f52-86d3eee2da22")
 		(at 197.69 82.95)
@@ -22351,7 +22351,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "c90775d8-49e2-484e-b1ae-dc999ceaf3b1")
 		(at 188.99 87.97)
@@ -22550,7 +22550,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "cb18d838-68a9-41ae-b4fa-56a407f3e196")
 		(at 202.04 75.42)
@@ -22749,7 +22749,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "cb3c4c9b-d8ef-469b-b8ee-f357be0a9895")
 		(at 174.3 99.85)
@@ -22948,7 +22948,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+	(footprint "Library:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "ce8b805a-9a4f-4f2c-9a19-fc43feefe9fc")
 		(at 216.24 97.12)
@@ -23147,7 +23147,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+	(footprint "Library:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "d01d5deb-e649-4827-b00d-2dc4547c9114")
 		(at 216.24 94.11)
@@ -23346,7 +23346,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "d3c6f775-7d9b-4029-b956-1f6e1c13e625")
 		(at 197.69 77.93)
@@ -23545,7 +23545,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "d804ae37-6696-4f43-93e0-9b00494d3398")
 		(at 202.04 67.89)
@@ -23744,7 +23744,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "db306863-c3a1-4172-a38a-8c76afc78f2c")
 		(at 145.9375 73)
@@ -24141,7 +24141,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "e56aef18-a717-4f6d-9591-b27401e77f6b")
 		(at 193.34 77.93)
@@ -24340,7 +24340,7 @@
 			)
 		)
 	)
-	(footprint "LED_SMD:LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder"
+	(footprint "Library:LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "e5b7a31b-2bd7-4cbf-8e4e-08380bcc76b9")
 		(at 189.01 105.33)
@@ -24574,7 +24574,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "e6a702ac-3846-4788-8260-a9962a38f4a3")
 		(at 84.4 76.8625 -90)
@@ -24773,7 +24773,7 @@
 			)
 		)
 	)
-	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
+	(footprint "Library:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "ed817ff7-e15d-4855-b22a-54feefe0b4b9")
 		(at 188.99 65.38)
@@ -25397,7 +25397,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "f7990177-ac6f-44cb-acb6-d808dc549dbc")
 		(at 193.34 80.44)
@@ -25596,7 +25596,7 @@
 			)
 		)
 	)
-	(footprint "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+	(footprint "Library:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "fa083146-eeb3-415b-993d-75f3d51dec95")
 		(at 193.34 85.46)

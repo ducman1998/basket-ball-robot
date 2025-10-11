@@ -8,7 +8,7 @@
 	(property "Reference" "REF**"
 		(at 0 -2.4 0)
 		(layer "F.SilkS")
-		(uuid "ed485944-cf79-4320-b84e-7ba180b0b1cc")
+		(uuid "7e7fe89e-4cf8-4592-ae97-88d63d070a68")
 		(effects
 			(font
 				(size 1 1)
@@ -16,10 +16,10 @@
 			)
 		)
 	)
-	(property "Value" "NCP718BSN500T1G"
+	(property "Value" "MIC5504-3.3YM5"
 		(at 0 2.4 0)
 		(layer "F.Fab")
-		(uuid "792c6bc1-c478-49d0-8f6b-d5ce1aa4979b")
+		(uuid "65318366-a7e2-4aeb-a45d-be7ef1869d98")
 		(effects
 			(font
 				(size 1 1)
@@ -27,11 +27,11 @@
 			)
 		)
 	)
-	(property "Datasheet" "https://www.onsemi.com/pub/Collateral/NCP718-D.PDF"
+	(property "Datasheet" "http://ww1.microchip.com/downloads/en/DeviceDoc/MIC550X.pdf"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "c281e90c-a28d-47ed-a01a-ec93f8d809a1")
+		(uuid "3b84728f-13ff-4c0a-84b5-a32b1c2c0e1a")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -39,11 +39,11 @@
 			)
 		)
 	)
-	(property "Description" "300-mA, Wide Input Voltage, Low-IQ LDO, 5.0V, SOT-23"
+	(property "Description" "300mA Low-dropout Voltage Regulator, Vout 3.3V, Vin up to 5.5V, SOT-23"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "b2aae883-6b08-4bcd-9f58-118f67d141eb")
+		(uuid "ddce2a27-b006-4d63-97c2-7af48599d21c")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -60,7 +60,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "89aa475c-5ae7-46f6-a4a3-98c2de131037")
+		(uuid "dd36ff8a-91e5-4771-8ece-ed3bfaa54362")
 	)
 	(fp_line
 		(start 0 -1.56)
@@ -70,7 +70,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "0c6a2406-0467-4bf9-830b-119f844d5eca")
+		(uuid "2449fd1d-35a4-477b-9a2a-7d3fab6cf22e")
 	)
 	(fp_line
 		(start 0 1.56)
@@ -80,7 +80,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "6f71c295-8196-4e5d-beca-39b8970c9005")
+		(uuid "716cb643-7eca-477d-87ff-d31bf0f5ca59")
 	)
 	(fp_line
 		(start 0 1.56)
@@ -90,7 +90,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "5ac75297-1cbb-4336-a677-34b305816bf0")
+		(uuid "ca74eb86-efd9-498d-8ca7-31f93e79952c")
 	)
 	(fp_poly
 		(pts
@@ -102,7 +102,7 @@
 		)
 		(fill yes)
 		(layer "F.SilkS")
-		(uuid "a9cd1598-191c-47e7-a5ca-3347601cc5d3")
+		(uuid "c8a43729-5633-4bfe-be7a-cc33ac800a29")
 	)
 	(fp_line
 		(start -2.05 -1.5)
@@ -112,7 +112,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "11baf384-7cd5-40d0-981c-90b980600e67")
+		(uuid "61e19fef-b1bb-44a2-96b6-b7470a0d0f5f")
 	)
 	(fp_line
 		(start -2.05 1.5)
@@ -122,7 +122,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "3deed63a-afbd-4ca7-9921-9766a64fe909")
+		(uuid "813d1207-733d-421b-9fd6-d1b011723ccd")
 	)
 	(fp_line
 		(start -1.05 -1.7)
@@ -132,7 +132,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "db2e9c24-e01b-491a-ac91-efc7320ea67b")
+		(uuid "8a7e9c7a-154c-45a4-8e34-a4e04df4c7bc")
 	)
 	(fp_line
 		(start -1.05 -1.5)
@@ -142,7 +142,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "ce69e4ad-ae9e-4dd1-b8d4-3223b9255c33")
+		(uuid "d915c11b-11ff-40e0-bba3-1965670cd22a")
 	)
 	(fp_line
 		(start -1.05 1.5)
@@ -152,7 +152,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "48fe879b-22fd-4765-97ac-d215f9fef1ea")
+		(uuid "06c6861f-1416-4b77-b5b8-8a82f6f6fbb7")
 	)
 	(fp_line
 		(start -1.05 1.7)
@@ -162,7 +162,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "96e25083-8671-47a0-a802-dffbd6219320")
+		(uuid "b451e782-4771-4c7b-ad1d-21911994d4d7")
 	)
 	(fp_line
 		(start 1.05 -1.7)
@@ -172,7 +172,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "dfd69374-2b7d-4cc7-bc0d-fe42fb8aeeac")
+		(uuid "99f4d33e-e545-40b1-89af-fc7b87c5fa20")
 	)
 	(fp_line
 		(start 1.05 -1.5)
@@ -182,7 +182,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "b08b9c44-fe89-4075-b241-8ad7a28c21d3")
+		(uuid "193b6153-81fa-41b4-bae6-c2a40c06f3a8")
 	)
 	(fp_line
 		(start 1.05 1.5)
@@ -192,7 +192,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "4f3e6098-5383-4bca-b4dd-176e956e0bed")
+		(uuid "5bd179cd-7af8-4a3e-81d2-db13fe2ca601")
 	)
 	(fp_line
 		(start 1.05 1.7)
@@ -202,7 +202,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "dee6551c-fc61-431d-9649-11f737d35990")
+		(uuid "ca0c28d6-effe-41cd-b6bc-a3e50f5ef07e")
 	)
 	(fp_line
 		(start 2.05 -1.5)
@@ -212,7 +212,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "c6520666-a6bb-4112-9159-021e0b98a3dd")
+		(uuid "22548608-28ce-434b-847c-04e25cb42acc")
 	)
 	(fp_line
 		(start 2.05 1.5)
@@ -222,7 +222,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "9c7fda7e-f691-4b3c-ac6d-501253218df5")
+		(uuid "df741338-9175-45e4-8422-c6ead120417f")
 	)
 	(fp_poly
 		(pts
@@ -234,12 +234,12 @@
 		)
 		(fill no)
 		(layer "F.Fab")
-		(uuid "3ca2ca21-74ae-46e3-bb7d-8b3ba2c19fc1")
+		(uuid "ec10c7fa-892b-4d2e-92d8-7392608eda98")
 	)
 	(fp_text user "${REFERENCE}"
 		(at 0 0 0)
 		(layer "F.Fab")
-		(uuid "c9d18582-ff4a-42aa-8fdf-38e385e56c5a")
+		(uuid "1a7e39a8-8085-46c2-88b1-5453dbe7a763")
 		(effects
 			(font
 				(size 0.4 0.4)
@@ -252,35 +252,35 @@
 		(size 1.325 0.6)
 		(layers "F.Cu" "F.Mask" "F.Paste")
 		(roundrect_rratio 0.25)
-		(uuid "02faca4c-5b1b-4a15-abcb-030b0532363f")
+		(uuid "7dc9be00-73f4-486b-ae12-02aabbd5622c")
 	)
 	(pad "2" smd roundrect
 		(at -1.1375 0)
 		(size 1.325 0.6)
 		(layers "F.Cu" "F.Mask" "F.Paste")
 		(roundrect_rratio 0.25)
-		(uuid "28a0f4b8-f99c-40f5-a9ff-61fd99fbf7ac")
+		(uuid "482de4c4-912f-485d-acf5-62f07661f779")
 	)
 	(pad "3" smd roundrect
 		(at -1.1375 0.95)
 		(size 1.325 0.6)
 		(layers "F.Cu" "F.Mask" "F.Paste")
 		(roundrect_rratio 0.25)
-		(uuid "aa80d047-ad01-4d8a-b8bf-fbb0aacf6648")
+		(uuid "e709ead6-6c3e-4a1a-b67d-671246deae69")
 	)
 	(pad "4" smd roundrect
 		(at 1.1375 0.95)
 		(size 1.325 0.6)
 		(layers "F.Cu" "F.Mask" "F.Paste")
 		(roundrect_rratio 0.25)
-		(uuid "baffdc28-0fad-42eb-832a-aa50c780e94a")
+		(uuid "63c60eca-0094-4ae4-ba67-2b85c646537f")
 	)
 	(pad "5" smd roundrect
 		(at 1.1375 -0.95)
 		(size 1.325 0.6)
 		(layers "F.Cu" "F.Mask" "F.Paste")
 		(roundrect_rratio 0.25)
-		(uuid "271776e9-a37c-4b39-8883-a6e4a74bf5c1")
+		(uuid "e1036c49-e865-4693-9745-f7d31046fa40")
 	)
 	(embedded_fonts no)
 	(model "${KICAD9_3DMODEL_DIR}/Package_TO_SOT_SMD.3dshapes/SOT-23-5.step"
