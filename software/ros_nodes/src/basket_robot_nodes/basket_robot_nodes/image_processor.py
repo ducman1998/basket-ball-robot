@@ -6,7 +6,10 @@ import numpy as np
 import pyrealsense2 as rs
 import rclpy
 from basket_robot_nodes.utils.image_info import ImageInfo
-from basket_robot_nodes.utils.image_utils import detect_green_balls
+from basket_robot_nodes.utils.image_utils import (
+    detect_green_ball_centers,
+    segment_color_hsv,
+)
 from basket_robot_nodes.utils.ros_utils import log_initialized_parameters
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from rclpy.node import Node
@@ -67,8 +70,10 @@ class ImageProcessor(Node):
             type=ParameterType.PARAMETER_DOUBLE, description="A floating point parameter."
         )
         self.declare_parameter("ref_colors_flat", descriptor=fint_array_descriptor)
+        self.declare_parameter("ref_court_color", descriptor=fint_array_descriptor)
         self.declare_parameter("resolution", descriptor=fint_array_descriptor)
         self.declare_parameter("fps", descriptor=int_descriptor)
+        self.declare_parameter("exposure_time", descriptor=int_descriptor)  # in microseconds
         self.declare_parameter("enable_depth", descriptor=bool_descriptor)
         self.declare_parameter("publish_viz_image", descriptor=bool_descriptor)
         self.declare_parameter("publish_viz_fps", descriptor=int_descriptor)
@@ -92,6 +97,15 @@ class ImageProcessor(Node):
             self.ref_colors_flat[i : i + 3]
             for i in range(0, len(self.ref_colors_flat), 3)  # noqa: E203
         ]
+        self.ref_court_color: List[int] = (
+            self.get_parameter("ref_court_color").get_parameter_value().integer_array_value.tolist()
+        )
+        if len(self.ref_court_color) != 3 or any((c < 0 or c > 255) for c in self.ref_court_color):
+            self.get_logger().error(
+                "Parameter 'ref_court_color' must be a list of three RGB integers [R, G, B] "
+                + "where all values are in [0, 255]."
+            )
+            raise ValueError("Invalid ref_court_color parameter.")
         res: List[int] = (
             self.get_parameter("resolution").get_parameter_value().integer_array_value.tolist()
         )
@@ -103,6 +117,9 @@ class ImageProcessor(Node):
             raise ValueError("Invalid resolution parameter.")
         self.resolution: Tuple[int, int] = (res[0], res[1])
         self.fps: int = self.get_parameter("fps").get_parameter_value().integer_value
+        self.exposure_time: int = (
+            self.get_parameter("exposure_time").get_parameter_value().integer_value
+        )
         self.enable_depth: bool = (
             self.get_parameter("enable_depth").get_parameter_value().bool_value
         )
@@ -138,7 +155,14 @@ class ImageProcessor(Node):
             self.align = rs.align(rs.stream.color)
         try:
             self.get_logger().info("Starting RealSense pipeline...")
-            self.pipeline.start(cfg)
+            profile = self.pipeline.start(cfg)
+            # set exposure time
+            color_sensor = profile.get_device().first_color_sensor()
+            color_sensor.set_option(rs.option.enable_auto_exposure, 0)  # turn off auto-exposure
+            color_sensor.set_option(rs.option.exposure, self.exposure_time)
+            self.get_logger().info(
+                f"Set exposure time of color camera to {self.exposure_time} microseconds."
+            )
         except RuntimeError as e:
             self.get_logger().error(f"Failed to start RealSense pipeline: {e}")
             # raise RuntimeError("Camera initialization failed.")
@@ -170,16 +194,30 @@ class ImageProcessor(Node):
         )  # convert to rgb
         t2 = time()
         try:
-            detected_balls, viz_image = detect_green_balls(
+            # segment working area
+            roi_mask, _ = segment_color_hsv(
+                color_frame_rgb,
+                ref_rgb=self.ref_court_color,  # color of working area
+                h_tol=50,
+                s_tol=70,
+                v_tol=70,
+                resize=0.25,
+                dilate=True,
+                morph_kernel=5,
+                morph_iter=3,
+                min_component_area=2000,
+            )
+            # detect balls
+            detected_balls, viz_image = detect_green_ball_centers(
                 color_frame_rgb,
                 ref_ball_rgb=self.ref_ball_color,
-                h_tol=20,
-                s_min=40,
-                min_area=100.0,
-                min_radius=8,
-                circularity_thresh=0.65,
+                h_tol=7,
+                s_tol=20,
+                v_tol=20,
+                roi_mask=roi_mask,
                 visualize=True,
             )
+
             if not np.isclose(self.pub_viz_resize, 1.0, rtol=1e-09, atol=1e-09):
                 viz_image = cv2.resize(
                     viz_image,

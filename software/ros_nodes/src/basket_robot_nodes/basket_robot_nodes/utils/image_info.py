@@ -7,25 +7,16 @@ class GreenBall:
         self,
         center: Union[List[Union[int, float]], Tuple[Union[int, float], ...]],
         radius: Union[int, float],
-        area: Union[int, float],
-        circularity: float,
-        bbox: Union[List[int], Tuple[int, ...]],
         position_2d: Union[List[float], Tuple[float, ...]],
     ) -> None:
         self.center = center
         self.radius = radius
-        self.area = area
-        self.circularity = circularity
-        self.bbox = bbox
         self.position_2d = position_2d
 
     def to_dict(self) -> Dict:
         return {
             "center": self.center,
             "radius": self.radius,
-            "area": self.area,
-            "circularity": self.circularity,
-            "bbox": self.bbox,
             "position_2d": self.position_2d,
         }
 
@@ -34,9 +25,6 @@ class GreenBall:
         return cls(
             center=data["center"],
             radius=data["radius"],
-            area=data["area"],
-            circularity=data["circularity"],
-            bbox=data["bbox"],
             position_2d=data["position_2d"],
         )
 

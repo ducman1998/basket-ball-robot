@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -23,106 +23,175 @@ T_BW = np.array(
         [0.00000000e00, 0.00000000e00, 0.00000000e00, 1.00000000e00],
     ]
 )
+T_BW_INV = np.linalg.inv(T_BW)
 
 
-def detect_green_balls(
+def detect_green_ball_centers(
     rgb_img: np.ndarray,
-    ref_ball_rgb: Union[
-        List[List[int]], List[Tuple[int, ...]]
-    ],  # reference ball colors in RGB (must be a list of lists/tuples)
-    h_tol: int = 20,  # +/- hue tolerance (OpenCV H in [0..179])
-    s_min: int = 40,  # minimum saturation to avoid grays
-    min_area: float = 40.0,  # contour area filter
-    min_radius: int = 8,  # min radius in pixels
-    circularity_thresh: float = 0.6,  # 0..1, higher = more circular
-    visualize: bool = True,  # whether to generate visualization image
+    ref_ball_rgb: Union[List[List[int]], List[Tuple[int, ...]]],
+    h_tol: int = 10,
+    s_tol: int = 10,
+    v_tol: int = 10,
+    roi_mask: Optional[np.ndarray] = None,
+    visualize: bool = True,
 ) -> Tuple[List[GreenBall], NDArray[np.uint8]]:
     """
-    Detect teal/green balls using HS-only masking (brightness ignored)
-    based on a list of reference RGB colors.
+    Detect centers of green/teal regions (segmented clusters) using strict HSV filtering.
 
     Parameters
     ----------
     rgb_img : np.ndarray
-        RGB image (H,W,3), dtype uint8.
-    ref_ball_rgb : list of lists/tuples
-        A list of reference RGB colors. E.g., [[34, 95, 7], [40, 100, 10]].
-    h_tol : int
-        +/- tolerance around the target hue (OpenCV hue in [0..179]).
-    s_min : int
-        Minimum saturation threshold (0..255).
-    min_area : float
-        Minimum contour area (pixels^2).
-    min_radius : int
-        Minimum enclosing circle radius (pixels).
-    circularity_thresh : float
-        0..1, higher = more circular.
+        RGB image (H, W, 3), dtype uint8.
+    ref_ball_rgb : list of RGB colors (list/tuple of ints)
+        Reference greenish colors, e.g. [(32, 111, 109), (2, 94, 94), (6, 106, 99)].
+    h_tol, s_tol, v_tol : int
+        HSV tolerances for color segmentation.
+    visualize : bool
+        Whether to visualize the detected centers.
 
     Returns
     -------
-    List[GreenBall] : list of detected balls.
+    centers : list of (x, y)
+        Pixel coordinates of detected ball centers.
     vis_img : np.ndarray
-        BGR visualization image with contours, circles, and labels.
+        Visualization image (RGB) with detected centers.
     """
+    if rgb_img is None or rgb_img.ndim != 3:
+        raise ValueError("Input must be an RGB image.")
 
-    # --- Input Validation ---
-    if rgb_img is None or rgb_img.ndim != 3 or rgb_img.shape[2] != 3:
-        raise ValueError("rgb_img must be an RGB image with shape (H, W, 3).")
+    if roi_mask is not None:
+        rgb_img = cv2.bitwise_and(rgb_img, rgb_img, mask=roi_mask)
 
-    # Enforce list-of-lists/tuples structure and non-empty check
-    if not isinstance(ref_ball_rgb, list) or not ref_ball_rgb:
-        raise ValueError(
-            "ref_ball_rgb must be a non-empty list of RGB lists/tuples \
-            (e.g., [[r1, g1, b1], [r2, g2, b2]])."
-        )
-
-    for color in ref_ball_rgb:
-        if len(color) != 3 or any((c < 0 or c > 255) for c in color):
-            raise ValueError(
-                f"Each color in ref_ball_rgb must be an RGB 3-tuple/list \
-                    with unsigned 8-bit values, got {color}"
-            )
-
-    # --- Convert Image to HSV ---
     hsv = cv2.cvtColor(rgb_img, cv2.COLOR_RGB2HSV)
-
-    # Initialize the total mask to be all zeros
     total_mask = np.zeros(hsv.shape[:2], dtype=np.uint8)
 
-    # --- Generate and Combine Masks for Multiple Colors ---
+    # Combine masks from all reference colors
     for color_rgb in ref_ball_rgb:
-        # 1. Derive target hue (h0) from the current RGB color
         ref_rgb_array = np.array([[color_rgb]], dtype=np.uint8)
         ref_hsv = cv2.cvtColor(ref_rgb_array, cv2.COLOR_RGB2HSV)[0, 0]
-        h0 = int(ref_hsv[0])  # OpenCV H in [0..179]
-
-        # 2. Get mask for current color range
-        current_mask: NDArray[np.uint8] = _hs_mask(hsv, h0, h_tol, s_min)
-
-        # 3. Combine with total mask using a logical OR
+        h_min, h_max = (ref_hsv[0] - h_tol) % 180, (ref_hsv[0] + h_tol) % 180
+        s_min, s_max = max(0, ref_hsv[1] - s_tol), min(255, ref_hsv[1] + s_tol)
+        v_min, v_max = max(0, ref_hsv[2] - v_tol), min(255, ref_hsv[2] + v_tol)
+        lower = np.array([h_min, s_min, v_min])
+        upper = np.array([h_max, s_max, v_max])
+        current_mask = cv2.inRange(hsv, lower, upper)
         total_mask = cv2.bitwise_or(total_mask, current_mask).astype(np.uint8, copy=False)
 
-    mask = total_mask
+    # Clean up the mask
+    mask = _morph_clean(total_mask, num_iter=2)
 
-    # --- Clean up Mask ---
-    mask = _morph_clean(mask)
-
-    # --- Find Contours and Filter Balls ---
+    # Find connected components or contours
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    balls = []
     vis = rgb_img.copy()
-    balls: List[GreenBall] = []
 
     for cnt in cnts:
-        ball = _contour_to_ball(cnt, min_area, min_radius, circularity_thresh)
-        if ball is None:
-            continue
+        M = cv2.moments(cnt)
+        if M["m00"] > 0:
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+            r, (pos_x, pos_y) = _get_ball_radius((cx, cy))
+            balls.append(GreenBall(center=(cx, cy), radius=r, position_2d=(pos_x, pos_y)))
+            if visualize:
+                cv2.circle(vis, (cx, cy), 3, (255, 0, 0), -1)
+                cv2.circle(vis, (cx, cy), int(r), (0, 255, 0), 2)
+                cv2.putText(
+                    vis,
+                    f"({cx},{cy})",
+                    (cx + 5, cy - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (255, 255, 255),
+                    1,
+                    cv2.LINE_AA,
+                )
+    return balls, vis
 
-        balls.append(ball)
-        if visualize:
-            # visualization
-            _draw_ball(vis, cnt, balls[-1])
 
-    return balls, vis  # vis is RGB image
+def segment_color_hsv(
+    img_rgb: np.ndarray,
+    ref_rgb: Union[Tuple[int, int, int], List[int]],
+    h_tol: int = 15,
+    s_tol: int = 40,
+    v_tol: int = 40,
+    resize: float = 1.0,
+    min_component_area: int = 100,
+    dilate: bool = True,
+    morph_kernel: int = 5,  # size of kernel
+    morph_iter: int = 1,  # number of iterations
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Segment pixels close to a reference color in HSV space,
+    merge valid regions into one mask, and optionally fill holes using dilation or closing.
+
+    Parameters
+    ----------
+    morph_method: "dilate" or "close" - type of morphological operation to fill holes/edges
+
+    Returns
+    -------
+    mask_filtered : np.ndarray
+        Final mask covering all valid pixels.
+    seg : np.ndarray
+        Segmented image.
+    """
+    if img_rgb.ndim != 3 or img_rgb.shape[2] != 3:
+        raise ValueError("img_rgb must be HxWx3 RGB image.")
+    if img_rgb.dtype != np.uint8:
+        raise ValueError("img_rgb must be uint8.")
+
+    h, w = img_rgb.shape[:2]
+
+    # 1. Resize if needed
+    if resize != 1.0:
+        proc_img = cv2.resize(img_rgb, (int(w * resize), int(h * resize)))
+    else:
+        proc_img = img_rgb
+
+    # 2. Convert to HSV
+    hsv = cv2.cvtColor(proc_img, cv2.COLOR_RGB2HSV)
+
+    # 3. Compute HSV bounds
+    ref_hsv = cv2.cvtColor(np.array([[ref_rgb]], dtype=np.uint8), cv2.COLOR_RGB2HSV)[0, 0]
+    h0, s0, v0 = map(int, ref_hsv)
+    h_min, h_max = (h0 - h_tol) % 180, (h0 + h_tol) % 180
+    s_min, s_max = max(0, s0 - s_tol), min(255, s0 + s_tol)
+    v_min, v_max = max(0, v0 - v_tol), min(255, v0 + v_tol)
+
+    # 4. Create mask with hue wrap-around
+    if h_min <= h_max:
+        mask = cv2.inRange(hsv, np.array([h_min, s_min, v_min]), np.array([h_max, s_max, v_max]))
+    else:
+        mask1 = cv2.inRange(hsv, np.array([0, s_min, v_min]), np.array([h_max, s_max, v_max]))
+        mask2 = cv2.inRange(hsv, np.array([h_min, s_min, v_min]), np.array([179, s_max, v_max]))
+        mask = cv2.bitwise_or(mask1, mask2)
+
+    # 5. Keep only large components
+    if resize != 1.0:
+        min_area_small = int(min_component_area * resize * resize)
+    else:
+        min_area_small = min_component_area
+
+    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    mask_filtered = np.zeros_like(mask)
+
+    for cnt in cnts:
+        if cv2.contourArea(cnt) >= min_area_small:
+            cv2.drawContours(mask_filtered, [cnt], -1, (255,), -1)
+
+    # 6. Morphological operation to fill holes/edges
+    if dilate and morph_iter > 0:
+        krn = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (morph_kernel, morph_kernel))
+        mask_filtered = cv2.dilate(mask_filtered, krn, iterations=morph_iter)
+
+    # 7. Resize mask back
+    if resize != 1.0:
+        mask_filtered = cv2.resize(mask_filtered, (w, h), interpolation=cv2.INTER_NEAREST)
+
+    # 8. Apply mask to original image
+    seg = cv2.bitwise_and(img_rgb, img_rgb, mask=mask_filtered)
+    return mask_filtered, seg
 
 
 def _pixel_to_robot_coords(
@@ -148,82 +217,47 @@ def _pixel_to_robot_coords(
     # convert to robot base_footprint frame
     b_point = tbw @ np.array([wd_point[0], wd_point[1], 0, 1]).reshape(4, 1)
     b_point = b_point / b_point[3]
-    b_point_xy = np.round(b_point[:, :3].ravel(), 3)[:2]
+    b_point_xy = np.round(b_point.ravel(), 3)[:2]
     return float(b_point_xy[0]), float(b_point_xy[1])  # in mm
 
 
-def _hs_mask(hsv: np.ndarray, h0: int, h_tol: int, s_min: int) -> NDArray[np.uint8]:
-    """Create binary mask based on hue and saturation thresholds."""
-    h, s = hsv[..., 0], hsv[..., 1]
-    lower, upper = (h0 - h_tol) % 180, (h0 + h_tol) % 180
-    hue_mask = ((h >= lower) & (h <= upper)) if lower <= upper else ((h >= lower) | (h <= upper))
-    sat_mask: NDArray[np.bool_] = s >= s_min
-    return (hue_mask & sat_mask).astype(np.uint8) * np.uint8(255)
+def _robot_to_pixel_coords(robot_xy: Tuple[float, float]) -> Tuple[float, float]:
+    """Convert robot base_footprint (x,y) in mm to image pixel coordinates.
+    Inputs:
+        robot_xy: (x, y) coordinates in robot base_footprint frame in mm.
+        h: 3x3 homography matrix (world plane to image).
+        tbw_inv: 4x4 inverse transformation from robot base_footprint to world plane.
+    Returns:
+        (x, y) pixel coordinates in the image.
+    Note:
+        - The homography maps a flat ground plane (Z=0) to image pixels.
+        - The transformation tbw_inv should be pre-calibrated.
+    """
+    # convert robot coords to homogeneous world plane
+    robot_point = np.array([robot_xy[0], robot_xy[1], 0, 1]).reshape(4, 1)
+    world_point = T_BW_INV @ robot_point
+    world_point = world_point / world_point[3]
+    x_w, y_w = world_point[0, 0], world_point[1, 0]
+    # map world plane to image pixels using homography
+    world_h = np.array([x_w, y_w, 1]).reshape(3, 1)
+    img_h = H @ world_h
+    img_h = img_h / img_h[2]  # normalize
+    x_px, y_px = img_h[0, 0], img_h[1, 0]
+    return float(x_px), float(y_px)
 
 
-def _draw_ball(vis: np.ndarray, c: np.ndarray, ball: GreenBall) -> None:
-    """Draw detected ball info on visualization image."""
-    cx, cy, r = int(ball.center[0]), int(ball.center[1]), int(ball.radius)
-    cv2.circle(vis, (cx, cy), r, (0, 255, 0), 2)
-    cv2.circle(vis, (cx, cy), 3, (255, 0, 0), -1)
-    cv2.drawContours(vis, [c], -1, (255, 0, 0), 2)
-    x, y = ball.position_2d
-    x_cm, y_cm = round(x / 10, 1), round(y / 10, 1)  # convert mm to cm
-    label = f"r={r}px, pos=({x_cm},{y_cm})cm, A={int(ball.area)}"
-    org = (max(0, cx - r), max(15, cy - r - 5))
-    cv2.putText(vis, label, org, cv2.FONT_HERSHEY_SIMPLEX, 0.75, (10, 10, 10), 3, cv2.LINE_AA)
-    cv2.putText(vis, label, org, cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 1, cv2.LINE_AA)
+def _get_ball_radius(ball_center: Tuple[float, float]) -> Tuple[float, Tuple[float, float]]:
+    xy_pos_center = _pixel_to_robot_coords(ball_center, H_INV, T_BW)  # in mm
+    xy_pos_edge = (xy_pos_center[0] - 20, xy_pos_center[1])  # 20mm to the left
+    ball_edge = _robot_to_pixel_coords(xy_pos_edge)  # in pixels
+    rad = np.linalg.norm(np.array(ball_center) - np.array(ball_edge))
+    return float(rad), (float(xy_pos_center[0]), float(xy_pos_center[1]))
 
 
-def _contour_to_ball(
-    cnt: np.ndarray,
-    min_area: float,
-    min_radius: int,
-    circularity_thresh: float,
-) -> "GreenBall | None":
-    """Convert contour to GreenBall if it passes all filters, else return None."""
-    area = float(cv2.contourArea(cnt))
-    if area < min_area:
-        return None
-
-    (cx_f, cy_f), r_f = cv2.minEnclosingCircle(cnt)
-    (cx_mm, cy_mm) = _pixel_to_robot_coords((cx_f, cy_f), H_INV, T_BW)
-    cx, cy, r = int(round(cx_f)), int(round(cy_f)), int(round(r_f))
-    if r < min_radius:
-        return None
-
-    perim = cv2.arcLength(cnt, True)
-    if perim <= 0:
-        return None
-
-    circ = float(4.0 * np.pi * (area / (perim * perim)))
-    if circ < circularity_thresh:
-        return None
-
-    # the balls at distances cannot have a high radius
-    if cy <= 200 and r >= 30:
-        return None
-
-    x, y, w, h = cv2.boundingRect(cnt)
-    return GreenBall(
-        center=(cx, cy),
-        radius=r,
-        area=area,
-        circularity=circ,
-        bbox=(x, y, w, h),
-        position_2d=(cx_mm, cy_mm),
-    )
-
-
-_kernel: NDArray[np.uint8] = np.ones((5, 5), dtype=np.uint8)
-
-
-def _morph_clean(mask: NDArray[np.uint8]) -> NDArray[np.uint8]:
+def _morph_clean(mask: NDArray[np.uint8], num_iter: int = 2) -> NDArray[np.uint8]:
+    _kernel: NDArray[np.uint8] = np.ones((5, 5), dtype=np.uint8)
     """Morphological opening followed by closing to clean up binary mask."""
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, _kernel, iterations=1).astype(
-        np.uint8, copy=False
-    )
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, _kernel, iterations=2).astype(
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, _kernel, iterations=num_iter).astype(
         np.uint8, copy=False
     )
     return mask
