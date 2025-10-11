@@ -8,7 +8,7 @@
 	(property "Reference" "REF**"
 		(at 0 -4.25 0)
 		(layer "F.SilkS")
-		(uuid "7b2f0b95-8aa2-4f1c-b79f-47ef6b193bc0")
+		(uuid "c8ff09e3-8b73-487b-b0d0-67054ba8e844")
 		(effects
 			(font
 				(size 1 1)
@@ -19,7 +19,7 @@
 	(property "Value" "1.5u"
 		(at 0 4.25 0)
 		(layer "F.Fab")
-		(uuid "efae97e4-a160-47ed-bc9a-93f7b7816872")
+		(uuid "8dd2287f-f968-42c0-b969-c4b62d2be0b1")
 		(effects
 			(font
 				(size 1 1)
@@ -31,7 +31,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "e99693db-fc49-48a6-b5f8-3a1320d523d2")
+		(uuid "c0c92330-e7ae-4b7e-9d0a-a136a7bb02c0")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -43,7 +43,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "8a07f82d-d217-4357-90c3-9780c60cd508")
+		(uuid "8c5ead38-3537-41f4-8604-99ca6bd1e4cd")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -60,7 +60,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "40c3313f-eb2d-46ae-a054-7f419bbb6900")
+		(uuid "0cc2a359-8cae-4705-bb66-2f1b854450b6")
 	)
 	(fp_line
 		(start 3.31 -3.45)
@@ -70,7 +70,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "51788d61-6b84-4fa5-8390-f78ab55099d6")
+		(uuid "4b4ab4c4-8de9-4f8a-8c48-6d720d00cf9b")
 	)
 	(fp_line
 		(start 3.31 -3.41)
@@ -80,7 +80,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "c392cae1-46d1-47da-91ec-af18ba35de26")
+		(uuid "8d0a9e4e-d015-4148-9ad2-06e913d50f70")
 	)
 	(fp_line
 		(start 3.31 3.41)
@@ -90,12 +90,12 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "1a486339-6864-4724-a268-cb453ba8e3ae")
+		(uuid "42db9524-c8a5-4aa6-8a2e-e2df42427fa3")
 	)
 	(fp_text user "${REFERENCE}"
 		(at 0 0 0)
 		(layer "F.Fab")
-		(uuid "c62dfde6-12aa-42a7-8cf8-7f661b2465ff")
+		(uuid "cfbdeb07-e3da-4ded-ac83-64908b46869c")
 		(effects
 			(font
 				(size 1 1)
@@ -107,13 +107,13 @@
 		(at -1.725 0)
 		(size 1.5 3.5)
 		(layers "F.Cu" "F.Mask" "F.Paste")
-		(uuid "099ba78f-48ed-43a1-8dbb-8341bb5d13fd")
+		(uuid "2b18daa1-644b-476d-b9c0-1b515356e073")
 	)
 	(pad "2" smd rect
 		(at 1.975 0)
 		(size 1.5 3.5)
 		(layers "F.Cu" "F.Mask" "F.Paste")
-		(uuid "c02efca9-d4b4-4ff4-9465-450321a743b7")
+		(uuid "1911f760-0362-4d72-9f58-79b3f3050e93")
 	)
 	(embedded_fonts no)
 	(model "${KICAD9_3DMODEL_DIR}/Inductor_SMD.3dshapes/L_Bourns_SRP6060FA.step"
