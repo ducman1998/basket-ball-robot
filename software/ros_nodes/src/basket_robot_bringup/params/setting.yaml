@@ -27,7 +27,7 @@ shared_robot_setting:
     port: 'auto'  # 'auto' or '/dev/ttyUSB0' etc
 
 image_processor_setting:
-  ref_colors_flat: [32, 111, 109,  2, 94, 94,  6, 106, 99] # rgb color space of the balls to detect, can add more colors
+  ref_colors_flat: [32,111,109,  2,94,94, 6,106,99, 47,88,85, 64,83,73] # rgb color space of the balls to detect, can add more colors
   ref_court_color: [152, 80, 73]  # rgb color space of the working area
   resolution: [1280, 720]      # width, height
   fps: 30                      # camera fps
