@@ -20,18 +20,20 @@ shared_robot_setting:
     encoder_resolution: 64       # ticks per motor shaft revolution
     pid_control_freq: 100         # Hz
     max_rot_speed: 1.25    # rad/s
-    max_xy_speed: 0.5     # m/s # max linear speed in x and y direction
+    max_xy_speed: 0.5      # m/s # max linear speed in x and y direction
     baudrate: 115200
     polarity: 1  # set to -1 if motors spin in reverse
     serial_timeout: 0.05  # seconds
     port: 'auto'  # 'auto' or '/dev/ttyUSB0' etc
 
 image_processor_setting:
-  ref_colors_flat: [32,111,109,  2,94,94, 6,106,99, 47,88,85, 64,83,73] # rgb color space of the balls to detect, can add more colors
-  ref_court_color: [152, 80, 73]  # rgb color space of the working area
+  ref_colors_flat: [69,52,27, 92,83,48, 113,76,42, 97,60,30] # rgb color space of the balls to detect, can add more colors
+  ref_court_color: [201, 47, 25]  # rgb color space of the working area
   resolution: [1280, 720]      # width, height
   fps: 30                      # camera fps
-  exposure_time: 150             # in microseconds
+  exposure_auto: false
+  exposure_time: 100             # in microseconds
+  white_balance_auto: false
   enable_depth: True           # enable depth stream
   publish_viz_image: True
   publish_viz_fps: 2  # Hz
@@ -43,3 +45,4 @@ game_logic_controller:
   kp_rot: 1.0  # proportional gain for angular velocity
   kd_xy: 0.001  # derivative gain for linear velocity
   kd_rot: 0.001  # derivative gain for angular velocity
+  norm_xy_speed: true # normalize x and y speed to max_xy_speed if it exceeds max_xy_speed

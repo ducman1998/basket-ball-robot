@@ -93,20 +93,32 @@ def detect_green_ball_centers(
             cy = int(M["m01"] / M["m00"])
             r, (pos_x, pos_y) = _get_ball_radius((cx, cy))
             balls.append(GreenBall(center=(cx, cy), radius=r, position_2d=(pos_x, pos_y)))
-            if visualize:
-                cv2.circle(vis, (cx, cy), 3, (255, 0, 0), -1)
-                cv2.circle(vis, (cx, cy), int(r), (0, 255, 0), 2)
-                cv2.putText(
-                    vis,
-                    f"({cx},{cy})",
-                    (cx + 5, cy - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
-                    (255, 255, 255),
-                    1,
-                    cv2.LINE_AA,
-                )
-    return balls, vis
+
+    # filter close detections to form one
+    balls = sorted(balls, key=lambda b: b.radius, reverse=True)
+    filtered_balls: List[GreenBall] = []
+    for ball in balls:
+        if all(
+            np.linalg.norm(np.array(ball.center) - np.array(b.center)) > ball.radius * 2
+            for b in filtered_balls
+        ):
+            filtered_balls.append(ball)
+
+    if visualize:
+        for ball in filtered_balls:
+            cv2.circle(vis, ball.center, int(ball.radius), (0, 255, 0), 2)
+            cv2.circle(vis, ball.center, 3, (255, 0, 0), -1)
+            cv2.putText(
+                vis,
+                f"({ball.position_2d[0]:.0f}, {ball.position_2d[1]:.0f}), r={ball.radius:.0f}",
+                (ball.center[0] + 10, ball.center[1] - 10),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (0, 0, 255),
+                1,
+            )
+
+    return filtered_balls, vis
 
 
 def segment_color_hsv(
@@ -117,9 +129,11 @@ def segment_color_hsv(
     v_tol: int = 40,
     resize: float = 1.0,
     min_component_area: int = 100,
-    dilate: bool = True,
     morph_kernel: int = 5,  # size of kernel
-    morph_iter: int = 1,  # number of iterations
+    close: bool = False,
+    close_iter: int = 3,
+    dilate: bool = True,
+    dilate_iter: int = 1,  # number of iterations
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Segment pixels close to a reference color in HSV space,
@@ -181,9 +195,12 @@ def segment_color_hsv(
             cv2.drawContours(mask_filtered, [cnt], -1, (255,), -1)
 
     # 6. Morphological operation to fill holes/edges
-    if dilate and morph_iter > 0:
-        krn = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (morph_kernel, morph_kernel))
-        mask_filtered = cv2.dilate(mask_filtered, krn, iterations=morph_iter)
+    krn = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (morph_kernel, morph_kernel))
+    if close and close_iter > 0:
+        mask_filtered = cv2.morphologyEx(mask_filtered, cv2.MORPH_CLOSE, krn, iterations=close_iter)
+
+    if dilate and dilate_iter > 0:
+        mask_filtered = cv2.dilate(mask_filtered, krn, iterations=dilate_iter)
 
     # 7. Resize mask back
     if resize != 1.0:

@@ -26,6 +26,7 @@ def _load_params_from_yaml(param_file_path: str) -> Tuple[Dict[str, Any], dict[s
             "kd_xy": cfg["game_logic_controller"]["kd_xy"],
             "kp_rot": cfg["game_logic_controller"]["kp_rot"],
             "kd_rot": cfg["game_logic_controller"]["kd_rot"],
+            "norm_xy_speed": cfg["game_logic_controller"]["norm_xy_speed"],
         }
     except (KeyError, ValueError) as e:
         raise RuntimeError(f"Error in 'shared_robot_setting' in {param_file_path}: {e}")

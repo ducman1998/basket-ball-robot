@@ -83,6 +83,9 @@ class GameLogicController(Node):
         float_descriptor = ParameterDescriptor(
             type=ParameterType.PARAMETER_DOUBLE, description="A floating point parameter."
         )
+        bool_descriptor = ParameterDescriptor(
+            type=ParameterType.PARAMETER_BOOL, description="A boolean parameter."
+        )
         self.declare_parameter("max_rot_speed", descriptor=float_descriptor)
         self.declare_parameter("max_xy_speed", descriptor=float_descriptor)
         self.declare_parameter("search_ball_rot_speed", descriptor=float_descriptor)
@@ -90,6 +93,7 @@ class GameLogicController(Node):
         self.declare_parameter("kd_xy", descriptor=float_descriptor)
         self.declare_parameter("kp_rot", descriptor=float_descriptor)
         self.declare_parameter("kd_rot", descriptor=float_descriptor)
+        self.declare_parameter("norm_xy_speed", descriptor=bool_descriptor)
 
     def _read_node_parameters(self) -> None:
         """Read parameters into class variables."""
@@ -102,6 +106,7 @@ class GameLogicController(Node):
         self.kd_xy = self.get_parameter("kd_xy").get_parameter_value().double_value
         self.kp_rot = self.get_parameter("kp_rot").get_parameter_value().double_value
         self.kd_rot = self.get_parameter("kd_rot").get_parameter_value().double_value
+        self.norm_xy_speed = self.get_parameter("norm_xy_speed").get_parameter_value().bool_value
 
     def odom_callback(self, msg: Odometry) -> None:
         """Handle incoming odometry messages."""
@@ -225,24 +230,17 @@ class GameLogicController(Node):
             wz_error = xe_vec[2]  # angular velocity error in z
 
             # PD control
-            vx = np.clip(
-                self.kp_xy * vx_error
-                + self.kd_xy * (vx_error - self.prev_vx_error) * SAMPLING_RATE,
-                -self.max_xy,
-                self.max_xy,
+            vx = (
+                self.kp_xy * vx_error + self.kd_xy * (vx_error - self.prev_vx_error) * SAMPLING_RATE
             )
-            vy = np.clip(
-                self.kp_xy * vy_error
-                + self.kd_xy * (vy_error - self.prev_vy_error) * SAMPLING_RATE,
-                -self.max_xy,
-                self.max_xy,
+            vy = (
+                self.kp_xy * vy_error + self.kd_xy * (vy_error - self.prev_vy_error) * SAMPLING_RATE
             )
-            wz = np.clip(
+            wz = (
                 self.kp_rot * wz_error
-                + self.kd_rot * (wz_error - self.prev_wz_error) * SAMPLING_RATE,
-                -self.max_rot,
-                self.max_rot,
+                + self.kd_rot * (wz_error - self.prev_wz_error) * SAMPLING_RATE
             )
+
             self.prev_vx_error = vx_error
             self.prev_vy_error = vy_error
             self.prev_wz_error = wz_error
@@ -269,12 +267,18 @@ class GameLogicController(Node):
     def move_robot(
         self, vx: float, vy: float, wz: float, thrower_percent: int, normalize: bool = False
     ) -> None:
-        """Send velocity commands to the robot."""
+        """Send velocity commands to the robot. vx, vy in m/s, wz in rad/s."""
         if normalize:
             if np.linalg.norm([vx, vy]) > self.max_xy:
                 scale = self.max_xy / np.linalg.norm([vx, vy])
                 vx *= scale
                 vy *= scale
+        else:
+            vx = np.clip(vx, -self.max_xy, self.max_xy)
+            vy = np.clip(vy, -self.max_xy, self.max_xy)
+
+        wz = np.clip(wz, -self.max_rot, self.max_rot)
+        thrower_percent = np.clip(thrower_percent, 0, 100)
 
         self.control_msg.header.stamp = Clock().now().to_msg()
         self.control_msg.header.frame_id = BASE_FRAME_ID

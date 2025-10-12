@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple, Union
 class GreenBall:
     def __init__(
         self,
-        center: Union[List[Union[int, float]], Tuple[Union[int, float], ...]],
+        center: Tuple[int, int],
         radius: Union[int, float],
         position_2d: Union[List[float], Tuple[float, ...]],
     ) -> None:
