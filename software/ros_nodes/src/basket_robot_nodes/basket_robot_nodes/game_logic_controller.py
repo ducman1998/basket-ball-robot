@@ -23,9 +23,10 @@ class GameState:
     """Enum-like class for game states."""
 
     INIT: int = 0
-    SEARCHING_BALL: int = 1
-    REACHING_BALL: int = 2
-    END: int = 3
+    GO_STRAIGHT: int = 1
+    SEARCHING_BALL: int = 2
+    REACHING_BALL: int = 3
+    IDLE: int = 4
 
 
 class GameLogicController(Node):
@@ -64,7 +65,8 @@ class GameLogicController(Node):
 
         # state variables
         # INIT: initial state
-
+        # GO_STRAIGHT: move forward for 1 meter
+        self.init_pose: Optional[Odometry] = None
         # SEARCHING_BALL: look for balls
         self.last_angle: float = 0.0  # starting angle for searching
         self.cummulative_rotation: float = 0.0  # track rotation during searching
@@ -113,6 +115,8 @@ class GameLogicController(Node):
         # Process odometry data as needed
         self.odom_msg = msg
         self.last_odom_time = time()
+        if self.init_pose is None:
+            self.init_pose = msg  # store the initial pose
 
     def image_info_callback(self, msg: String) -> None:
         """Handle incoming image info messages."""
@@ -129,13 +133,16 @@ class GameLogicController(Node):
             case GameState.INIT:
                 self.handle_init_state()
 
+            case GameState.GO_STRAIGHT:
+                self.handle_go_straight_state()
+
             case GameState.SEARCHING_BALL:
                 self.handle_searching_ball_state()
 
             case GameState.REACHING_BALL:
                 self.handle_reaching_ball_state()
 
-            case GameState.END:
+            case GameState.IDLE:
                 self.handle_end_state()
             case _:
                 raise RuntimeError("Unknown game state!")
@@ -155,8 +162,29 @@ class GameLogicController(Node):
             self.cummulative_rotation = 0.0
             self.get_logger().info(f"Last angle set to {self.last_angle:.2f} degrees.")
             # transition to searching state
-            self.cur_state = GameState.SEARCHING_BALL
-            self.get_logger().info("Transitioning to SEARCHING_BALL state.")
+            self.cur_state = GameState.GO_STRAIGHT
+            self.get_logger().info("Transitioning to GO_STRAIGHT state.")
+        return None
+
+    def handle_go_straight_state(self) -> None:
+        self.get_logger().info("Game State: GO_STRAIGHT")
+        self.move_robot(0.0, 0.25, 0.0, 0)  # move forward at 0.25 m/s
+        if self.odom_msg and self.init_pose:
+            distance_moved = (
+                self.odom_msg.pose.pose.position.y - self.init_pose.pose.pose.position.y
+            )
+
+            if self.image_info_msg and len(self.image_info_msg.detected_balls) > 0:
+                self.move_robot(0.0, 0.0, 0.0, 0)  # stop rotation
+                self.cur_state = GameState.REACHING_BALL
+                self.get_logger().info("Ball detected! Transitioning to REACHING_BALL state.")
+                return None
+
+            if distance_moved >= 1.0:  # move forward for 1 meter
+                self.cur_state = GameState.SEARCHING_BALL
+                self.get_logger().info("Reached 1 meter. Transitioning to SEARCHING_BALL state.")
+                return None
+        return None
 
     def handle_searching_ball_state(self) -> None:
         self.get_logger().info("Game State: SEARCHING_BALL")
@@ -175,7 +203,7 @@ class GameLogicController(Node):
         self.last_angle = yaw_now
         if abs(self.cummulative_rotation) >= 360.0:
             self.move_robot(0.0, 0.0, 0.0, 0)  # stop rotation
-            self.cur_state = GameState.END
+            self.cur_state = GameState.IDLE
             self.get_logger().info("No ball found after full rotation. Transitioning to END state.")
 
         # rotate the robot to find balls
@@ -184,6 +212,7 @@ class GameLogicController(Node):
             f"Searching... Current yaw: {yaw_now:.2f} degrees, "
             f"Cumulative rotation: {self.cummulative_rotation:.2f} degrees."
         )
+        return None
 
     def handle_reaching_ball_state(self) -> None:
         self.get_logger().info("Game State: REACHING_BALL")
@@ -193,20 +222,16 @@ class GameLogicController(Node):
                 self.image_info_msg.detected_balls,
                 key=lambda b: math.hypot(*b.position_2d) if b.position_2d else float("inf"),
             )
-            ball_pos = closet_ball.position_2d
-            # if close enough to the ball, stop
-            # 350mm distance threshold (robot center to the ball)
-            distance_check = math.hypot(ball_pos[0], ball_pos[1]) <= 350.0
-            angle_check = abs(math.atan2(ball_pos[0], ball_pos[1])) <= math.radians(3)  # 3 degrees
-            if distance_check and angle_check:
-                self.get_logger().info(
-                    "Reached the ball! Stopping and returning to SEARCHING_BALL state."
-                )
-                self.cur_state = GameState.END
+            stop_condition = self.check_stop_condition(closet_ball)
+            if stop_condition:
+                self.get_logger().info("Reached the ball! Stopping and returning to IDLE state.")
+                self.cur_state = GameState.IDLE
                 self.reset_to_search_state()
                 return None
 
             # transformation matrix from the ball frame to robot base_footprint frame
+            ball_pos = closet_ball.position_2d  # in mm
+            # desired target pose (4x4 matrix) in the robot base_foot
             x_desired = np.eye(4)
             heading_error = -math.atan2(ball_pos[0], ball_pos[1])
             x_desired[0, :] = [
@@ -250,19 +275,32 @@ class GameLogicController(Node):
                 f"Moving towards ball: vx={vx:.2f}, vy={vy:.2f}, wz={wz:.2f}, "
                 f"pos=({ball_pos[0]:.1f}, {ball_pos[1]:.1f})mm"
             )
-
+            return None
         else:
             self.get_logger().info("Lost sight of the ball. Returning to SEARCHING_BALL state.")
             self.reset_to_search_state()
             self.cur_state = GameState.SEARCHING_BALL
             return None
 
-    def handle_end_state(self) -> None:
-        self.get_logger().info("Game State: END")
-        self.reset_to_search_state()
+    def handle_idle_state(self) -> None:
+        self.get_logger().info("Game State: IDLE")
         self.move_robot(0.0, 0.0, 0.0, 0)  # stop robot
-        # Game over, exit the programe here
-        exit(0)
+        # transition to searching state if the ball is disappeared
+        if self.image_info_msg and len(self.image_info_msg.detected_balls) > 0:
+            # move towards the closest ball
+            closet_ball: GreenBall = min(
+                self.image_info_msg.detected_balls,
+                key=lambda b: math.hypot(*b.position_2d) if b.position_2d else float("inf"),
+            )
+            stop_condition = self.check_stop_condition(closet_ball)
+            if not stop_condition:
+                self.cur_state = GameState.REACHING_BALL
+                self.reset_to_search_state()
+                self.get_logger().info(
+                    "Ball movement detected! Transitioning to REACHING_BALL state."
+                )
+                return None
+        return None
 
     def move_robot(
         self, vx: float, vy: float, wz: float, thrower_percent: int, normalize: bool = False
@@ -317,6 +355,18 @@ class GameLogicController(Node):
         elif raw_error < -180.0:
             raw_error += 360.0
         return raw_error
+
+    def check_stop_condition(self, closest_ball: GreenBall) -> bool:
+        ball_pos = closest_ball.position_2d
+        # if close enough to the ball, stop
+        # 350mm distance threshold (robot center to the ball)
+        distance_check = math.hypot(ball_pos[0], ball_pos[1]) <= 350.0
+        angle_check = abs(math.atan2(ball_pos[0], ball_pos[1])) <= math.radians(3)  # 3 degrees
+        if distance_check and angle_check:
+            self.get_logger().info(
+                "Reached the ball! Stopping and returning to SEARCHING_BALL state."
+            )
+        return distance_check and angle_check
 
 
 def main() -> None:

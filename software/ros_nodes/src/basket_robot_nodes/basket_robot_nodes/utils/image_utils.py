@@ -211,9 +211,7 @@ def segment_color_hsv(
     return mask_filtered, seg
 
 
-def _pixel_to_robot_coords(
-    ball_center: Tuple[float, float], h_inv: np.ndarray, tbw: np.ndarray
-) -> Tuple[float, float]:
+def _pixel_to_robot_coords(ball_center: Tuple[float, float]) -> Tuple[float, float]:
     """
     Convert ball pixel coordinates to robot base_footprint frame (Y forward, X right, Z up).
     Inputs:
@@ -229,10 +227,10 @@ def _pixel_to_robot_coords(
     """
     ball_pos = np.array(ball_center, dtype=np.float32)
     ball_pos_h = np.hstack([ball_pos, 1]).reshape(-1, 1)  # homogeneous coordinates
-    wd_point = h_inv @ ball_pos_h
+    wd_point = H_INV @ ball_pos_h
     wd_point = (wd_point / wd_point[-1]).ravel()
     # convert to robot base_footprint frame
-    b_point = tbw @ np.array([wd_point[0], wd_point[1], 0, 1]).reshape(4, 1)
+    b_point = T_BW @ np.array([wd_point[0], wd_point[1], 0, 1]).reshape(4, 1)
     b_point = b_point / b_point[3]
     b_point_xy = np.round(b_point.ravel(), 3)[:2]
     return float(b_point_xy[0]), float(b_point_xy[1])  # in mm
@@ -264,7 +262,7 @@ def _robot_to_pixel_coords(robot_xy: Tuple[float, float]) -> Tuple[float, float]
 
 
 def _get_ball_radius(ball_center: Tuple[float, float]) -> Tuple[float, Tuple[float, float]]:
-    xy_pos_center = _pixel_to_robot_coords(ball_center, H_INV, T_BW)  # in mm
+    xy_pos_center = _pixel_to_robot_coords(ball_center)  # in mm
     xy_pos_edge = (xy_pos_center[0] - 20, xy_pos_center[1])  # 20mm to the left
     ball_edge = _robot_to_pixel_coords(xy_pos_edge)  # in pixels
     rad = np.linalg.norm(np.array(ball_center) - np.array(ball_edge))

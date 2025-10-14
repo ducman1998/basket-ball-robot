@@ -249,8 +249,8 @@ class ImageProcessor(Node):
                 color_frame_rgb,
                 ref_ball_rgb=self.ref_ball_color,
                 h_tol=5,
-                s_tol=20,
-                v_tol=20,
+                s_tol=15,
+                v_tol=15,
                 roi_mask=roi_mask,
                 visualize=True,
             )
