@@ -16,7 +16,9 @@ from rclpy.qos import QoSProfile
 from shared_interfaces.msg import TwistStamped  # a custom message with thrower_percent
 from std_msgs.msg import String
 
-SAMPLING_RATE = 20  # Hz
+SAMPLING_RATE = 30  # Hz
+CONSEC_DETECTED_FRAME_THRESHOLD_IN_GS = 5  # frames
+CONSEC_DETECTED_FRAME_THRESHOLD_IN_IDLE = 60  # frames
 
 
 class GameState:
@@ -67,6 +69,7 @@ class GameLogicController(Node):
         # INIT: initial state
         # GO_STRAIGHT: move forward for 1 meter
         self.init_pose: Optional[Odometry] = None
+        self.cons_detected_frame_count_gs: int = 0  # count of consecutive frames with ball detected
         # SEARCHING_BALL: look for balls
         self.last_angle: float = 0.0  # starting angle for searching
         self.cummulative_rotation: float = 0.0  # track rotation during searching
@@ -75,8 +78,9 @@ class GameLogicController(Node):
         self.prev_vx_error: float = 0.0
         self.prev_vy_error: float = 0.0
         self.prev_wz_error: float = 0.0
-        # END: stop
-
+        # IDLE: stop
+        # count of consecutive frames with ball detected in IDLE state
+        self.cons_detected_frame_count_idle: int = 0
         # reusable control msg
         self.control_msg = TwistStamped()
 
@@ -143,7 +147,7 @@ class GameLogicController(Node):
                 self.handle_reaching_ball_state()
 
             case GameState.IDLE:
-                self.handle_end_state()
+                self.handle_idle_state()
             case _:
                 raise RuntimeError("Unknown game state!")
 
@@ -170,17 +174,27 @@ class GameLogicController(Node):
         self.get_logger().info("Game State: GO_STRAIGHT")
         self.move_robot(0.0, 0.25, 0.0, 0)  # move forward at 0.25 m/s
         if self.odom_msg and self.init_pose:
-            distance_moved = (
-                self.odom_msg.pose.pose.position.y - self.init_pose.pose.pose.position.y
-            )
-
+            dy = self.odom_msg.pose.pose.position.y - self.init_pose.pose.pose.position.y
+            dx = self.odom_msg.pose.pose.position.x - self.init_pose.pose.pose.position.x
+            distance_moved = np.sqrt(dy**2 + dx**2)
+            self.get_logger().info(f"Distance moved: {distance_moved:.2f} meters.")
+            # check for ball detection during moving forward
             if self.image_info_msg and len(self.image_info_msg.detected_balls) > 0:
-                self.move_robot(0.0, 0.0, 0.0, 0)  # stop rotation
-                self.cur_state = GameState.REACHING_BALL
-                self.get_logger().info("Ball detected! Transitioning to REACHING_BALL state.")
-                return None
+                self.cons_detected_frame_count_gs += 1
+                if self.cons_detected_frame_count_gs >= CONSEC_DETECTED_FRAME_THRESHOLD_IN_GS:
+                    self.move_robot(0.0, 0.0, 0.0, 0)  # stop running
+                    self.cur_state = GameState.REACHING_BALL
+                    self.get_logger().info(
+                        "Ball detected during moving forward in "
+                        + f"{self.cons_detected_frame_count_gs} frames! "
+                        + "Transitioning to REACHING_BALL state."
+                    )
+                    self.reset_to_search_state()
+                    return None
+            else:
+                self.cons_detected_frame_count_gs = 0  # reset count if no ball detected
 
-            if distance_moved >= 1.0:  # move forward for 1 meter
+            if distance_moved >= 2.0:  # move forward for 1 meter
                 self.cur_state = GameState.SEARCHING_BALL
                 self.get_logger().info("Reached 1 meter. Transitioning to SEARCHING_BALL state.")
                 return None
@@ -196,7 +210,7 @@ class GameLogicController(Node):
             self.get_logger().info("Ball detected! Transitioning to REACHING_BALL state.")
             return None
 
-        # If no ball detected after a full rotation, transition to END state
+        # If no ball detected after a full rotation, transition to IDLE state
         yaw_now = self.yaw_from_odom(self.odom_msg)
         delta_yaw = self.shortest_angular_difference(yaw_now, self.last_angle)
         self.cummulative_rotation += delta_yaw
@@ -204,7 +218,9 @@ class GameLogicController(Node):
         if abs(self.cummulative_rotation) >= 360.0:
             self.move_robot(0.0, 0.0, 0.0, 0)  # stop rotation
             self.cur_state = GameState.IDLE
-            self.get_logger().info("No ball found after full rotation. Transitioning to END state.")
+            self.get_logger().info(
+                "No ball found after full rotation. Transitioning to IDLE state."
+            )
 
         # rotate the robot to find balls
         self.move_robot(0.0, 0.0, self.search_rot, 0)
@@ -287,6 +303,7 @@ class GameLogicController(Node):
         self.move_robot(0.0, 0.0, 0.0, 0)  # stop robot
         # transition to searching state if the ball is disappeared
         if self.image_info_msg and len(self.image_info_msg.detected_balls) > 0:
+            self.cons_detected_frame_count_idle = 0  # reset count if ball detected
             # move towards the closest ball
             closet_ball: GreenBall = min(
                 self.image_info_msg.detected_balls,
@@ -300,6 +317,18 @@ class GameLogicController(Node):
                     "Ball movement detected! Transitioning to REACHING_BALL state."
                 )
                 return None
+        else:
+            self.cons_detected_frame_count_idle += 1
+            if self.cons_detected_frame_count_idle >= CONSEC_DETECTED_FRAME_THRESHOLD_IN_IDLE:
+                self.cur_state = GameState.SEARCHING_BALL
+                self.reset_to_search_state()
+                self.get_logger().info(
+                    "No ball detected for a while in IDLE state. "
+                    + "Transitioning to SEARCHING_BALL state."
+                )
+            else:
+                self.get_logger().info("No ball detected. Remaining in IDLE state.")
+
         return None
 
     def move_robot(
@@ -360,7 +389,7 @@ class GameLogicController(Node):
         ball_pos = closest_ball.position_2d
         # if close enough to the ball, stop
         # 350mm distance threshold (robot center to the ball)
-        distance_check = math.hypot(ball_pos[0], ball_pos[1]) <= 350.0
+        distance_check = math.hypot(ball_pos[0], ball_pos[1]) <= 250.0
         angle_check = abs(math.atan2(ball_pos[0], ball_pos[1])) <= math.radians(3)  # 3 degrees
         if distance_check and angle_check:
             self.get_logger().info(
