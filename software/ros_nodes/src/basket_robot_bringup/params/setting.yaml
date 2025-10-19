@@ -1,19 +1,15 @@
-logging:
-  mainboard_controller_node: 'info'
-  odometry_node: 'info'
-  image_processor: 'info'
-  game_logic_controller: 'info'
-
-shared_robot_setting:
+# Robot kinematic parameters will be available to all nodes via this shared YAML file
+/**:
+  ros__parameters:
     hwid: 'USB VID:PID=0483:5740'
     cmd_fmt: '<hhhHHHBH'  # cmd format to send to mainboard
     fbk_fmt: '<hhhhhhBH'  # feedback format from mainboard
     delimiter: 0xAAAA
     # beta: rotation shift between X axis of robot base-frame vs drived direction of wheel (degrees)
     # alpha: angle of wheel (from robot center to the wheel) vs X axis of robot base-frame (degrees)
-    motor_01: [240, 150] # [beta, alpha] in degrees
-    motor_02: [0, 270]
-    motor_03: [120, 30]
+    motor_01: [240.0, 150.0] # [beta, alpha] in degrees
+    motor_02: [0.0, 270.0]
+    motor_03: [120.0, 30.0]
     wheel_radius: 0.035  # meters
     center_to_wheel_dis: 0.1295  # meters  # distance from center to wheel
     gear_ratio: 18.75            # wheel to motor ratio
@@ -25,24 +21,37 @@ shared_robot_setting:
     polarity: 1  # set to -1 if motors spin in reverse
     serial_timeout: 0.05  # seconds
     port: 'auto'  # 'auto' or '/dev/ttyUSB0' etc
+    log_level: 'info' # default value, can be overridden in each node
 
-image_processor_setting:
-  ref_colors_flat: [69,52,27, 92,83,48, 113,76,42, 97,60,30] # rgb color space of the balls to detect, can add more colors
-  ref_court_color: [201, 47, 25]  # rgb color space of the working area
-  resolution: [1280, 720]      # width, height
-  fps: 30                      # camera fps
-  exposure_auto: false
-  exposure_time: 100             # in microseconds
-  white_balance_auto: false
-  enable_depth: True           # enable depth stream
-  publish_viz_image: True
-  publish_viz_fps: 2  # Hz
-  publish_viz_resize: 0.35  # factor to resize the viz image before publishing
+mainboard_controller_node:
+  ros__parameters:
+    log_level: 'info'
 
-game_logic_controller:
-  search_ball_rot_speed: -0.5  # rad/s
-  kp_xy: 0.5  # proportional gain for linear velocity
-  kp_rot: 1.0  # proportional gain for angular velocity
-  kd_xy: 0.001  # derivative gain for linear velocity
-  kd_rot: 0.001  # derivative gain for angular velocity
-  norm_xy_speed: true # normalize x and y speed to max_xy_speed if it exceeds max_xy_speed
+odometry_node:
+  ros__parameters:
+    log_level: 'info'
+
+image_processor_node:
+  ros__parameters:
+    ref_colors_flat: [69,52,27, 92,83,48, 113,76,42, 97,60,30] # rgb color space of the balls to detect, can add more colors
+    ref_court_color: [201, 47, 25]  # rgb color space of the working area
+    resolution: [1280, 720]      # width, height
+    fps: 30                      # camera fps
+    exposure_auto: false
+    exposure_time: 100             # in microseconds
+    white_balance_auto: false
+    enable_depth: True           # enable depth stream
+    publish_viz_image: True
+    publish_viz_fps: 2  # Hz
+    publish_viz_resize: 0.35  # factor to resize the viz image before publishing
+    log_level: 'info'
+
+game_logic_controller_node:
+  ros__parameters:
+    search_ball_rot_speed: -0.5  # rad/s
+    kp_xy: 0.5  # proportional gain for linear velocity
+    kp_rot: 1.0  # proportional gain for angular velocity
+    kd_xy: 0.001  # derivative gain for linear velocity
+    kd_rot: 0.001  # derivative gain for angular velocity
+    norm_xy_speed: true # normalize x and y speed to max_xy_speed if it exceeds max_xy_speed
+    log_level: 'info'

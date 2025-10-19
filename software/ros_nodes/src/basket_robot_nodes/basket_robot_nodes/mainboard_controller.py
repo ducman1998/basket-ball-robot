@@ -4,7 +4,10 @@ from typing import Optional
 import rclpy
 from basket_robot_nodes.utils.feedback import FeedbackSerial
 from basket_robot_nodes.utils.robot_motion import OmniMotionRobot
-from basket_robot_nodes.utils.ros_utils import log_initialized_parameters
+from basket_robot_nodes.utils.ros_utils import (
+    log_initialized_parameters,
+    parse_log_level,
+)
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
@@ -77,6 +80,7 @@ class MainboardController(Node):
         node.declare_parameter("cmd_fmt", descriptor=str_descriptor)
         node.declare_parameter("fbk_fmt", descriptor=str_descriptor)
         node.declare_parameter("delimiter", descriptor=int_descriptor)
+        node.declare_parameter("log_level", descriptor=str_descriptor)
 
     @staticmethod
     def init_ommi_controller(node: Node) -> OmniMotionRobot:
@@ -103,6 +107,11 @@ class MainboardController(Node):
         cmd_fmt = node.get_parameter("cmd_fmt").get_parameter_value().string_value
         fbk_fmt = node.get_parameter("fbk_fmt").get_parameter_value().string_value
         delimieter = node.get_parameter("delimiter").get_parameter_value().integer_value
+        log_level = node.get_parameter("log_level").get_parameter_value().string_value
+
+        # set logging level
+        node.get_logger().set_level(parse_log_level(log_level))
+        node.get_logger().info(f"Set node {node.get_name()} log level to {log_level}.")
 
         controller = OmniMotionRobot(
             wheel_radius=w_radius,

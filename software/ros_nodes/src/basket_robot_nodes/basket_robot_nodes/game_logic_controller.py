@@ -7,7 +7,10 @@ import numpy as np
 import rclpy
 from basket_robot_nodes.utils.constant_utils import BASE_FRAME_ID
 from basket_robot_nodes.utils.image_info import GreenBall, ImageInfo
-from basket_robot_nodes.utils.ros_utils import log_initialized_parameters
+from basket_robot_nodes.utils.ros_utils import (
+    log_initialized_parameters,
+    parse_log_level,
+)
 from nav_msgs.msg import Odometry
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from rclpy.clock import Clock
@@ -34,7 +37,7 @@ class GameState:
 class GameLogicController(Node):
     def __init__(self) -> None:
         # Initialize the Game Logic Controller node
-        super().__init__("game_logic_controller")
+        super().__init__("game_logic_controller_node")
         # declare parameters
         self._declare_node_parameter()
         # read parameters
@@ -92,6 +95,9 @@ class GameLogicController(Node):
         bool_descriptor = ParameterDescriptor(
             type=ParameterType.PARAMETER_BOOL, description="A boolean parameter."
         )
+        str_descriptor = ParameterDescriptor(
+            type=ParameterType.PARAMETER_STRING, description="A string parameter."
+        )
         self.declare_parameter("max_rot_speed", descriptor=float_descriptor)
         self.declare_parameter("max_xy_speed", descriptor=float_descriptor)
         self.declare_parameter("search_ball_rot_speed", descriptor=float_descriptor)
@@ -100,6 +106,7 @@ class GameLogicController(Node):
         self.declare_parameter("kp_rot", descriptor=float_descriptor)
         self.declare_parameter("kd_rot", descriptor=float_descriptor)
         self.declare_parameter("norm_xy_speed", descriptor=bool_descriptor)
+        self.declare_parameter("log_level", descriptor=str_descriptor)
 
     def _read_node_parameters(self) -> None:
         """Read parameters into class variables."""
@@ -113,6 +120,10 @@ class GameLogicController(Node):
         self.kp_rot = self.get_parameter("kp_rot").get_parameter_value().double_value
         self.kd_rot = self.get_parameter("kd_rot").get_parameter_value().double_value
         self.norm_xy_speed = self.get_parameter("norm_xy_speed").get_parameter_value().bool_value
+        # set logging level
+        log_level = self.get_parameter("log_level").get_parameter_value().string_value
+        self.get_logger().set_level(parse_log_level(log_level))
+        self.get_logger().info(f"Set node {self.get_name()} log level to {log_level}.")
 
     def odom_callback(self, msg: Odometry) -> None:
         """Handle incoming odometry messages."""

@@ -12,7 +12,10 @@ from basket_robot_nodes.utils.image_utils import (
     detect_green_ball_centers,
     segment_color_hsv,
 )
-from basket_robot_nodes.utils.ros_utils import log_initialized_parameters
+from basket_robot_nodes.utils.ros_utils import (
+    log_initialized_parameters,
+    parse_log_level,
+)
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
@@ -25,7 +28,7 @@ IMAGE_INFO_TOPIC = "/image/info"
 
 class ImageProcessor(Node):
     def __init__(self) -> None:
-        super().__init__("image_processor")
+        super().__init__("image_processor_node")
         self.shared_dir = get_package_share_directory("basket_robot_nodes")
         # declare params (no defaults, must be set in launch)
         self._declare_node_parameters()
@@ -85,6 +88,9 @@ class ImageProcessor(Node):
         float_descriptor = ParameterDescriptor(
             type=ParameterType.PARAMETER_DOUBLE, description="A floating point parameter."
         )
+        str_descriptor = ParameterDescriptor(
+            type=ParameterType.PARAMETER_STRING, description="A string parameter."
+        )
         self.declare_parameter("ref_colors_flat", descriptor=fint_array_descriptor)
         self.declare_parameter("ref_court_color", descriptor=fint_array_descriptor)
         self.declare_parameter("resolution", descriptor=fint_array_descriptor)
@@ -96,6 +102,7 @@ class ImageProcessor(Node):
         self.declare_parameter("publish_viz_image", descriptor=bool_descriptor)
         self.declare_parameter("publish_viz_fps", descriptor=int_descriptor)
         self.declare_parameter("publish_viz_resize", descriptor=float_descriptor)
+        self.declare_parameter("log_level", descriptor=str_descriptor)
 
     def _read_node_parameters(self) -> None:
         """Read and validate parameters."""
@@ -162,6 +169,10 @@ class ImageProcessor(Node):
         if self.pub_viz_fps <= 0 or self.pub_viz_fps > self.fps:
             self.get_logger().error("Parameter 'publish_viz_fps' must be in (0, fps].")
             raise ValueError("Invalid publish_viz_fps parameter.")
+        log_level = self.get_parameter("log_level").get_parameter_value().string_value
+        # set logging level
+        self.get_logger().set_level(parse_log_level(log_level))
+        self.get_logger().info(f"Set node {self.get_name()} log level to {log_level}.")
         return None
 
     def _init_camera(self) -> bool:
