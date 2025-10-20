@@ -28,6 +28,14 @@ repos:
     - id: mypy
       files: ^software/
       additional_dependencies: [types-PyYAML]
+      # ensure mypy reads pyproject.toml too (optional if already default)
+      args: ["--config-file=pyproject.toml", "--explicit-package-bases"]
+      # exclude any setup.py passed by pre-commit
+      exclude: |
+        (?x)(
+          (^|/)test/.*      # ignore any test/ dir
+          | setup\.py$      # ignore setup.py anywhere
+        )
 - repo: https://github.com/astral-sh/ruff-pre-commit
   rev: v0.13.1
   hooks:

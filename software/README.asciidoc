@@ -1,18 +1,23 @@
-== SOFTWARE DOCUMENTATION
+= SOFTWARE DOCUMENTATION
+John <ducman@ut.ee>
+:toc:
+:sectnums:
+
+This document provides an overview of the software components used in the robot, including setup instructions and details about the ROS2 nodes responsible for motor control and odometry.
 
 == 🚀 Development Setup
 
 This project uses https://pre-commit.com/[pre-commit] to enforce code style and quality
 (Black, isort, Ruff, Mypy, and more).
 
-=== 1. Install dev dependencies
+=== Install dev dependencies
 [source,shell]
 ----
 pip install -e .[dev]
 cd software && pip install -r requirements.txt
 ----
 
-=== 2. Install Git hooks
+=== Install Git hooks
 [source,shell]
 ----
 pre-commit install
@@ -20,11 +25,68 @@ pre-commit install
 
 This sets up a Git pre-commit hook so checks run automatically on every commit.
 
-=== 3. (Optional) Run on all files once
+=== (Optional) Run on all files once
 [source,shell]
 ----
 pre-commit run --all-files
 ----
 
-== Robot Motion Control
-The `robot_motion.py` module provides a Python class `OmniMotionRobot` for controlling a robot. Check this doc: link:docs/ROBOT_CONTROL.asciidoc[Robot Control Explanation].
+== ROS2 Nodes Overview
+This section provides an overview of the ROS2 nodes used in the robot's software architecture. The main nodes are the `mainboard_controller` and `odometry` nodes, which handle motor control and position tracking, respectively.
+
+=== Teleoperation Node
+The `teleop` node allows for manual control of the robot using keyboard inputs. It captures key presses and translates them into velocity commands, which are then published to the `/cmd_vel` topic. This node is useful for testing and debugging the robot's movement capabilities.
+
+==== Usage
+To run the `teleop` node, use the following command:
+[source,shell]
+----
+# start the teleop node
+ros2 run teleop start_teleop
+----
+Make sure your terminal is focused when using the teleop node, as it captures keyboard inputs directly.
+
+=== Mainboard Controller Node
+The `mainboard_controller` node is responsible for controlling the robot's movement by sending velocity commands to the motor controllers. It subscribes to the `/cmd_vel` topic, which provides linear and angular velocity commands, and translates these commands into individual wheel speeds. The node then get feedback from the motor controllers to ensure accurate movement and publishes the current wheel positions to the `/wheel_positions` topic.
+
+Check this doc for more information about how this node works: link:docs/ROBOT_CONTROL.asciidoc[Robot Control Explanation].
+
+==== Usage
+To run the `mainboard_controller` node, use the following command:
+[source,shell]
+----
+# start the mainboard controller node
+ros2 run basket_robot_nodes start_mainboard_controller
+----
+
+=== Odometry Node
+The `odometry` node calculates the robot's position and orientation based on wheel encoder data. It subscribes to the `/wheel_positions` topic, which provides the current positions of the robot's wheels, and publishes the calculated odometry information to the `odom` topic. The node uses the robot's kinematic model to convert wheel movements into changes in position and orientation. It also broadcasts the transform between the `odom` and `base_footprint` frames, allowing other nodes to understand the robot's position in space.
+
+==== Usage
+To run the `odometry` node, use the following command:
+[source,shell]
+----
+# start the odometry node
+ros2 run basket_robot_nodes start_odometry
+----
+
+For more details on how the odometry calculations are performed, refer to this doc: link:docs/ODOMETRY.asciidoc[Odometry documentation].
+
+== Launching All Nodes Together
+=== Launch All Functional Nodes
+To launch both the `mainboard_controller` and `odometry` nodes together, you can use the provided launch file. This file sets up the necessary parameters and starts both nodes in a single command.
+[source,shell]
+----
+# launch both nodes together
+ros2 launch basket_robot_bringup robot.launch.py
+----
+This command will start both the `mainboard_controller` and `odometry` nodes with the parameters specified in the launch file.
+
+=== Lauch Game Logic Node (Robot Finds A Ball)
+To launch the game logic node along with the other nodes, you can use the following command:
+[source,shell]
+----
+# launch game logic node along with other nodes
+ros2 launch basket_robot_bringup robot_find_a_ball.launch.py
+----
+This command will start the Game Logic Node only. Other functional nodes (mainboard_controller, odometry, image_processor) need to be launched separately.

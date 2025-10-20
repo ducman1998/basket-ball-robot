@@ -3,6 +3,11 @@ name = "basketbot_1.9_tdi"
 version = "0.1.0"  
 requires-python = ">=3.10"
 
+# Ensure 'setuptools' is specified and is up-to-date
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project.optional-dependencies]
 dev = [
     "pre-commit",
@@ -40,3 +45,4 @@ strict_equality = true
 show_error_codes = true
 pretty = true
 files = 'software/.*\.py'
+exclude = '(setup\.py$|/test/.*\.py$)'
