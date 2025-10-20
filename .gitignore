@@ -1,9 +1,4 @@
 __pycache__
 .history
 .mypy_cache
-*.egg-info/
-.ruff_cache/
-build/
-install/
-log 
-.ipynb_checkpoints
+yourpkg.egg-info/

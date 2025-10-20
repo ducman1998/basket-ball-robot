@@ -17,7 +17,7 @@ def send_command(
         thrower_speed_percent: int = 0,
         servo1: int = 1500,
         servo2: int = 1500,
-        disable_failsafe: bool = False,
+        disable_failsafe: int = 0,
     ) -> None:
 ----
 - `speed1`, `speed2`, `speed3`: Wheel speeds in the range -1000 to 1000.
@@ -31,12 +31,7 @@ The thrower speed is scaled from a percentage (0-100%) to the appropriate range 
 The `move` method provides a higher-level abstraction for robot movement. It takes desired velocities in the x and y directions, as well as rotational speed:
 [source,python]
 ----
-def move(self, x_speed: float,
-               y_speed: float,
-               rot_speed: float,
-               thrower_speed_percent: int,
-               read_feedback: bool = True
-        ) -> None:
+def move(self, x_speed: float, y_speed: float, rot_speed: float) -> None:
 ----
 - `x_speed`: Speed in the x direction (positive direction: right).
 - `y_speed`: Speed in the y direction (positive direction: forward).
@@ -59,7 +54,7 @@ try:
     # Send raw wheel speeds directly
     bot.send_command(speed1=0, speed2=0, speed3=0,
                      thrower_speed_percent=100, servo1=0, servo2=0,
-                     disable_failsafe=False)
+                     disable_failsafe=0)
     # Or use the high-level move() (replace mapping with your kinematics)
     bot.move(x_speed=0, y_speed=-1, rot_speed=0)  # forward
 finally:
