@@ -1,6 +1,6 @@
 import math
 from time import time
-from typing import Optional
+from typing import List, Optional, Tuple, Union
 
 import modern_robotics as mr
 import numpy as np
@@ -20,18 +20,26 @@ from shared_interfaces.msg import TwistStamped  # a custom message with thrower_
 from std_msgs.msg import String
 
 SAMPLING_RATE = 30  # Hz
-CONSEC_DETECTED_FRAME_THRESHOLD_IN_GS = 5  # frames
-CONSEC_DETECTED_FRAME_THRESHOLD_IN_IDLE = 60  # frames
+FT_DETECTED_SEARCHING = 5  # frames
+FT_UNDETECTED_REACHING = 5  # frames
+FT_DETECTED_ENTERING = 15  # frames
+FT_UNDETECTED_IDLE = 60  # frames
+TOTAL_ROT_DEGREE_THRESHOLD = 270.0  # seconds
 
 
 class GameState:
     """Enum-like class for game states."""
 
     INIT: int = 0
-    GO_STRAIGHT: int = 1
-    SEARCHING_BALL: int = 2
-    REACHING_BALL: int = 3
+    SEARCHING_BALL: int = 1
+    REACHING_BALL: int = 2
+    ENTERING_COURT_CENTER: int = 3
     IDLE: int = 4
+
+
+class RefFrame:
+    ROBOT_BASE: int = 0
+    ODOMETRY: int = 1
 
 
 class GameLogicController(Node):
@@ -70,20 +78,24 @@ class GameLogicController(Node):
 
         # state variables
         # INIT: initial state
-        # GO_STRAIGHT: move forward for 1 meter
-        self.init_pose: Optional[Odometry] = None
-        self.cons_detected_frame_count_gs: int = 0  # count of consecutive frames with ball detected
         # SEARCHING_BALL: look for balls
         self.last_angle: float = 0.0  # starting angle for searching
         self.cummulative_rotation: float = 0.0  # track rotation during searching
-
+        self.frame_count_search_state: int = 0
         # REACHING_BALL: move towards the closest ball
         self.prev_vx_error: float = 0.0
         self.prev_vy_error: float = 0.0
         self.prev_wz_error: float = 0.0
+        self.frame_count_reach_state: int = 0
+        # ENTERING_COURT_CENTER: move towards court center
+        self.court_center: Optional[Tuple[float, float]] = None
+        self.court_area: float = 0.0
+        self.best_court_center: Optional[Tuple[float, float]] = None
+        self.best_court_area: float = 0.0
+        self.frame_count_enter_state: int = 0
         # IDLE: stop
         # count of consecutive frames with ball detected in IDLE state
-        self.cons_detected_frame_count_idle: int = 0
+        self.frame_count_idle_state: int = 0
         # reusable control msg
         self.control_msg = TwistStamped()
 
@@ -130,13 +142,14 @@ class GameLogicController(Node):
         # Process odometry data as needed
         self.odom_msg = msg
         self.last_odom_time = time()
-        if self.init_pose is None:
-            self.init_pose = msg  # store the initial pose
 
     def image_info_callback(self, msg: String) -> None:
         """Handle incoming image info messages."""
         # Process image info data as needed
         self.image_info_msg = ImageInfo.from_json(msg.data)
+        self.court_center = self.image_info_msg.court_center
+        if self.image_info_msg.court_area is not None:
+            self.court_area = self.image_info_msg.court_area
         self.last_image_info_time = time()
 
     def game_logic_loop(self) -> None:
@@ -148,14 +161,14 @@ class GameLogicController(Node):
             case GameState.INIT:
                 self.handle_init_state()
 
-            case GameState.GO_STRAIGHT:
-                self.handle_go_straight_state()
-
             case GameState.SEARCHING_BALL:
                 self.handle_searching_ball_state()
 
             case GameState.REACHING_BALL:
                 self.handle_reaching_ball_state()
+
+            case GameState.ENTERING_COURT_CENTER:
+                self.handle_entering_court_center_state()
 
             case GameState.IDLE:
                 self.handle_idle_state()
@@ -177,125 +190,120 @@ class GameLogicController(Node):
             self.cummulative_rotation = 0.0
             self.get_logger().info(f"Last angle set to {self.last_angle:.2f} degrees.")
             # transition to searching state
-            self.cur_state = GameState.GO_STRAIGHT
-            self.get_logger().info("Transitioning to GO_STRAIGHT state.")
-        return None
-
-    def handle_go_straight_state(self) -> None:
-        self.get_logger().info("Game State: GO_STRAIGHT")
-        self.move_robot(0.0, 0.25, 0.0, 0)  # move forward at 0.25 m/s
-        if self.odom_msg and self.init_pose:
-            dy = self.odom_msg.pose.pose.position.y - self.init_pose.pose.pose.position.y
-            dx = self.odom_msg.pose.pose.position.x - self.init_pose.pose.pose.position.x
-            distance_moved = np.sqrt(dy**2 + dx**2)
-            self.get_logger().info(f"Distance moved: {distance_moved:.2f} meters.")
-            # check for ball detection during moving forward
-            if self.image_info_msg and len(self.image_info_msg.detected_balls) > 0:
-                self.cons_detected_frame_count_gs += 1
-                if self.cons_detected_frame_count_gs >= CONSEC_DETECTED_FRAME_THRESHOLD_IN_GS:
-                    self.move_robot(0.0, 0.0, 0.0, 0)  # stop running
-                    self.cur_state = GameState.REACHING_BALL
-                    self.get_logger().info(
-                        "Ball detected during moving forward in "
-                        + f"{self.cons_detected_frame_count_gs} frames! "
-                        + "Transitioning to REACHING_BALL state."
-                    )
-                    self.reset_to_search_state()
-                    return None
-            else:
-                self.cons_detected_frame_count_gs = 0  # reset count if no ball detected
-
-            if distance_moved >= 2.0:  # move forward for 1 meter
-                self.cur_state = GameState.SEARCHING_BALL
-                self.get_logger().info("Reached 1 meter. Transitioning to SEARCHING_BALL state.")
-                return None
+            self.cur_state = GameState.SEARCHING_BALL
+            self.get_logger().info("Transitioning to SEARCHING_BALL state.")
         return None
 
     def handle_searching_ball_state(self) -> None:
         self.get_logger().info("Game State: SEARCHING_BALL")
         # Here, you would check image_info_msg for detected balls
         # If a ball is detected, transition to REACHING_BALL state
-        if self.image_info_msg and len(self.image_info_msg.detected_balls) > 0:
-            self.move_robot(0.0, 0.0, 0.0, 0)  # stop rotation
-            self.cur_state = GameState.REACHING_BALL
-            self.get_logger().info("Ball detected! Transitioning to REACHING_BALL state.")
-            return None
+        if self.image_info_msg and len(self.image_info_msg.balls) > 0:
+            self.frame_count_search_state += 1
+            if self.frame_count_search_state >= FT_DETECTED_SEARCHING:
+                self.move_robot(0.0, 0.0, 0.0, 0)  # stop rotation
+                self.cur_state = GameState.REACHING_BALL
+                self.get_logger().info("Ball detected! Transitioning to REACHING_BALL state.")
+                return None
+        else:
+            self.frame_count_search_state = 0  # reset count if no ball detected
 
         # If no ball detected after a full rotation, transition to IDLE state
         yaw_now = self.yaw_from_odom(self.odom_msg)
-        delta_yaw = self.shortest_angular_difference(yaw_now, self.last_angle)
+        delta_yaw = self.shortest_angular_difference(yaw_now, self.last_angle)  # TODO: check
         self.cummulative_rotation += delta_yaw
         self.last_angle = yaw_now
-        if abs(self.cummulative_rotation) >= 360.0:
+        if abs(self.cummulative_rotation) >= TOTAL_ROT_DEGREE_THRESHOLD:
             self.move_robot(0.0, 0.0, 0.0, 0)  # stop rotation
-            self.cur_state = GameState.IDLE
-            self.get_logger().info(
-                "No ball found after full rotation. Transitioning to IDLE state."
-            )
+            if self.best_court_center is not None:
+                self.cur_state = GameState.ENTERING_COURT_CENTER
+                self.get_logger().info(
+                    "No ball after full rotation. Transitioning to ENTERING_COURT_CENTER state."
+                )
+                return None
+            else:
+                self.cur_state = GameState.IDLE
+                self.get_logger().info(
+                    "No ball found after full rotation. Transitioning to IDLE state."
+                )
+                return None
 
         # rotate the robot to find balls
         self.move_robot(0.0, 0.0, self.search_rot, 0)
+        self.get_logger().info(f"Court center: {self.court_center}, area: {self.court_area}")
+        # update best court center if current area is larger
+        if (
+            self.odom_msg is not None
+            and self.court_center is not None
+            and self.court_area > self.best_court_area
+        ):
+            t_robot_to_odom = np.eye(4)
+            quat = self.odom_msg.pose.pose.orientation
+            yaw = 2.0 * math.atan2(quat.z, quat.w)
+            t_robot_to_odom[0, 3] = self.odom_msg.pose.pose.position.x
+            t_robot_to_odom[1, 3] = self.odom_msg.pose.pose.position.y
+            t_robot_to_odom[0, :2] = [np.cos(yaw), -np.sin(yaw)]
+            t_robot_to_odom[1, :2] = [np.sin(yaw), np.cos(yaw)]
+            # target position in robot base-footprint frame
+            court_center_robot_frame = np.array([0.0, 1.5, 0.0, 1.0])
+            target_pos_odom_frame = t_robot_to_odom @ court_center_robot_frame
+            self.best_court_center = target_pos_odom_frame[:2].tolist()
+            self.best_court_area = self.court_area
         self.get_logger().info(
             f"Searching... Current yaw: {yaw_now:.2f} degrees, "
             f"Cumulative rotation: {self.cummulative_rotation:.2f} degrees."
         )
         return None
 
+    def handle_entering_court_center_state(self) -> None:
+        self.get_logger().info("Game State: FOLLOW_COURT_CENTER")
+        if self.image_info_msg and len(self.image_info_msg.balls) > 0:
+            self.frame_count_enter_state += 1
+            if self.frame_count_enter_state >= FT_DETECTED_ENTERING:
+                self.get_logger().info("Ball detected! Transitioning to REACHING_BALL state.")
+                self.cur_state = GameState.REACHING_BALL
+                return None
+        else:
+            self.frame_count_enter_state = 0  # reset count if ball detected
+
+        if self.best_court_center is not None:
+            vx, vy, wz = self.compute_control_signals(self.best_court_center, RefFrame.ODOMETRY)
+            self.move_robot(vx, vy, wz, 0, normalize=True)
+            self.get_logger().info(
+                f"Moving towards court center: vx={vx:.2f}, vy={vy:.2f}, wz={wz:.2f}, "
+                f"pos=({self.best_court_center[0]:.1f}, {self.best_court_center[1]:.1f})mm"
+            )
+            self.get_logger().info(
+                f"Court center position: {self.best_court_center}, area: {self.best_court_area}"
+            )
+            return None
+        else:
+            self.move_robot(0.0, 0.0, 0.0, 0)  # stop robot
+            self.cur_state = GameState.IDLE
+            self.get_logger().info(
+                "No court center information available. Transitioning to IDLE state."
+            )
+            return None
+
     def handle_reaching_ball_state(self) -> None:
         self.get_logger().info("Game State: REACHING_BALL")
-        if self.image_info_msg and len(self.image_info_msg.detected_balls) > 0:
+        if self.image_info_msg and len(self.image_info_msg.balls) > 0:
+            self.frame_count_reach_state = 0
             # move towards the closest ball
             closet_ball: GreenBall = min(
-                self.image_info_msg.detected_balls,
+                self.image_info_msg.balls,
                 key=lambda b: math.hypot(*b.position_2d) if b.position_2d else float("inf"),
             )
             stop_condition = self.check_stop_condition(closet_ball)
             if stop_condition:
                 self.get_logger().info("Reached the ball! Stopping and returning to IDLE state.")
                 self.cur_state = GameState.IDLE
-                self.reset_to_search_state()
                 return None
 
             # transformation matrix from the ball frame to robot base_footprint frame
             ball_pos = closet_ball.position_2d  # in mm
             # desired target pose (4x4 matrix) in the robot base_foot
-            x_desired = np.eye(4)
-            heading_error = -math.atan2(ball_pos[0], ball_pos[1])
-            x_desired[0, :] = [
-                np.cos(heading_error),
-                -np.sin(heading_error),
-                0.0,
-                ball_pos[0] / 1000.0,
-            ]
-            x_desired[1, :] = [
-                np.sin(heading_error),
-                np.cos(heading_error),
-                0.0,
-                ball_pos[1] / 1000.0 - 0.25,  # stop 250mm before the ball
-            ]
-            x_desired[2, :] = [0.0, 0.0, 1.0, 0.0]
-            x_desired[3, :] = [0.0, 0.0, 0.0, 1.0]
-            xe_log = mr.MatrixLog6(x_desired)
-            xe_vec = mr.se3ToVec(xe_log)
-            vx_error = xe_vec[3]  # velocity error in x
-            vy_error = xe_vec[4]  # velocity error in y
-            wz_error = xe_vec[2]  # angular velocity error in z
-
-            # PD control
-            vx = (
-                self.kp_xy * vx_error + self.kd_xy * (vx_error - self.prev_vx_error) * SAMPLING_RATE
-            )
-            vy = (
-                self.kp_xy * vy_error + self.kd_xy * (vy_error - self.prev_vy_error) * SAMPLING_RATE
-            )
-            wz = (
-                self.kp_rot * wz_error
-                + self.kd_rot * (wz_error - self.prev_wz_error) * SAMPLING_RATE
-            )
-
-            self.prev_vx_error = vx_error
-            self.prev_vy_error = vy_error
-            self.prev_wz_error = wz_error
+            vx, vy, wz = self.compute_control_signals(ball_pos)
             # move the robot towards the ball
             self.move_robot(vx, vy, wz, 0, normalize=True)
             self.get_logger().info(
@@ -304,20 +312,22 @@ class GameLogicController(Node):
             )
             return None
         else:
-            self.get_logger().info("Lost sight of the ball. Returning to SEARCHING_BALL state.")
-            self.reset_to_search_state()
-            self.cur_state = GameState.SEARCHING_BALL
-            return None
+            self.frame_count_reach_state += 1
+            if self.frame_count_reach_state >= FT_UNDETECTED_REACHING:
+                self.get_logger().info("Lost sight of the ball. Returning to SEARCHING_BALL state.")
+                self.cur_state = GameState.SEARCHING_BALL
+                self.reset_to_search_state()
+                return None
 
     def handle_idle_state(self) -> None:
         self.get_logger().info("Game State: IDLE")
         self.move_robot(0.0, 0.0, 0.0, 0)  # stop robot
         # transition to searching state if the ball is disappeared
-        if self.image_info_msg and len(self.image_info_msg.detected_balls) > 0:
-            self.cons_detected_frame_count_idle = 0  # reset count if ball detected
+        if self.image_info_msg and len(self.image_info_msg.balls) > 0:
+            self.frame_count_idle_state = 0  # reset count if ball detected
             # move towards the closest ball
             closet_ball: GreenBall = min(
-                self.image_info_msg.detected_balls,
+                self.image_info_msg.balls,
                 key=lambda b: math.hypot(*b.position_2d) if b.position_2d else float("inf"),
             )
             stop_condition = self.check_stop_condition(closet_ball)
@@ -329,8 +339,8 @@ class GameLogicController(Node):
                 )
                 return None
         else:
-            self.cons_detected_frame_count_idle += 1
-            if self.cons_detected_frame_count_idle >= CONSEC_DETECTED_FRAME_THRESHOLD_IN_IDLE:
+            self.frame_count_idle_state += 1
+            if self.frame_count_idle_state >= FT_UNDETECTED_IDLE:
                 self.cur_state = GameState.SEARCHING_BALL
                 self.reset_to_search_state()
                 self.get_logger().info(
@@ -368,6 +378,72 @@ class GameLogicController(Node):
         self.control_msg.twist.angular.z = float(wz)
         self.control_msg.thrower_percent = int(thrower_percent)
         self.mainboard_controller_pub.publish(self.control_msg)
+
+    def compute_control_signals(
+        self,
+        target_pos: Union[List[float], Tuple[float, float]],
+        ref_frame: int = RefFrame.ROBOT_BASE,
+    ) -> Tuple[float, float, float]:
+        """
+        Compute control signals (vx, vy, wz) to reach the target position.
+        target_pos: (x, y) position of the target in mm in robot base frame.
+        Returns: (vx, vy, wz) control signals.
+        """
+        x_desired = np.eye(4)
+        if ref_frame == RefFrame.ROBOT_BASE:
+            r_target_pos = [target_pos[0] / 1000.0, target_pos[1] / 1000.0]
+        else:
+            # calculate transformation from robot base to odometry frame
+            if self.odom_msg is None:
+                raise RuntimeError("No odometry message available for transformation.")
+
+            t_robot_to_odom = np.eye(4)
+            quat = self.odom_msg.pose.pose.orientation
+            yaw = 2.0 * math.atan2(quat.z, quat.w)
+            t_robot_to_odom[0, 3] = self.odom_msg.pose.pose.position.x
+            t_robot_to_odom[1, 3] = self.odom_msg.pose.pose.position.y
+            t_robot_to_odom[0, :2] = [np.cos(yaw), -np.sin(yaw)]
+            t_robot_to_odom[1, :2] = [np.sin(yaw), np.cos(yaw)]
+            # target position in robot base-footprint frame
+            target_pos_robot_frame = np.linalg.pinv(t_robot_to_odom) @ np.array(
+                [target_pos[0] / 1000.0, target_pos[1] / 1000.0, 0.0, 1.0]
+            )
+            r_target_pos = target_pos_robot_frame[:2].tolist()
+            self.get_logger().info(
+                "Transformed target position to robot frame: "
+                + f"({r_target_pos[0]:.1f}, {r_target_pos[1]:.1f})m"
+            )
+
+        heading_error = -math.atan2(r_target_pos[0], r_target_pos[1])
+        x_desired[0, :] = [
+            np.cos(heading_error),
+            -np.sin(heading_error),
+            0.0,
+            float(r_target_pos[0]),  # target x in m
+        ]
+        x_desired[1, :] = [
+            np.sin(heading_error),
+            np.cos(heading_error),
+            0.0,
+            r_target_pos[1] - 0.25,  # stop 250mm before the ball
+        ]
+        x_desired[2, :] = [0.0, 0.0, 1.0, 0.0]
+        x_desired[3, :] = [0.0, 0.0, 0.0, 1.0]
+        xe_log = mr.MatrixLog6(x_desired)
+        xe_vec = mr.se3ToVec(xe_log)
+        vx_error = xe_vec[3]  # velocity error in x
+        vy_error = xe_vec[4]  # velocity error in y
+        wz_error = xe_vec[2]  # angular velocity error in z
+
+        # PD control
+        vx = self.kp_xy * vx_error + self.kd_xy * (vx_error - self.prev_vx_error) * SAMPLING_RATE
+        vy = self.kp_xy * vy_error + self.kd_xy * (vy_error - self.prev_vy_error) * SAMPLING_RATE
+        wz = self.kp_rot * wz_error + self.kd_rot * (wz_error - self.prev_wz_error) * SAMPLING_RATE
+
+        self.prev_vx_error = vx_error
+        self.prev_vy_error = vy_error
+        self.prev_wz_error = wz_error
+        return vx, vy, wz
 
     def yaw_from_odom(self, odom_msg: Odometry) -> float:
         """Extract yaw angle in degrees from odometry message."""

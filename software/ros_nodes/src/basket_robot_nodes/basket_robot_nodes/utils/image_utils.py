@@ -32,6 +32,9 @@ def detect_green_ball_centers(
     h_tol: int = 10,
     s_tol: int = 10,
     v_tol: int = 10,
+    mask_open_iter: int = 1,
+    mask_open_kernel_size: int = 3,
+    min_component_area: int = 10,
     roi_mask: Optional[np.ndarray] = None,
     visualize: bool = True,
 ) -> Tuple[List[GreenBall], NDArray[np.uint8]]:
@@ -78,7 +81,7 @@ def detect_green_ball_centers(
         total_mask = cv2.bitwise_or(total_mask, current_mask).astype(np.uint8, copy=False)
 
     # Clean up the mask
-    mask = _morph_clean(total_mask, num_iter=2)
+    mask = _morph_clean(total_mask, num_iter=mask_open_iter, ksize=mask_open_kernel_size)
 
     # Find connected components or contours
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -89,15 +92,25 @@ def detect_green_ball_centers(
     for cnt in cnts:
         M = cv2.moments(cnt)
         if M["m00"] > 0:
+            area = cv2.contourArea(cnt)  # number of pixels inside the contour
             cx = int(M["m10"] / M["m00"])
             cy = int(M["m01"] / M["m00"])
             r, (pos_x, pos_y) = _get_ball_radius((cx, cy))
-            balls.append(GreenBall(center=(cx, cy), radius=r, position_2d=(pos_x, pos_y)))
+            balls.append(
+                GreenBall(center=(cx, cy), radius=r, area=area, position_2d=(pos_x, pos_y))
+            )
 
     # filter close detections to form one
-    balls = sorted(balls, key=lambda b: b.radius, reverse=True)
+    balls = sorted(balls, key=lambda b: b.radius * b.area, reverse=True)
     filtered_balls: List[GreenBall] = []
     for ball in balls:
+        if ball.area < min_component_area:
+            continue
+        # below thesholds are likely noise, based on empirical observations
+        if np.linalg.norm(np.array(ball.position_2d)) < 500 and ball.area < 250:
+            continue
+        if np.linalg.norm(np.array(ball.position_2d)) < 1500 and ball.area < 50:
+            continue
         if all(
             np.linalg.norm(np.array(ball.center) - np.array(b.center)) > ball.radius * 2
             for b in filtered_balls
@@ -110,12 +123,12 @@ def detect_green_ball_centers(
             cv2.circle(vis, ball.center, 3, (255, 0, 0), -1)
             cv2.putText(
                 vis,
-                f"({ball.position_2d[0]:.0f}, {ball.position_2d[1]:.0f}), r={ball.radius:.0f}",
+                f"({ball.position_2d[0]:.0f}, {ball.position_2d[1]:.0f}), a={ball.area:.0f}",
                 (ball.center[0] + 10, ball.center[1] - 10),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
+                0.7,
                 (0, 0, 255),
-                1,
+                2,
             )
 
     return filtered_balls, vis
@@ -211,6 +224,20 @@ def segment_color_hsv(
     return mask_filtered, seg
 
 
+def get_cur_working_area_center(
+    court_mask: NDArray[np.uint8],
+) -> Tuple[Optional[Tuple[float, float]], Optional[Tuple[int, int]]]:
+    """Calculate the center of the current working area (court) in pixel coordinates."""
+    moments = cv2.moments(court_mask)
+    if moments["m00"] == 0:
+        return None, None
+
+    cx = int(moments["m10"] / moments["m00"])
+    cy = int(moments["m01"] / moments["m00"])
+    court_center_2d = _pixel_to_robot_coords((cx, cy))
+    return court_center_2d, (cx, cy)
+
+
 def _pixel_to_robot_coords(ball_center: Tuple[float, float]) -> Tuple[float, float]:
     """
     Convert ball pixel coordinates to robot base_footprint frame (Y forward, X right, Z up).
@@ -269,10 +296,10 @@ def _get_ball_radius(ball_center: Tuple[float, float]) -> Tuple[float, Tuple[flo
     return float(rad), (float(xy_pos_center[0]), float(xy_pos_center[1]))
 
 
-def _morph_clean(mask: NDArray[np.uint8], num_iter: int = 2) -> NDArray[np.uint8]:
-    _kernel: NDArray[np.uint8] = np.ones((5, 5), dtype=np.uint8)
-    """Morphological opening followed by closing to clean up binary mask."""
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, _kernel, iterations=num_iter).astype(
+def _morph_clean(mask: NDArray[np.uint8], num_iter: int = 1, ksize: int = 3) -> NDArray[np.uint8]:
+    _kernel: NDArray[np.uint8] = np.ones((ksize, ksize), dtype=np.uint8)
+    """Morphological closing to clean up binary mask."""
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, _kernel, iterations=num_iter).astype(
         np.uint8, copy=False
     )
     return mask
