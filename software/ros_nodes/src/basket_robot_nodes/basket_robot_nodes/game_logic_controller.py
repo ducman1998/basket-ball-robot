@@ -16,10 +16,11 @@ from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from rclpy.clock import Clock
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
+from scipy.spatial.transform import Rotation as R
 from shared_interfaces.msg import TwistStamped  # a custom message with thrower_percent
 from std_msgs.msg import String
 
-SAMPLING_RATE = 30  # Hz
+SAMPLING_RATE = 20  # Hz
 FT_DETECTED_SEARCHING = 5  # frames
 FT_UNDETECTED_REACHING = 5  # frames
 FT_DETECTED_ENTERING = 15  # frames
@@ -147,9 +148,9 @@ class GameLogicController(Node):
         """Handle incoming image info messages."""
         # Process image info data as needed
         self.image_info_msg = ImageInfo.from_json(msg.data)
-        self.court_center = self.image_info_msg.court_center
+        self.court_center = self.image_info_msg.court_center  # center in mm
         if self.image_info_msg.court_area is not None:
-            self.court_area = self.image_info_msg.court_area
+            self.court_area = self.image_info_msg.court_area  # area in pixels
         self.last_image_info_time = time()
 
     def game_logic_loop(self) -> None:
@@ -196,11 +197,11 @@ class GameLogicController(Node):
 
     def handle_searching_ball_state(self) -> None:
         self.get_logger().info("Game State: SEARCHING_BALL")
-        # Here, you would check image_info_msg for detected balls
         # If a ball is detected, transition to REACHING_BALL state
-        if self.image_info_msg and len(self.image_info_msg.balls) > 0:
+        if self.is_ball_in_view():
             self.frame_count_search_state += 1
             if self.frame_count_search_state >= FT_DETECTED_SEARCHING:
+                self.frame_count_search_state = 0
                 self.move_robot(0.0, 0.0, 0.0, 0)  # stop rotation
                 self.cur_state = GameState.REACHING_BALL
                 self.get_logger().info("Ball detected! Transitioning to REACHING_BALL state.")
@@ -237,17 +238,15 @@ class GameLogicController(Node):
             and self.court_center is not None
             and self.court_area > self.best_court_area
         ):
-            t_robot_to_odom = np.eye(4)
+            t_o_r = np.eye(4)  # transformation from robot base to odometry frame
             quat = self.odom_msg.pose.pose.orientation
-            yaw = 2.0 * math.atan2(quat.z, quat.w)
-            t_robot_to_odom[0, 3] = self.odom_msg.pose.pose.position.x
-            t_robot_to_odom[1, 3] = self.odom_msg.pose.pose.position.y
-            t_robot_to_odom[0, :2] = [np.cos(yaw), -np.sin(yaw)]
-            t_robot_to_odom[1, :2] = [np.sin(yaw), np.cos(yaw)]
+            t_o_r[0, 3] = self.odom_msg.pose.pose.position.x
+            t_o_r[1, 3] = self.odom_msg.pose.pose.position.y
+            t_o_r[:3, :3] = R.from_quat([quat.x, quat.y, quat.z, quat.w]).as_matrix()
             # target position in robot base-footprint frame
-            court_center_robot_frame = np.array([0.0, 1.5, 0.0, 1.0])
-            target_pos_odom_frame = t_robot_to_odom @ court_center_robot_frame
-            self.best_court_center = target_pos_odom_frame[:2].tolist()
+            court_center_r = np.array([0.0, 1.5, 0.0, 1.0]).reshape((4, 1))
+            target_pos_o = t_o_r @ court_center_r
+            self.best_court_center = target_pos_o.ravel()[:2] * 1000.0  # in mm
             self.best_court_area = self.court_area
         self.get_logger().info(
             f"Searching... Current yaw: {yaw_now:.2f} degrees, "
@@ -256,26 +255,31 @@ class GameLogicController(Node):
         return None
 
     def handle_entering_court_center_state(self) -> None:
-        self.get_logger().info("Game State: FOLLOW_COURT_CENTER")
-        if self.image_info_msg and len(self.image_info_msg.balls) > 0:
+        self.get_logger().info("Game State: ENTERING_COURT_CENTER")
+        if self.is_ball_in_view():
             self.frame_count_enter_state += 1
             if self.frame_count_enter_state >= FT_DETECTED_ENTERING:
+                self.frame_count_enter_state = 0
                 self.get_logger().info("Ball detected! Transitioning to REACHING_BALL state.")
                 self.cur_state = GameState.REACHING_BALL
                 return None
         else:
             self.frame_count_enter_state = 0  # reset count if ball detected
 
-        if self.best_court_center is not None:
-            vx, vy, wz = self.compute_control_signals(self.best_court_center, RefFrame.ODOMETRY)
+        best_cc_rob_frame = self.get_target_in_robot_frame(self.best_court_center)
+        if best_cc_rob_frame is not None:
+            vx, vy, wz = self.compute_control_signals(best_cc_rob_frame)
             self.move_robot(vx, vy, wz, 0, normalize=True)
             self.get_logger().info(
                 f"Moving towards court center: vx={vx:.2f}, vy={vy:.2f}, wz={wz:.2f}, "
-                f"pos=({self.best_court_center[0]:.1f}, {self.best_court_center[1]:.1f})mm"
+                f"pos=({best_cc_rob_frame[0]:.1f}, {best_cc_rob_frame[1]:.1f})mm"
             )
-            self.get_logger().info(
-                f"Court center position: {self.best_court_center}, area: {self.best_court_area}"
-            )
+            if np.sqrt(best_cc_rob_frame[0] ** 2 + best_cc_rob_frame[1] ** 2) <= 50.0:
+                self.move_robot(0.0, 0.0, 0.0, 0)  # stop robot
+                self.cur_state = GameState.SEARCHING_BALL
+                self.get_logger().info(
+                    "Reached court center! Transitioning to SEARCHING_BALL state."
+                )
             return None
         else:
             self.move_robot(0.0, 0.0, 0.0, 0)  # stop robot
@@ -287,7 +291,7 @@ class GameLogicController(Node):
 
     def handle_reaching_ball_state(self) -> None:
         self.get_logger().info("Game State: REACHING_BALL")
-        if self.image_info_msg and len(self.image_info_msg.balls) > 0:
+        if self.is_ball_in_view() and self.image_info_msg is not None:
             self.frame_count_reach_state = 0
             # move towards the closest ball
             closet_ball: GreenBall = min(
@@ -314,6 +318,7 @@ class GameLogicController(Node):
         else:
             self.frame_count_reach_state += 1
             if self.frame_count_reach_state >= FT_UNDETECTED_REACHING:
+                self.frame_count_reach_state = 0
                 self.get_logger().info("Lost sight of the ball. Returning to SEARCHING_BALL state.")
                 self.cur_state = GameState.SEARCHING_BALL
                 self.reset_to_search_state()
@@ -323,7 +328,7 @@ class GameLogicController(Node):
         self.get_logger().info("Game State: IDLE")
         self.move_robot(0.0, 0.0, 0.0, 0)  # stop robot
         # transition to searching state if the ball is disappeared
-        if self.image_info_msg and len(self.image_info_msg.balls) > 0:
+        if self.is_ball_in_view() and self.image_info_msg is not None:
             self.frame_count_idle_state = 0  # reset count if ball detected
             # move towards the closest ball
             closet_ball: GreenBall = min(
@@ -341,6 +346,7 @@ class GameLogicController(Node):
         else:
             self.frame_count_idle_state += 1
             if self.frame_count_idle_state >= FT_UNDETECTED_IDLE:
+                self.frame_count_idle_state = 0
                 self.cur_state = GameState.SEARCHING_BALL
                 self.reset_to_search_state()
                 self.get_logger().info(
@@ -379,53 +385,52 @@ class GameLogicController(Node):
         self.control_msg.thrower_percent = int(thrower_percent)
         self.mainboard_controller_pub.publish(self.control_msg)
 
+    def get_target_in_robot_frame(
+        self, target_pos_o: Optional[Tuple[float, float]]
+    ) -> Optional[Tuple[float, float]]:
+        """
+        Get the target ball position in robot base frame (mm).
+        Inputs:
+            target_pos_o: target position in odometry frame (mm).
+        Returns:
+            target_pos_r: target position in robot base frame (mm).
+        """
+        if target_pos_o is None or self.odom_msg is None:
+            return None
+
+        t_o_r = np.eye(4)  # transformation from robot base to odometry frame
+        quat = self.odom_msg.pose.pose.orientation
+        t_o_r[0, 3] = self.odom_msg.pose.pose.position.x * 1000.0
+        t_o_r[1, 3] = self.odom_msg.pose.pose.position.y * 1000.0
+        t_o_r[:3, :3] = R.from_quat([quat.x, quat.y, quat.z, quat.w]).as_matrix()
+        # target position in robot base-footprint frame
+        target_pos_homo = np.array([*target_pos_o, 0.0, 1.0]).reshape((4, 1))
+        target_pos_r = (np.linalg.pinv(t_o_r) @ target_pos_homo).ravel()
+        return (target_pos_r[0], target_pos_r[1])
+
     def compute_control_signals(
         self,
         target_pos: Union[List[float], Tuple[float, float]],
-        ref_frame: int = RefFrame.ROBOT_BASE,
     ) -> Tuple[float, float, float]:
         """
         Compute control signals (vx, vy, wz) to reach the target position.
         target_pos: (x, y) position of the target in mm in robot base frame.
         Returns: (vx, vy, wz) control signals.
         """
+        target_pos_m = [target_pos[0] / 1000.0, target_pos[1] / 1000.0]  # convert to meters
         x_desired = np.eye(4)
-        if ref_frame == RefFrame.ROBOT_BASE:
-            r_target_pos = [target_pos[0] / 1000.0, target_pos[1] / 1000.0]
-        else:
-            # calculate transformation from robot base to odometry frame
-            if self.odom_msg is None:
-                raise RuntimeError("No odometry message available for transformation.")
-
-            t_robot_to_odom = np.eye(4)
-            quat = self.odom_msg.pose.pose.orientation
-            yaw = 2.0 * math.atan2(quat.z, quat.w)
-            t_robot_to_odom[0, 3] = self.odom_msg.pose.pose.position.x
-            t_robot_to_odom[1, 3] = self.odom_msg.pose.pose.position.y
-            t_robot_to_odom[0, :2] = [np.cos(yaw), -np.sin(yaw)]
-            t_robot_to_odom[1, :2] = [np.sin(yaw), np.cos(yaw)]
-            # target position in robot base-footprint frame
-            target_pos_robot_frame = np.linalg.pinv(t_robot_to_odom) @ np.array(
-                [target_pos[0] / 1000.0, target_pos[1] / 1000.0, 0.0, 1.0]
-            )
-            r_target_pos = target_pos_robot_frame[:2].tolist()
-            self.get_logger().info(
-                "Transformed target position to robot frame: "
-                + f"({r_target_pos[0]:.1f}, {r_target_pos[1]:.1f})m"
-            )
-
-        heading_error = -math.atan2(r_target_pos[0], r_target_pos[1])
+        heading_error = -math.atan2(target_pos_m[0], target_pos_m[1])
         x_desired[0, :] = [
             np.cos(heading_error),
             -np.sin(heading_error),
             0.0,
-            float(r_target_pos[0]),  # target x in m
+            float(target_pos_m[0]),  # target x in m
         ]
         x_desired[1, :] = [
             np.sin(heading_error),
             np.cos(heading_error),
             0.0,
-            r_target_pos[1] - 0.25,  # stop 250mm before the ball
+            target_pos_m[1] - 0.25,  # stop 250mm before the ball
         ]
         x_desired[2, :] = [0.0, 0.0, 1.0, 0.0]
         x_desired[3, :] = [0.0, 0.0, 0.0, 1.0]
@@ -446,13 +451,17 @@ class GameLogicController(Node):
         return vx, vy, wz
 
     def yaw_from_odom(self, odom_msg: Odometry) -> float:
-        """Extract yaw angle in degrees from odometry message."""
+        """
+        Extract yaw angle in degrees from odometry message.
+        Returns yaw in [0, 360) degrees.
+        """
         if not odom_msg:
             raise ValueError("No odometry message available.")
 
         quat = odom_msg.pose.pose.orientation
         yaw_rad = 2.0 * math.atan2(quat.z, quat.w)
         yaw_deg = math.degrees(yaw_rad)
+        yaw_deg = (yaw_deg + 360) % 360
         return yaw_deg
 
     def reset_to_search_state(self) -> None:
@@ -473,16 +482,19 @@ class GameLogicController(Node):
         return raw_error
 
     def check_stop_condition(self, closest_ball: GreenBall) -> bool:
+        """Check if the robot has reached the ball based on distance and angle thresholds."""
         ball_pos = closest_ball.position_2d
         # if close enough to the ball, stop
         # 350mm distance threshold (robot center to the ball)
         distance_check = math.hypot(ball_pos[0], ball_pos[1]) <= 250.0
         angle_check = abs(math.atan2(ball_pos[0], ball_pos[1])) <= math.radians(3)  # 3 degrees
-        if distance_check and angle_check:
-            self.get_logger().info(
-                "Reached the ball! Stopping and returning to SEARCHING_BALL state."
-            )
         return distance_check and angle_check
+
+    def is_ball_in_view(self) -> bool:
+        """Check if any ball is currently detected in the image info."""
+        if self.image_info_msg and len(self.image_info_msg.balls) > 0:
+            return True
+        return False
 
 
 def main() -> None:

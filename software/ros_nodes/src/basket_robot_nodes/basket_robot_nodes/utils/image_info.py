@@ -37,7 +37,7 @@ class ImageInfo:
     def __init__(
         self,
         balls: Union[List[GreenBall], Tuple[GreenBall]],
-        court_center: Optional[Tuple[float, float]] = None,  # in 2d robot base footprint frame
+        court_center: Optional[Tuple[float, float]] = None,  # in 2d robot base footprint frame (mm)
         court_area: Optional[float] = None,
     ) -> None:
         self.balls = balls

@@ -227,7 +227,20 @@ def segment_color_hsv(
 def get_cur_working_area_center(
     court_mask: NDArray[np.uint8],
 ) -> Tuple[Optional[Tuple[float, float]], Optional[Tuple[int, int]]]:
-    """Calculate the center of the current working area (court) in pixel coordinates."""
+    """
+    Calculate the center of the current working area (court) in pixel coordinates.
+    Parameters
+    ----------
+    court_mask : np.ndarray
+        Binary mask of the court area.
+    Returns
+    -------
+    court_center_2d : Tuple[float, float] or None
+        (x, y) coordinates of the court center in robot base_footprint frame (mm),
+        or None if not found.
+    court_center_px : Tuple[int, int] or None
+        (x, y) pixel coordinates of the court center in the image, or None if not found.
+    """
     moments = cv2.moments(court_mask)
     if moments["m00"] == 0:
         return None, None
