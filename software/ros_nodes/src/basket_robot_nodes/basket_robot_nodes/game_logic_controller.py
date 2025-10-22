@@ -236,7 +236,7 @@ class GameLogicController(Node):
             t_o_r[0, 3] = self.odom_msg.pose.pose.position.x
             t_o_r[1, 3] = self.odom_msg.pose.pose.position.y
             t_o_r[:3, :3] = R.from_quat([quat.x, quat.y, quat.z, quat.w]).as_matrix()
-            # target position in robot base-footprint frame
+            # Scale court center to a fixed distance for better accuracy (2 meters)
             scaled_ratio = 2000.0 / np.linalg.norm(self.court_center)
             court_center_r = np.array(
                 [
