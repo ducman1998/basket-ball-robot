@@ -10,7 +10,7 @@ from ament_index_python.packages import get_package_share_directory
 from basket_robot_nodes.utils.image_info import ImageInfo
 from basket_robot_nodes.utils.image_utils import (
     detect_green_ball_centers,
-    get_cur_working_area_center,
+    get_cur_working_court_center,
     segment_color_hsv,
 )
 from basket_robot_nodes.utils.ros_utils import (
@@ -251,14 +251,16 @@ class ImageProcessor(Node):
                 s_tol=45,
                 v_tol=55,
                 resize=0.3,
-                morph_kernel=9,
+                morph_kernel=11,
                 close=True,
-                close_iter=4,
+                close_iter=3,
                 dilate=True,
                 dilate_iter=3,
                 min_component_area=2000,
             )
-            cur_court_center_2d, cur_court_center_px = get_cur_working_area_center(roi_mask)
+            cur_court_center_2d, cur_court_center_px, court_area = get_cur_working_court_center(
+                roi_mask, self.resolution[1], self.resolution[0]
+            )
             # apply robot base mask
             if self.robot_base_mask is not None:
                 roi_mask = cv2.bitwise_and(roi_mask, self.robot_base_mask)
@@ -323,7 +325,7 @@ class ImageProcessor(Node):
         img_info = ImageInfo(
             balls=detected_balls,
             court_center=cur_court_center_2d,
-            court_area=np.count_nonzero(roi_mask),
+            court_area=court_area,
         )
         info_msg = String()
         info_msg.data = img_info.to_json()

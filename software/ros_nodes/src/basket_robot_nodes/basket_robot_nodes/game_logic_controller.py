@@ -38,11 +38,6 @@ class GameState:
     IDLE: int = 4
 
 
-class RefFrame:
-    ROBOT_BASE: int = 0
-    ODOMETRY: int = 1
-
-
 class GameLogicController(Node):
     def __init__(self) -> None:
         # Initialize the Game Logic Controller node
@@ -186,9 +181,7 @@ class GameLogicController(Node):
             self.move_robot(0.0, 0.0, 0.0, 0)  # stop robot
 
         if self.odom_msg:
-            yaw = self.yaw_from_odom(self.odom_msg)  # yaw is always not None here
-            self.last_angle = yaw
-            self.cummulative_rotation = 0.0
+            self.reset_to_search_state()
             self.get_logger().info(f"Last angle set to {self.last_angle:.2f} degrees.")
             # transition to searching state
             self.cur_state = GameState.SEARCHING_BALL
@@ -244,7 +237,16 @@ class GameLogicController(Node):
             t_o_r[1, 3] = self.odom_msg.pose.pose.position.y
             t_o_r[:3, :3] = R.from_quat([quat.x, quat.y, quat.z, quat.w]).as_matrix()
             # target position in robot base-footprint frame
-            court_center_r = np.array([0.0, 1.5, 0.0, 1.0]).reshape((4, 1))
+            scaled_ratio = 2000.0 / np.linalg.norm(self.court_center)
+            court_center_r = np.array(
+                [
+                    self.court_center[0] / 1000.0 * scaled_ratio,
+                    self.court_center[1] / 1000.0 * scaled_ratio,
+                    0.0,
+                    1.0,
+                ]
+            ).reshape((4, 1))
+
             target_pos_o = t_o_r @ court_center_r
             self.best_court_center = target_pos_o.ravel()[:2] * 1000.0  # in mm
             self.best_court_area = self.court_area
@@ -256,6 +258,7 @@ class GameLogicController(Node):
 
     def handle_entering_court_center_state(self) -> None:
         self.get_logger().info("Game State: ENTERING_COURT_CENTER")
+        # If a ball is detected, transition to REACHING_BALL state
         if self.is_ball_in_view():
             self.frame_count_enter_state += 1
             if self.frame_count_enter_state >= FT_DETECTED_ENTERING:
@@ -267,16 +270,17 @@ class GameLogicController(Node):
             self.frame_count_enter_state = 0  # reset count if ball detected
 
         best_cc_rob_frame = self.get_target_in_robot_frame(self.best_court_center)
-        if best_cc_rob_frame is not None:
+        if best_cc_rob_frame:
             vx, vy, wz = self.compute_control_signals(best_cc_rob_frame)
             self.move_robot(vx, vy, wz, 0, normalize=True)
             self.get_logger().info(
                 f"Moving towards court center: vx={vx:.2f}, vy={vy:.2f}, wz={wz:.2f}, "
                 f"pos=({best_cc_rob_frame[0]:.1f}, {best_cc_rob_frame[1]:.1f})mm"
             )
-            if np.sqrt(best_cc_rob_frame[0] ** 2 + best_cc_rob_frame[1] ** 2) <= 50.0:
+            if np.sqrt(best_cc_rob_frame[0] ** 2 + best_cc_rob_frame[1] ** 2) <= 200.0:
                 self.move_robot(0.0, 0.0, 0.0, 0)  # stop robot
                 self.cur_state = GameState.SEARCHING_BALL
+                self.reset_to_search_state()
                 self.get_logger().info(
                     "Reached court center! Transitioning to SEARCHING_BALL state."
                 )
@@ -426,11 +430,12 @@ class GameLogicController(Node):
             0.0,
             float(target_pos_m[0]),  # target x in m
         ]
+        # set look-ahead point at 150mm in front of the robot
         x_desired[1, :] = [
             np.sin(heading_error),
             np.cos(heading_error),
             0.0,
-            target_pos_m[1] - 0.25,  # stop 250mm before the ball
+            target_pos_m[1] - 0.15,
         ]
         x_desired[2, :] = [0.0, 0.0, 1.0, 0.0]
         x_desired[3, :] = [0.0, 0.0, 0.0, 1.0]
@@ -468,6 +473,9 @@ class GameLogicController(Node):
         """Reset variables to prepare for searching state."""
         self.last_angle = self.yaw_from_odom(self.odom_msg)
         self.cummulative_rotation = 0.0
+        self.best_court_center = None
+        self.best_court_area = 0.0
+        self.frame_count_enter_state = 0
 
     def shortest_angular_difference(self, cur_angle: float, prev_angle: float) -> float:
         """

@@ -5,6 +5,9 @@ import numpy as np
 from basket_robot_nodes.utils.image_info import GreenBall
 from numpy.typing import NDArray
 
+# original calibration image sizes
+CALIB_IMG_W = 1280
+CALIB_IMG_H = 720
 # homography matrix and its inverse obtained from camera calibration
 H = np.array(
     [
@@ -54,10 +57,10 @@ def detect_green_ball_centers(
 
     Returns
     -------
-    centers : list of (x, y)
-        Pixel coordinates of detected ball centers.
-    vis_img : np.ndarray
-        Visualization image (RGB) with detected centers.
+    balls : list of GreenBall
+        Detected green balls with center, radius, area, and 2D position (in mm).
+    vis : np.ndarray
+        Visualization image with detected balls drawn.
     """
     if rgb_img is None or rgb_img.ndim != 3:
         raise ValueError("Input must be an RGB image.")
@@ -95,7 +98,7 @@ def detect_green_ball_centers(
             area = cv2.contourArea(cnt)  # number of pixels inside the contour
             cx = int(M["m10"] / M["m00"])
             cy = int(M["m01"] / M["m00"])
-            r, (pos_x, pos_y) = _get_ball_radius((cx, cy))
+            r, (pos_x, pos_y) = _get_ball_radius((cx, cy), rgb_img.shape[0], rgb_img.shape[1])
             balls.append(
                 GreenBall(center=(cx, cy), radius=r, area=area, position_2d=(pos_x, pos_y))
             )
@@ -107,9 +110,10 @@ def detect_green_ball_centers(
         if ball.area < min_component_area:
             continue
         # below thesholds are likely noise, based on empirical observations
-        if np.linalg.norm(np.array(ball.position_2d)) < 500 and ball.area < 250:
+        if np.linalg.norm(np.array(ball.position_2d)) < 500 and ball.area < 50:
             continue
-        if np.linalg.norm(np.array(ball.position_2d)) < 1500 and ball.area < 50:
+        if np.linalg.norm(np.array(ball.position_2d)) >= np.sqrt(4600**2 + 3100**2):
+            # outside court area, ignore
             continue
         if all(
             np.linalg.norm(np.array(ball.center) - np.array(b.center)) > ball.radius * 2
@@ -219,20 +223,29 @@ def segment_color_hsv(
     if resize != 1.0:
         mask_filtered = cv2.resize(mask_filtered, (w, h), interpolation=cv2.INTER_NEAREST)
 
+    mask_filtered[int(h / 3) :, :] = 1
     # 8. Apply mask to original image
     seg = cv2.bitwise_and(img_rgb, img_rgb, mask=mask_filtered)
     return mask_filtered, seg
 
 
-def get_cur_working_area_center(
+def get_cur_working_court_center(
     court_mask: NDArray[np.uint8],
-) -> Tuple[Optional[Tuple[float, float]], Optional[Tuple[int, int]]]:
+    im_h: int,
+    im_w: int,
+) -> Tuple[Optional[Tuple[float, float]], Optional[Tuple[int, int]], int]:
     """
-    Calculate the center of the current working area (court) in pixel coordinates.
+    Calculate the center of the largest connected component (court) in the mask.
+
     Parameters
     ----------
     court_mask : np.ndarray
         Binary mask of the court area.
+    im_h : int
+        Image height.
+    im_w : int
+        Image width.
+
     Returns
     -------
     court_center_2d : Tuple[float, float] or None
@@ -240,18 +253,38 @@ def get_cur_working_area_center(
         or None if not found.
     court_center_px : Tuple[int, int] or None
         (x, y) pixel coordinates of the court center in the image, or None if not found.
+    largest_area : int
+        Area (in pixels) of the largest connected component.
     """
-    moments = cv2.moments(court_mask)
-    if moments["m00"] == 0:
-        return None, None
+    court_mask_cropped = court_mask[:, int(im_w * 1 / 3) : int(im_w * 2 / 3)]
+    cnts, _ = cv2.findContours(court_mask_cropped, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not cnts:
+        return None, None, 0
 
-    cx = int(moments["m10"] / moments["m00"])
-    cy = int(moments["m01"] / moments["m00"])
-    court_center_2d = _pixel_to_robot_coords((cx, cy))
-    return court_center_2d, (cx, cy)
+    # Find largest contour by area
+    largest_cnt = max(cnts, key=cv2.contourArea)
+    largest_area = int(cv2.contourArea(largest_cnt))
+
+    if largest_area == 0:
+        return None, None, 0
+
+    # Compute centroid of largest contour
+    M = cv2.moments(largest_cnt)
+    if M["m00"] == 0:
+        return None, None, 0
+
+    cx = int(M["m10"] / M["m00"]) + int(im_w * 1 / 3)  # adjust for cropping
+    cy = int(M["m01"] / M["m00"])
+
+    # Convert pixel center to robot coordinates
+    court_center_2d = _pixel_to_robot_coords((cx, cy), im_h, im_w)
+
+    return court_center_2d, (cx, cy), largest_area
 
 
-def _pixel_to_robot_coords(ball_center: Tuple[float, float]) -> Tuple[float, float]:
+def _pixel_to_robot_coords(
+    ball_center: Tuple[float, float], im_h: int, im_w: int
+) -> Tuple[float, float]:
     """
     Convert ball pixel coordinates to robot base_footprint frame (Y forward, X right, Z up).
     Inputs:
@@ -265,7 +298,11 @@ def _pixel_to_robot_coords(ball_center: Tuple[float, float]) -> Tuple[float, flo
         - The transformation tbw should be pre-calibrated.
         - The output coordinates are in mm.
     """
-    ball_pos = np.array(ball_center, dtype=np.float32)
+    # adjust pixel coordinates if image size differs from calibration size
+    x_px_calib = ball_center[0] * (CALIB_IMG_W / im_w)
+    y_px_calib = ball_center[1] * (CALIB_IMG_H / im_h)
+    ball_pos = np.array([x_px_calib, y_px_calib])  # in pixels
+    # map image pixels to world plane using inverse homography
     ball_pos_h = np.hstack([ball_pos, 1]).reshape(-1, 1)  # homogeneous coordinates
     wd_point = H_INV @ ball_pos_h
     wd_point = (wd_point / wd_point[-1]).ravel()
@@ -276,7 +313,9 @@ def _pixel_to_robot_coords(ball_center: Tuple[float, float]) -> Tuple[float, flo
     return float(b_point_xy[0]), float(b_point_xy[1])  # in mm
 
 
-def _robot_to_pixel_coords(robot_xy: Tuple[float, float]) -> Tuple[float, float]:
+def _robot_to_pixel_coords(
+    robot_xy: Tuple[float, float], im_h: int, im_w: int
+) -> Tuple[float, float]:
     """Convert robot base_footprint (x,y) in mm to image pixel coordinates.
     Inputs:
         robot_xy: (x, y) coordinates in robot base_footprint frame in mm.
@@ -297,14 +336,19 @@ def _robot_to_pixel_coords(robot_xy: Tuple[float, float]) -> Tuple[float, float]
     world_h = np.array([x_w, y_w, 1]).reshape(3, 1)
     img_h = H @ world_h
     img_h = img_h / img_h[2]  # normalize
-    x_px, y_px = img_h[0, 0], img_h[1, 0]
+    x_px_calib, y_px_calib = img_h[0, 0], img_h[1, 0]
+    # adjust if image size differs from calibration size
+    x_px = x_px_calib * (im_w / CALIB_IMG_W)
+    y_px = y_px_calib * (im_h / CALIB_IMG_H)
     return float(x_px), float(y_px)
 
 
-def _get_ball_radius(ball_center: Tuple[float, float]) -> Tuple[float, Tuple[float, float]]:
-    xy_pos_center = _pixel_to_robot_coords(ball_center)  # in mm
+def _get_ball_radius(
+    ball_center: Tuple[float, float], im_h: int, im_w: int
+) -> Tuple[float, Tuple[float, float]]:
+    xy_pos_center = _pixel_to_robot_coords(ball_center, im_h, im_w)  # in mm
     xy_pos_edge = (xy_pos_center[0] - 20, xy_pos_center[1])  # 20mm to the left
-    ball_edge = _robot_to_pixel_coords(xy_pos_edge)  # in pixels
+    ball_edge = _robot_to_pixel_coords(xy_pos_edge, im_h, im_w)  # in pixels
     rad = np.linalg.norm(np.array(ball_center) - np.array(ball_edge))
     return float(rad), (float(xy_pos_center[0]), float(xy_pos_center[1]))
 
