@@ -20,9 +20,10 @@ from scipy.spatial.transform import Rotation as R
 from shared_interfaces.msg import TwistStamped  # a custom message with thrower_percent
 from std_msgs.msg import String
 
-SAMPLING_RATE = 20  # Hz
+SAMPLING_RATE = 30  # Hz
 FT_DETECTED_SEARCHING = 5  # frames
 FT_UNDETECTED_REACHING = 5  # frames
+FT_UNDETECTED_ALIGNING = 10  # frames
 FT_DETECTED_ENTERING = 15  # frames
 FT_UNDETECTED_IDLE = 60  # frames
 TOTAL_ROT_DEGREE_THRESHOLD = 270.0  # seconds
@@ -34,8 +35,9 @@ class GameState:
     INIT: int = 0
     SEARCHING_BALL: int = 1
     REACHING_BALL: int = 2
-    ENTERING_COURT_CENTER: int = 3
-    IDLE: int = 4
+    ALIGNING_TO_BASKET: int = 3
+    ENTERING_COURT_CENTER: int = 4
+    IDLE: int = 5
 
 
 class GameLogicController(Node):
@@ -83,6 +85,8 @@ class GameLogicController(Node):
         self.prev_vy_error: float = 0.0
         self.prev_wz_error: float = 0.0
         self.frame_count_reach_state: int = 0
+        # ALIGNING_TO_BASKET: align to basket (not implemented)
+        self.frame_count_align_state: int = 0
         # ENTERING_COURT_CENTER: move towards court center
         self.court_center: Optional[Tuple[float, float]] = None
         self.court_area: float = 0.0
@@ -162,6 +166,9 @@ class GameLogicController(Node):
 
             case GameState.REACHING_BALL:
                 self.handle_reaching_ball_state()
+
+            case GameState.ALIGNING_TO_BASKET:
+                self.handle_aligning_to_basket_state()
 
             case GameState.ENTERING_COURT_CENTER:
                 self.handle_entering_court_center_state()
@@ -293,6 +300,34 @@ class GameLogicController(Node):
             )
             return None
 
+    def handle_aligning_to_basket_state(self) -> None:
+        self.get_logger().info("Game State: ALIGNING_TO_BASKET")
+        # rotate the robot to align with the basket (not implemented)
+        if self.is_ball_in_view() and self.image_info_msg is not None:
+            self.frame_count_align_state = 0
+            # align to the closest ball (assuming basket position is same as ball position)
+            closet_ball: GreenBall = min(
+                self.image_info_msg.balls,
+                key=lambda b: math.hypot(*b.position_2d) if b.position_2d else float("inf"),
+            )
+            vx, vy, wz = self.compute_control_signals(
+                closet_ball.position_2d, angle_offset=75.0, look_ahead_dis=0.25
+            )
+            self.move_robot(vx, vy, wz, 0, normalize=True)
+            self.get_logger().info(
+                f"Aligning to basket: vx={vx:.2f}, vy={vy:.2f}, wz={wz:.2f}, "
+                f"pos=({closet_ball.position_2d[0]:.1f}, {closet_ball.position_2d[1]:.1f})mm"
+            )
+        else:
+            self.frame_count_align_state += 1
+            if self.frame_count_align_state >= FT_UNDETECTED_ALIGNING:
+                self.frame_count_align_state = 0
+                self.get_logger().info("Lost sight of the ball. Returning to SEARCHING_BALL state.")
+                self.cur_state = GameState.SEARCHING_BALL
+                self.reset_to_search_state()
+                return None
+        return None
+
     def handle_reaching_ball_state(self) -> None:
         self.get_logger().info("Game State: REACHING_BALL")
         if self.is_ball_in_view() and self.image_info_msg is not None:
@@ -304,8 +339,10 @@ class GameLogicController(Node):
             )
             stop_condition = self.check_stop_condition(closet_ball)
             if stop_condition:
-                self.get_logger().info("Reached the ball! Stopping and returning to IDLE state.")
-                self.cur_state = GameState.IDLE
+                self.get_logger().info(
+                    "Reached the ball! Stopping and returning to ALIGNING_TO_BASKET state."
+                )
+                self.cur_state = GameState.ALIGNING_TO_BASKET
                 return None
 
             # transformation matrix from the ball frame to robot base_footprint frame
@@ -415,15 +452,21 @@ class GameLogicController(Node):
     def compute_control_signals(
         self,
         target_pos: Union[List[float], Tuple[float, float]],
+        angle_offset: float = 0.0,  # offset angle in degrees
+        look_ahead_dis: float = 0.25,
     ) -> Tuple[float, float, float]:
         """
         Compute control signals (vx, vy, wz) to reach the target position.
-        target_pos: (x, y) position of the target in mm in robot base frame.
-        Returns: (vx, vy, wz) control signals.
+        Inputs:
+            target_pos: target position in robot base frame (mm).
+            angle_offset: angle offset in degrees.
+            look_ahead_dis: look-ahead distance in meters.
+        Returns:
+            Control signals (vx, vy, wz) to reach the target position.
         """
         target_pos_m = [target_pos[0] / 1000.0, target_pos[1] / 1000.0]  # convert to meters
         x_desired = np.eye(4)
-        heading_error = -math.atan2(target_pos_m[0], target_pos_m[1])
+        heading_error = -math.atan2(target_pos_m[0], target_pos_m[1]) + math.radians(angle_offset)
         x_desired[0, :] = [
             np.cos(heading_error),
             -np.sin(heading_error),
@@ -435,7 +478,7 @@ class GameLogicController(Node):
             np.sin(heading_error),
             np.cos(heading_error),
             0.0,
-            target_pos_m[1] - 0.15,
+            target_pos_m[1] - look_ahead_dis,  # target y in m
         ]
         x_desired[2, :] = [0.0, 0.0, 1.0, 0.0]
         x_desired[3, :] = [0.0, 0.0, 0.0, 1.0]
@@ -494,7 +537,7 @@ class GameLogicController(Node):
         ball_pos = closest_ball.position_2d
         # if close enough to the ball, stop
         # 350mm distance threshold (robot center to the ball)
-        distance_check = math.hypot(ball_pos[0], ball_pos[1]) <= 250.0
+        distance_check = math.hypot(ball_pos[0], ball_pos[1]) <= 350.0
         angle_check = abs(math.atan2(ball_pos[0], ball_pos[1])) <= math.radians(3)  # 3 degrees
         return distance_check and angle_check
 

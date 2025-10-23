@@ -15,8 +15,8 @@
     gear_ratio: 18.75            # wheel to motor ratio
     encoder_resolution: 64       # ticks per motor shaft revolution
     pid_control_freq: 100         # Hz
-    max_rot_speed: 1.25    # rad/s
-    max_xy_speed: 1.0      # m/s # max linear speed in x and y direction
+    max_rot_speed: 2.0    # rad/s
+    max_xy_speed: 0.75      # m/s # max linear speed in x and y direction
     baudrate: 115200
     polarity: 1  # set to -1 if motors spin in reverse
     serial_timeout: 0.05  # seconds
@@ -49,9 +49,9 @@ image_processor_node:
 game_logic_controller_node:
   ros__parameters:
     search_ball_rot_speed: -1.5  # rad/s
-    kp_xy: 2.0  # proportional gain for linear velocity
-    kp_rot: 1.5  # proportional gain for angular velocity
-    kd_xy: 0.01  # derivative gain for linear velocity
-    kd_rot: 0.01  # derivative gain for angular velocity
+    kp_xy: 4.0  # proportional gain for linear velocity
+    kp_rot: 1.0  # proportional gain for angular velocity
+    kd_xy: 0.1  # derivative gain for linear velocity
+    kd_rot: 0.1  # derivative gain for angular velocity
     norm_xy_speed: true # normalize x and y speed to max_xy_speed if it exceeds max_xy_speed
     log_level: 'info'
