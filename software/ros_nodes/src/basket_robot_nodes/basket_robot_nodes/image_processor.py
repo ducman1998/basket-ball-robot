@@ -1,6 +1,6 @@
 import os
 from time import time
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -10,6 +10,7 @@ from ament_index_python.packages import get_package_share_directory
 from basket_robot_nodes.utils.image_info import ImageInfo
 from basket_robot_nodes.utils.image_utils import (
     detect_green_ball_centers,
+    get_cur_working_court_center,
     segment_color_hsv,
 )
 from basket_robot_nodes.utils.ros_utils import (
@@ -63,14 +64,18 @@ class ImageProcessor(Node):
         # load robot base's mask
         # find image in share folder for this package
 
-        self.robot_base_mask = cv2.imread(
+        self.robot_base_mask: Optional[np.ndarray] = cv2.imread(
             os.path.join(self.shared_dir, "images/robot_base_mask.png"), cv2.IMREAD_GRAYSCALE
         )
         if self.robot_base_mask is None:
-            self.get_logger().error("Failed to load robot base mask image.")
             raise RuntimeError("Failed to load robot base mask image.")
         else:
             self.robot_base_mask = self.robot_base_mask.astype(bool).astype(np.uint8) * 255
+            self.robot_base_mask = cv2.resize(
+                self.robot_base_mask,
+                (self.resolution[0], self.resolution[1]),
+                interpolation=cv2.INTER_NEAREST,
+            )
         self.get_logger().info("Loaded robot base mask image.")
 
     def _declare_node_parameters(self) -> None:
@@ -242,15 +247,18 @@ class ImageProcessor(Node):
                 color_frame_rgb,
                 ref_rgb=self.ref_court_color,  # color of working area
                 h_tol=40,
-                s_tol=50,
-                v_tol=50,
-                resize=0.4,
-                morph_kernel=9,
+                s_tol=45,
+                v_tol=55,
+                resize=0.3,
+                morph_kernel=11,
                 close=True,
-                close_iter=6,
+                close_iter=3,
                 dilate=True,
                 dilate_iter=3,
                 min_component_area=2000,
+            )
+            cur_court_center_2d, cur_court_center_px, court_area = get_cur_working_court_center(
+                roi_mask, resolution=self.resolution
             )
             # apply robot base mask
             if self.robot_base_mask is not None:
@@ -260,11 +268,24 @@ class ImageProcessor(Node):
                 color_frame_rgb,
                 ref_ball_rgb=self.ref_ball_color,
                 h_tol=5,
-                s_tol=15,
-                v_tol=15,
+                s_tol=20,
+                v_tol=20,
+                mask_open_iter=1,
+                mask_open_kernel_size=3,
+                min_component_area=5,
                 roi_mask=roi_mask,
                 visualize=True,
             )
+            # draw current working area center
+            if cur_court_center_px is not None:
+                cv2.drawMarker(
+                    viz_image,
+                    tuple(cur_court_center_px),
+                    color=(0, 255, 0),
+                    markerType=cv2.MARKER_CROSS,
+                    markerSize=50,
+                    thickness=5,
+                )
 
             if not np.isclose(self.pub_viz_resize, 1.0, rtol=1e-09, atol=1e-09):
                 viz_image = cv2.resize(
@@ -300,7 +321,11 @@ class ImageProcessor(Node):
         t4 = time()
 
         # publish detected ball info
-        img_info = ImageInfo(detected_balls=detected_balls)
+        img_info = ImageInfo(
+            balls=detected_balls,
+            court_center=cur_court_center_2d,
+            court_area=court_area,
+        )
         info_msg = String()
         info_msg.data = img_info.to_json()
         self.processed_info_pub.publish(info_msg)

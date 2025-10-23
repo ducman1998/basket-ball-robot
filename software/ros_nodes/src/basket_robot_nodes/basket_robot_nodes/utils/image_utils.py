@@ -3,8 +3,11 @@ from typing import List, Optional, Tuple, Union
 import cv2
 import numpy as np
 from basket_robot_nodes.utils.image_info import GreenBall
+from cv2.typing import MatLike
 from numpy.typing import NDArray
 
+# original calibration image sizes
+CALIB_SCALE = 1.5
 # homography matrix and its inverse obtained from camera calibration
 H = np.array(
     [
@@ -32,6 +35,9 @@ def detect_green_ball_centers(
     h_tol: int = 10,
     s_tol: int = 10,
     v_tol: int = 10,
+    mask_open_iter: int = 1,
+    mask_open_kernel_size: int = 3,
+    min_component_area: int = 10,
     roi_mask: Optional[np.ndarray] = None,
     visualize: bool = True,
 ) -> Tuple[List[GreenBall], NDArray[np.uint8]]:
@@ -51,10 +57,10 @@ def detect_green_ball_centers(
 
     Returns
     -------
-    centers : list of (x, y)
-        Pixel coordinates of detected ball centers.
-    vis_img : np.ndarray
-        Visualization image (RGB) with detected centers.
+    balls : list of GreenBall
+        Detected green balls with center, radius, area, and 2D position (in mm).
+    vis : np.ndarray
+        Visualization image with detected balls drawn.
     """
     if rgb_img is None or rgb_img.ndim != 3:
         raise ValueError("Input must be an RGB image.")
@@ -78,7 +84,10 @@ def detect_green_ball_centers(
         total_mask = cv2.bitwise_or(total_mask, current_mask).astype(np.uint8, copy=False)
 
     # Clean up the mask
-    mask = _morph_clean(total_mask, num_iter=2)
+    _kernel = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE, (mask_open_kernel_size, mask_open_kernel_size)
+    )
+    mask = _morph_clean(total_mask, num_iter=mask_open_iter, kernel=_kernel)
 
     # Find connected components or contours
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -89,15 +98,26 @@ def detect_green_ball_centers(
     for cnt in cnts:
         M = cv2.moments(cnt)
         if M["m00"] > 0:
+            area = cv2.contourArea(cnt)  # number of pixels inside the contour
             cx = int(M["m10"] / M["m00"])
             cy = int(M["m01"] / M["m00"])
             r, (pos_x, pos_y) = _get_ball_radius((cx, cy))
-            balls.append(GreenBall(center=(cx, cy), radius=r, position_2d=(pos_x, pos_y)))
+            balls.append(
+                GreenBall(center=(cx, cy), radius=r, area=area, position_2d=(pos_x, pos_y))
+            )
 
     # filter close detections to form one
-    balls = sorted(balls, key=lambda b: b.radius, reverse=True)
+    balls = sorted(balls, key=lambda b: b.radius * b.area, reverse=True)
     filtered_balls: List[GreenBall] = []
     for ball in balls:
+        if ball.area < min_component_area:
+            continue
+        # below thesholds are likely noise, based on empirical observations
+        if np.linalg.norm(np.array(ball.position_2d)) < 500 and ball.area < 25 * CALIB_SCALE**2:
+            continue
+        if np.linalg.norm(np.array(ball.position_2d)) >= np.sqrt(4600**2 + 3100**2):
+            # outside court area, ignore
+            continue
         if all(
             np.linalg.norm(np.array(ball.center) - np.array(b.center)) > ball.radius * 2
             for b in filtered_balls
@@ -110,12 +130,12 @@ def detect_green_ball_centers(
             cv2.circle(vis, ball.center, 3, (255, 0, 0), -1)
             cv2.putText(
                 vis,
-                f"({ball.position_2d[0]:.0f}, {ball.position_2d[1]:.0f}), r={ball.radius:.0f}",
+                f"({ball.position_2d[0]:.0f}, {ball.position_2d[1]:.0f}), a={ball.area:.0f}",
                 (ball.center[0] + 10, ball.center[1] - 10),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
+                0.7,
                 (0, 0, 255),
-                1,
+                2,
             )
 
     return filtered_balls, vis
@@ -206,9 +226,63 @@ def segment_color_hsv(
     if resize != 1.0:
         mask_filtered = cv2.resize(mask_filtered, (w, h), interpolation=cv2.INTER_NEAREST)
 
+    mask_filtered[int(h / 3) :, :] = 1
     # 8. Apply mask to original image
     seg = cv2.bitwise_and(img_rgb, img_rgb, mask=mask_filtered)
     return mask_filtered, seg
+
+
+def get_cur_working_court_center(
+    court_mask: NDArray[np.uint8],
+    resolution: Tuple[int, int],
+) -> Tuple[Optional[Tuple[float, float]], Optional[Tuple[int, int]], int]:
+    """
+    Calculate the center of the largest connected component (court) in the mask.
+
+    Parameters
+    ----------
+    court_mask : np.ndarray
+        Binary mask of the court area.
+    im_h : int
+        Image height.
+    im_w : int
+        Image width.
+
+    Returns
+    -------
+    court_center_2d : Tuple[float, float] or None
+        (x, y) coordinates of the court center in robot base_footprint frame (mm),
+        or None if not found.
+    court_center_px : Tuple[int, int] or None
+        (x, y) pixel coordinates of the court center in the image, or None if not found.
+    largest_area : int
+        Area (in pixels) of the largest connected component.
+    """
+    im_w = resolution[0]
+    court_mask_cropped = court_mask[:, int(im_w * 1 / 3) : int(im_w * 2 / 3)]
+    cnts, _ = cv2.findContours(court_mask_cropped, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not cnts:
+        return None, None, 0
+
+    # Find largest contour by area
+    largest_cnt = max(cnts, key=cv2.contourArea)
+    largest_area = int(cv2.contourArea(largest_cnt))
+
+    if largest_area == 0:
+        return None, None, 0
+
+    # Compute centroid of largest contour
+    M = cv2.moments(largest_cnt)
+    if M["m00"] == 0:
+        return None, None, 0
+
+    cx = int(M["m10"] / M["m00"]) + int(im_w * 1 / 3)  # adjust for cropping
+    cy = int(M["m01"] / M["m00"])
+
+    # Convert pixel center to robot coordinates
+    court_center_2d = _pixel_to_robot_coords((cx, cy))
+
+    return court_center_2d, (cx, cy), largest_area
 
 
 def _pixel_to_robot_coords(ball_center: Tuple[float, float]) -> Tuple[float, float]:
@@ -225,7 +299,11 @@ def _pixel_to_robot_coords(ball_center: Tuple[float, float]) -> Tuple[float, flo
         - The transformation tbw should be pre-calibrated.
         - The output coordinates are in mm.
     """
-    ball_pos = np.array(ball_center, dtype=np.float32)
+    # adjust pixel coordinates if image size differs from calibration size
+    x_px_calib = ball_center[0] / CALIB_SCALE
+    y_px_calib = ball_center[1] / CALIB_SCALE
+    ball_pos = np.array([x_px_calib, y_px_calib])  # in pixels
+    # map image pixels to world plane using inverse homography
     ball_pos_h = np.hstack([ball_pos, 1]).reshape(-1, 1)  # homogeneous coordinates
     wd_point = H_INV @ ball_pos_h
     wd_point = (wd_point / wd_point[-1]).ravel()
@@ -257,7 +335,10 @@ def _robot_to_pixel_coords(robot_xy: Tuple[float, float]) -> Tuple[float, float]
     world_h = np.array([x_w, y_w, 1]).reshape(3, 1)
     img_h = H @ world_h
     img_h = img_h / img_h[2]  # normalize
-    x_px, y_px = img_h[0, 0], img_h[1, 0]
+    x_px_calib, y_px_calib = img_h[0, 0], img_h[1, 0]
+    # adjust if image size differs from calibration size
+    x_px = x_px_calib * CALIB_SCALE
+    y_px = y_px_calib * CALIB_SCALE
     return float(x_px), float(y_px)
 
 
@@ -269,10 +350,11 @@ def _get_ball_radius(ball_center: Tuple[float, float]) -> Tuple[float, Tuple[flo
     return float(rad), (float(xy_pos_center[0]), float(xy_pos_center[1]))
 
 
-def _morph_clean(mask: NDArray[np.uint8], num_iter: int = 2) -> NDArray[np.uint8]:
-    _kernel: NDArray[np.uint8] = np.ones((5, 5), dtype=np.uint8)
-    """Morphological opening followed by closing to clean up binary mask."""
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, _kernel, iterations=num_iter).astype(
+def _morph_clean(
+    mask: NDArray[np.uint8], kernel: Union[NDArray[np.uint8], MatLike], num_iter: int = 1
+) -> NDArray[np.uint8]:
+    """Morphological closing to clean up binary mask."""
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=num_iter).astype(
         np.uint8, copy=False
     )
     return mask
