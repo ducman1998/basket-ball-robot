@@ -1,6 +1,6 @@
 import os
 from time import time
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -64,11 +64,10 @@ class ImageProcessor(Node):
         # load robot base's mask
         # find image in share folder for this package
 
-        self.robot_base_mask = cv2.imread(
+        self.robot_base_mask: Optional[np.ndarray] = cv2.imread(
             os.path.join(self.shared_dir, "images/robot_base_mask.png"), cv2.IMREAD_GRAYSCALE
         )
         if self.robot_base_mask is None:
-            self.get_logger().error("Failed to load robot base mask image.")
             raise RuntimeError("Failed to load robot base mask image.")
         else:
             self.robot_base_mask = self.robot_base_mask.astype(bool).astype(np.uint8) * 255
@@ -259,7 +258,7 @@ class ImageProcessor(Node):
                 min_component_area=2000,
             )
             cur_court_center_2d, cur_court_center_px, court_area = get_cur_working_court_center(
-                roi_mask, self.resolution[1], self.resolution[0]
+                roi_mask, resolution=self.resolution
             )
             # apply robot base mask
             if self.robot_base_mask is not None:

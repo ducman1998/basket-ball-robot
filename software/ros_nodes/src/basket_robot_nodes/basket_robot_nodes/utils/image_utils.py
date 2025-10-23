@@ -3,11 +3,11 @@ from typing import List, Optional, Tuple, Union
 import cv2
 import numpy as np
 from basket_robot_nodes.utils.image_info import GreenBall
+from cv2.typing import MatLike
 from numpy.typing import NDArray
 
 # original calibration image sizes
-CALIB_IMG_W = 1280
-CALIB_IMG_H = 720
+CALIB_SCALE = 1.5
 # homography matrix and its inverse obtained from camera calibration
 H = np.array(
     [
@@ -84,7 +84,10 @@ def detect_green_ball_centers(
         total_mask = cv2.bitwise_or(total_mask, current_mask).astype(np.uint8, copy=False)
 
     # Clean up the mask
-    mask = _morph_clean(total_mask, num_iter=mask_open_iter, ksize=mask_open_kernel_size)
+    _kernel = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE, (mask_open_kernel_size, mask_open_kernel_size)
+    )
+    mask = _morph_clean(total_mask, num_iter=mask_open_iter, kernel=_kernel)
 
     # Find connected components or contours
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -98,7 +101,7 @@ def detect_green_ball_centers(
             area = cv2.contourArea(cnt)  # number of pixels inside the contour
             cx = int(M["m10"] / M["m00"])
             cy = int(M["m01"] / M["m00"])
-            r, (pos_x, pos_y) = _get_ball_radius((cx, cy), rgb_img.shape[0], rgb_img.shape[1])
+            r, (pos_x, pos_y) = _get_ball_radius((cx, cy))
             balls.append(
                 GreenBall(center=(cx, cy), radius=r, area=area, position_2d=(pos_x, pos_y))
             )
@@ -110,7 +113,7 @@ def detect_green_ball_centers(
         if ball.area < min_component_area:
             continue
         # below thesholds are likely noise, based on empirical observations
-        if np.linalg.norm(np.array(ball.position_2d)) < 500 and ball.area < 50:
+        if np.linalg.norm(np.array(ball.position_2d)) < 500 and ball.area < 25 * CALIB_SCALE**2:
             continue
         if np.linalg.norm(np.array(ball.position_2d)) >= np.sqrt(4600**2 + 3100**2):
             # outside court area, ignore
@@ -231,8 +234,7 @@ def segment_color_hsv(
 
 def get_cur_working_court_center(
     court_mask: NDArray[np.uint8],
-    im_h: int,
-    im_w: int,
+    resolution: Tuple[int, int],
 ) -> Tuple[Optional[Tuple[float, float]], Optional[Tuple[int, int]], int]:
     """
     Calculate the center of the largest connected component (court) in the mask.
@@ -256,6 +258,7 @@ def get_cur_working_court_center(
     largest_area : int
         Area (in pixels) of the largest connected component.
     """
+    im_w = resolution[0]
     court_mask_cropped = court_mask[:, int(im_w * 1 / 3) : int(im_w * 2 / 3)]
     cnts, _ = cv2.findContours(court_mask_cropped, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
@@ -277,14 +280,12 @@ def get_cur_working_court_center(
     cy = int(M["m01"] / M["m00"])
 
     # Convert pixel center to robot coordinates
-    court_center_2d = _pixel_to_robot_coords((cx, cy), im_h, im_w)
+    court_center_2d = _pixel_to_robot_coords((cx, cy))
 
     return court_center_2d, (cx, cy), largest_area
 
 
-def _pixel_to_robot_coords(
-    ball_center: Tuple[float, float], im_h: int, im_w: int
-) -> Tuple[float, float]:
+def _pixel_to_robot_coords(ball_center: Tuple[float, float]) -> Tuple[float, float]:
     """
     Convert ball pixel coordinates to robot base_footprint frame (Y forward, X right, Z up).
     Inputs:
@@ -299,8 +300,8 @@ def _pixel_to_robot_coords(
         - The output coordinates are in mm.
     """
     # adjust pixel coordinates if image size differs from calibration size
-    x_px_calib = ball_center[0] * (CALIB_IMG_W / im_w)
-    y_px_calib = ball_center[1] * (CALIB_IMG_H / im_h)
+    x_px_calib = ball_center[0] / CALIB_SCALE
+    y_px_calib = ball_center[1] / CALIB_SCALE
     ball_pos = np.array([x_px_calib, y_px_calib])  # in pixels
     # map image pixels to world plane using inverse homography
     ball_pos_h = np.hstack([ball_pos, 1]).reshape(-1, 1)  # homogeneous coordinates
@@ -313,9 +314,7 @@ def _pixel_to_robot_coords(
     return float(b_point_xy[0]), float(b_point_xy[1])  # in mm
 
 
-def _robot_to_pixel_coords(
-    robot_xy: Tuple[float, float], im_h: int, im_w: int
-) -> Tuple[float, float]:
+def _robot_to_pixel_coords(robot_xy: Tuple[float, float]) -> Tuple[float, float]:
     """Convert robot base_footprint (x,y) in mm to image pixel coordinates.
     Inputs:
         robot_xy: (x, y) coordinates in robot base_footprint frame in mm.
@@ -338,25 +337,24 @@ def _robot_to_pixel_coords(
     img_h = img_h / img_h[2]  # normalize
     x_px_calib, y_px_calib = img_h[0, 0], img_h[1, 0]
     # adjust if image size differs from calibration size
-    x_px = x_px_calib * (im_w / CALIB_IMG_W)
-    y_px = y_px_calib * (im_h / CALIB_IMG_H)
+    x_px = x_px_calib * CALIB_SCALE
+    y_px = y_px_calib * CALIB_SCALE
     return float(x_px), float(y_px)
 
 
-def _get_ball_radius(
-    ball_center: Tuple[float, float], im_h: int, im_w: int
-) -> Tuple[float, Tuple[float, float]]:
-    xy_pos_center = _pixel_to_robot_coords(ball_center, im_h, im_w)  # in mm
+def _get_ball_radius(ball_center: Tuple[float, float]) -> Tuple[float, Tuple[float, float]]:
+    xy_pos_center = _pixel_to_robot_coords(ball_center)  # in mm
     xy_pos_edge = (xy_pos_center[0] - 20, xy_pos_center[1])  # 20mm to the left
-    ball_edge = _robot_to_pixel_coords(xy_pos_edge, im_h, im_w)  # in pixels
+    ball_edge = _robot_to_pixel_coords(xy_pos_edge)  # in pixels
     rad = np.linalg.norm(np.array(ball_center) - np.array(ball_edge))
     return float(rad), (float(xy_pos_center[0]), float(xy_pos_center[1]))
 
 
-def _morph_clean(mask: NDArray[np.uint8], num_iter: int = 1, ksize: int = 3) -> NDArray[np.uint8]:
-    _kernel: NDArray[np.uint8] = np.ones((ksize, ksize), dtype=np.uint8)
+def _morph_clean(
+    mask: NDArray[np.uint8], kernel: Union[NDArray[np.uint8], MatLike], num_iter: int = 1
+) -> NDArray[np.uint8]:
     """Morphological closing to clean up binary mask."""
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, _kernel, iterations=num_iter).astype(
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=num_iter).astype(
         np.uint8, copy=False
     )
     return mask
