@@ -4246,25 +4246,23 @@
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
-			(property "Reference" "U"
-				(at -7.62 8.89 0)
+			(property "Reference" "U5"
+				(at 0.254 10.668 0)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
 				)
 			)
 			(property "Value" "MIC5504-3.3YM5"
-				(at -7.62 6.35 0)
+				(at 0 7.62 0)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
 				)
 			)
-			(property "Footprint" "Package_TO_SOT_SMD:SOT-23-5"
+			(property "Footprint" "Library:SOT-23-5"
 				(at 0 -10.16 0)
 				(effects
 					(font
@@ -4341,7 +4339,7 @@
 						)
 					)
 				)
-				(pin no_connect line
+				(pin passive line
 					(at -10.16 -2.54 0)
 					(length 2.54)
 					(name "EN"
@@ -7185,6 +7183,12 @@
 		(uuid "a0494190-98ba-43cc-9902-b9cb922ac5f5")
 	)
 	(junction
+		(at 195.58 219.71)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "a242d59b-5fae-4717-9ce3-4579683c027e")
+	)
+	(junction
 		(at 294.64 288.29)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -8067,6 +8071,16 @@
 			(type default)
 		)
 		(uuid "242de002-e5f9-44ab-90d1-4b3eef8103c2")
+	)
+	(wire
+		(pts
+			(xy 195.58 219.71) (xy 196.85 219.71)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "245813e9-995b-4a4f-9356-3b8f9a4846ff")
 	)
 	(wire
 		(pts
@@ -9770,6 +9784,16 @@
 	)
 	(wire
 		(pts
+			(xy 195.58 219.71) (xy 195.58 224.79)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "93514189-2cc5-42e5-9c26-7629d6311407")
+	)
+	(wire
+		(pts
 			(xy 349.25 358.14) (xy 351.79 358.14)
 		)
 		(stroke
@@ -11130,6 +11154,16 @@
 	)
 	(wire
 		(pts
+			(xy 196.85 224.79) (xy 195.58 224.79)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ebeb3f01-b43d-47d3-a587-22ab1dc522a3")
+	)
+	(wire
+		(pts
 			(xy 223.52 217.17) (xy 223.52 219.71)
 		)
 		(stroke
@@ -11460,7 +11494,7 @@
 	)
 	(wire
 		(pts
-			(xy 190.5 219.71) (xy 196.85 219.71)
+			(xy 190.5 219.71) (xy 195.58 219.71)
 		)
 		(stroke
 			(width 0)
@@ -11577,16 +11611,6 @@
 			(justify right bottom)
 		)
 		(uuid "1244a7ec-2bab-4563-9db2-6c2ee3b3e8d7")
-	)
-	(label "PWM_ANG_I"
-		(at 527.05 153.67 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "15b5408c-4157-4efe-9dfb-5e47cfae70ff")
 	)
 	(label "5V_MOT"
 		(at 510.54 184.15 0)
@@ -11988,6 +12012,16 @@
 		)
 		(uuid "70a381c6-dc09-458e-84d3-c29d745e9964")
 	)
+	(label "PWM_ANG_I"
+		(at 527.05 151.13 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "7283a1dc-b83b-4ec9-b4ac-49417c6d153e")
+	)
 	(label "D-"
 		(at 355.6 186.69 0)
 		(effects
@@ -12078,6 +12112,16 @@
 		)
 		(uuid "8c052cb2-601f-4924-be53-981332c5c290")
 	)
+	(label "PWM_GRB_I"
+		(at 527.05 153.67 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "8e523f0b-f0bb-4b0a-8901-bc77374e014f")
+	)
 	(label "E_M1_A"
 		(at 436.88 280.67 180)
 		(effects
@@ -12148,16 +12192,6 @@
 		)
 		(uuid "9ca091a0-f661-4a6f-ba0f-9fd0edde5e1a")
 	)
-	(label "PWM_GRB_I"
-		(at 527.05 151.13 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "9f7d3b8c-56cd-430b-8e29-cdb67ceddb20")
-	)
 	(label "VUSB"
 		(at 49.53 128.27 0)
 		(effects
@@ -12209,14 +12243,14 @@
 		(uuid "a640df08-7ef1-48b0-8ed2-411e5a904f07")
 	)
 	(label "PWM_GRB_O"
-		(at 553.72 151.13 0)
+		(at 553.72 153.67 0)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
 			(justify left bottom)
 		)
-		(uuid "a86b38b4-a40e-41ed-a2d1-f89a6209c4ee")
+		(uuid "a94c0b8f-52cb-4500-aa2c-8036de62732a")
 	)
 	(label "PWM_ANG_O"
 		(at 494.03 240.03 180)
@@ -12328,16 +12362,6 @@
 		)
 		(uuid "cc5f43d9-05df-453a-8825-e5ca1c2ddd44")
 	)
-	(label "PWM_ANG_O"
-		(at 553.72 153.67 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "cc679ad3-2540-4ab1-b50c-1fc5e398d9b6")
-	)
 	(label "5V_MOT"
 		(at 501.65 129.54 0)
 		(effects
@@ -12437,6 +12461,16 @@
 			(justify right bottom)
 		)
 		(uuid "d9f4741d-d631-4670-85ac-47bf876a9ec7")
+	)
+	(label "PWM_ANG_O"
+		(at 553.72 151.13 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "dc91ba8e-6881-4261-bf78-9a599c2aff44")
 	)
 	(label "IR_RX"
 		(at 435.61 340.36 180)
