@@ -1,0 +1,5 @@
+To compile run:
+pip install .
+
+To configure colors:
+python config_colors.py

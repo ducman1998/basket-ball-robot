@@ -29,6 +29,73 @@ T_BW = np.array(
 T_BW_INV = np.linalg.inv(T_BW)
 
 
+def detect_green_ball_centers_segment(
+    ball_mask: np.ndarray,
+    rgb_img: np.ndarray,
+    mask_open_iter: int = 1,
+    mask_open_kernel_size: int = 3,
+    min_component_area: int = 10,
+    visualize: bool = True,
+) -> Tuple[List[GreenBall], NDArray[np.uint8]]:
+
+    # Clean up the mask
+    _kernel = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE, (mask_open_kernel_size, mask_open_kernel_size)
+    )
+
+    mask = _morph_clean(ball_mask, num_iter=mask_open_iter, kernel=_kernel)
+
+    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    balls = []
+    vis = rgb_img.copy()
+
+    for cnt in cnts:
+        M = cv2.moments(cnt)
+        if M["m00"] > 0:
+            area = cv2.contourArea(cnt)  # number of pixels inside the contour
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+            r, (pos_x, pos_y) = _get_ball_radius((cx, cy))
+            balls.append(
+                GreenBall(center=(cx, cy), radius=r, area=area, position_2d=(pos_x, pos_y))
+            )
+
+
+    # I would convert these static resolution values to ratios between 0..1 to be resolution agnostic
+    balls = sorted(balls, key=lambda b: b.radius * b.area, reverse=True)
+    filtered_balls: List[GreenBall] = []
+    for ball in balls:
+        if ball.area < min_component_area:
+            continue
+        # below thesholds are likely noise, based on empirical observations
+        if np.linalg.norm(np.array(ball.position_2d)) < 500 and ball.area < 25 * CALIB_SCALE**2:
+            continue
+        if np.linalg.norm(np.array(ball.position_2d)) >= np.sqrt(4600**2 + 3100**2):
+            # outside court area, ignore
+            continue
+        if all(
+            np.linalg.norm(np.array(ball.center) - np.array(b.center)) > ball.radius * 2
+            for b in filtered_balls
+        ):
+            filtered_balls.append(ball)
+
+    if visualize:
+        for ball in filtered_balls:
+            cv2.circle(vis, ball.center, int(ball.radius), (0, 255, 0), 2)
+            cv2.circle(vis, ball.center, 3, (255, 0, 0), -1)
+            cv2.putText(
+                vis,
+                f"({ball.position_2d[0]:.0f}, {ball.position_2d[1]:.0f}), a={ball.area:.0f}",
+                (ball.center[0] + 10, ball.center[1] - 10),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 0, 255),
+                2,
+            )
+
+    return filtered_balls, vis
+
+
 def detect_green_ball_centers(
     rgb_img: np.ndarray,
     ref_ball_rgb: Union[List[List[int]], List[Tuple[int, ...]]],

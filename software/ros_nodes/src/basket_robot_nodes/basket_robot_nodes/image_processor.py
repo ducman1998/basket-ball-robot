@@ -12,6 +12,7 @@ from basket_robot_nodes.utils.image_utils import (
     detect_green_ball_centers,
     get_cur_working_court_center,
     segment_color_hsv,
+    detect_green_ball_centers_segment,
 )
 from basket_robot_nodes.utils.ros_utils import (
     log_initialized_parameters,
@@ -23,9 +24,15 @@ from rclpy.qos import QoSProfile
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 
+# Imports
+import segment
+import _pickle as pickle
+
 VIZ_TOPIC = "/image/visualized"
 IMAGE_INFO_TOPIC = "/image/info"
 
+# Color lookup table file
+COLOR_CONF = "colors/colors.pkl"
 
 class ImageProcessor(Node):
     def __init__(self) -> None:
@@ -38,6 +45,11 @@ class ImageProcessor(Node):
 
         # for checking: log all initialized parameters
         log_initialized_parameters(self)
+
+        # Loading the lookup table into the segmentation module
+        with open(COLOR_CONF, 'rb') as conf:
+            self.colors_lookup = pickle.load(conf)
+            self.set_segmentation_table(self.colors_lookup)
 
         # setup camera
         ret = self._init_camera()
@@ -77,6 +89,9 @@ class ImageProcessor(Node):
                 interpolation=cv2.INTER_NEAREST,
             )
         self.get_logger().info("Loaded robot base mask image.")
+
+    def _set_segmentation_table(self, table):
+        segment.set_table(table)
 
     def _declare_node_parameters(self) -> None:
         """Declare parameters with descriptors."""
@@ -243,6 +258,30 @@ class ImageProcessor(Node):
         t2 = time()
         try:
             # segment working area
+
+            # Binary matrices of different colors of interest
+            t_basket_m = []
+            t_basket_b = []
+            t_balls = []
+            # Combined matrix containing colors by index
+            fragmented = []
+
+            # Segment the BGR frame and return the fragmented data and some binary images for convenience. Binary matrices
+            # are returning the same data as inRange
+
+            # I can not test out the code so I implemented an example ball detection using th segmented data.
+            # Other processing stuff can be replaced in a similar way.
+            segment.segment(color_frame_bgr.get_data(), fragmented, t_balls, t_basket_m, t_basket_b)
+
+            # Detects balls using the mask
+            detected_balls, viz_image = detect_green_ball_centers_segment(
+                ball_mask = t_balls,
+                rgb_img = color_frame_rgb,
+                mask_open_iter=1,
+                mask_open_kernel_size=3,
+                min_component_area=5,
+                visualize=True,)
+
             roi_mask, _ = segment_color_hsv(
                 color_frame_rgb,
                 ref_rgb=self.ref_court_color,  # color of working area
