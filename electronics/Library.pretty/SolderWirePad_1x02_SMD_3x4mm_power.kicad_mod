@@ -1,4 +1,4 @@
-(footprint "SolderWirePad_1x02_SMD_3x4mm"
+(footprint "SolderWirePad_1x02_SMD_3x4mm_power"
 	(version 20241229)
 	(generator "pcbnew")
 	(generator_version "9.0")
@@ -6,10 +6,10 @@
 	(descr "Wire Pad, Square, SMD Pad,  3mm x 6mm")
 	(tags "MeasurementPoint Square SMDPad 3mmx6mm ")
 	(property "Reference" "REF**"
-		(at 4.4 -4.15 0)
+		(at 4.4 -4.15 180)
 		(layer "F.SilkS")
 		(hide yes)
-		(uuid "427f4a39-b915-43a2-8048-c06e2cbae8ef")
+		(uuid "4cf01832-0833-46b8-95ff-bbec09093d3b")
 		(effects
 			(font
 				(size 1 1)
@@ -18,10 +18,9 @@
 		)
 	)
 	(property "Value" "Conn_01x02_Socket"
-		(at -0.6 10.6 0)
+		(at -0.6 10.6 180)
 		(layer "F.Fab")
-		(hide yes)
-		(uuid "2a0204e5-5e86-4141-8d8d-f2aa3d53cfc4")
+		(uuid "ada9b828-dda1-4f72-9ccd-7001aef04171")
 		(effects
 			(font
 				(size 1 1)
@@ -30,10 +29,10 @@
 		)
 	)
 	(property "Datasheet" "~"
-		(at 0 0 0)
+		(at 0 0 180)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "afb71800-0ea9-4424-877a-d2b2639f16f3")
+		(uuid "c5683ff3-1d3d-4299-89dc-d08883091234")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -42,10 +41,10 @@
 		)
 	)
 	(property "Description" "Generic connector, single row, 01x02, script generated"
-		(at 0 0 0)
+		(at 0 0 180)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "1530bc8a-5a4d-40a0-b203-d52e041f07f6")
+		(uuid "f3ea6c90-030f-4b20-843a-f15202c39286")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -63,18 +62,18 @@
 		)
 		(fill no)
 		(layer "F.CrtYd")
-		(uuid "011a9bba-f1b4-4090-8fec-6d8804064008")
+		(uuid "f447ce39-ef48-4fd8-be96-8bdbe2317ff2")
 	)
 	(fp_rect
-		(start 8.15 -1.35)
-		(end 11.65 3.25)
+		(start 6.25 -1.35)
+		(end 9.75 3.25)
 		(stroke
 			(width 0.05)
 			(type solid)
 		)
 		(fill no)
 		(layer "F.CrtYd")
-		(uuid "9e084927-ea9f-41b0-a22f-be68c1884a9c")
+		(uuid "9d0e628f-f729-4b75-9164-e44664f5acae")
 	)
 	(fp_rect
 		(start -1.65 -1.35)
@@ -85,32 +84,43 @@
 		)
 		(fill no)
 		(layer "F.Fab")
-		(uuid "a247d96d-1440-43a4-ae76-c2d4ed1dfa11")
+		(uuid "c93ac70e-ab86-475a-aa0f-5e24b9e621dc")
 	)
 	(fp_rect
-		(start 8.25 -1.35)
-		(end 11.55 3.15)
+		(start 6.35 -1.35)
+		(end 9.65 3.15)
 		(stroke
 			(width 0.1)
 			(type solid)
 		)
 		(fill no)
 		(layer "F.Fab")
-		(uuid "5b50ba0f-01ea-4c84-b98a-67e4159d8ebd")
+		(uuid "09f73b5a-8e6d-4aaa-b9f3-cda735bad8f9")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 1.8 11.7 180)
+		(layer "F.Fab")
+		(uuid "ae0690c6-7623-4719-ae54-a90aa509e67f")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
 	)
 	(pad "1" smd roundrect
 		(at 0 1)
 		(size 3 4)
 		(layers "F.Cu" "F.Mask")
 		(roundrect_rratio 0.25)
-		(uuid "8b97069b-58cb-43fa-af38-37081dc4d63a")
+		(uuid "5fa0104d-27f9-4cce-a3ed-935a2e6ec8e6")
 	)
 	(pad "2" smd roundrect
-		(at 9.9 1)
+		(at 8 1)
 		(size 3 4)
 		(layers "F.Cu" "F.Mask")
 		(roundrect_rratio 0.25)
-		(uuid "71777f3f-31f7-4244-ba63-1a65638c8ae4")
+		(uuid "9efb4747-e8c1-47fe-bd2d-64bae82e1a73")
 	)
 	(embedded_fonts no)
 )

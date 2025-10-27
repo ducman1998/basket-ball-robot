@@ -18864,7 +18864,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Library:SolderWirePad_1x02_SMD_3x4mm"
+		(property "Footprint" "Library:SolderWirePad_1x02_SMD_3x4mm_power"
 			(at 35.56 193.04 0)
 			(effects
 				(font
