@@ -3,7 +3,7 @@ from typing import Optional
 import numpy as np
 import rclpy
 import tf2_ros
-from basket_robot_nodes.utils.constant_utils import BASE_FRAME_ID, ODOM_FRAME_ID
+from basket_robot_nodes.utils.constants import BASE_FRAME_ID, ODOM_FRAME_ID, QOS_DEPTH
 from basket_robot_nodes.utils.robot_motion import OmniMotionRobot
 from basket_robot_nodes.utils.ros_utils import log_initialized_parameters
 from geometry_msgs.msg import Quaternion, TransformStamped
@@ -64,13 +64,14 @@ class OdometryNode(Node):
         self.y: float = 0.0
         self.yaw: float = 0.0
 
-        self.odom_pub = self.create_publisher(Odometry, ODOM_FRAME_ID, QoSProfile(depth=3))
+        self.odom_pub = self.create_publisher(Odometry, ODOM_FRAME_ID, QoSProfile(depth=QOS_DEPTH))
         self.sub = self.create_subscription(
-            WheelPositions, "wheel_positions", self.wheel_callback, QoSProfile(depth=3)
+            WheelPositions, "wheel_positions", self.wheel_callback, QoSProfile(depth=QOS_DEPTH)
         )
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
     def publish_tf(self, x: float, y: float, yaw: float, stamp: float) -> None:
+        """Publish the transform from ODOM_FRAME_ID to BASE_FRAME_ID."""
         t = TransformStamped()
         t.header.stamp = stamp
         t.header.frame_id = ODOM_FRAME_ID
@@ -84,6 +85,7 @@ class OdometryNode(Node):
         self.get_logger().info(f"Published TF: x={x:.2f}, y={y:.2f}, yaw={yaw:.2f}")
 
     def wheel_callback(self, msg: WheelPositions) -> None:
+        """Callback for wheel positions to compute and publish odometry."""
         # msg.pos1, msg.pos2, msg.pos3 are encoder positions (ticks)
         pos: NDArray[np.int32] = np.array([msg.pos1, msg.pos2, msg.pos3], dtype=np.int32)
         cur_time = self.get_clock().now().nanoseconds * 1e-9
