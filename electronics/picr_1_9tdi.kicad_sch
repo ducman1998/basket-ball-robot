@@ -6338,6 +6338,16 @@
 		)
 		(uuid "41ba4fb8-db3f-43d2-a5bd-5231ccab6505")
 	)
+	(text "Supply changed from VUSB to 3.3V for IS471FE\n"
+		(exclude_from_sim no)
+		(at 449.326 359.664 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "463a5388-62ff-4272-8173-da912bff46a9")
+	)
 	(text "gpio_input"
 		(exclude_from_sim no)
 		(at 311.404 176.784 0)
@@ -6520,13 +6530,23 @@
 	)
 	(text "FROM IR RX (IS471FE)"
 		(exclude_from_sim no)
-		(at 440.182 332.994 0)
+		(at 444.246 332.994 0)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
 		)
 		(uuid "c611029d-911d-4e92-bfa8-29e9eb8d5f81")
+	)
+	(text "Changed from VUSB input to 3.3V.\n Resistor value changed from 68 to 20 ohm"
+		(exclude_from_sim no)
+		(at 135.636 125.476 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "ca8f65e3-9173-43ce-9e4b-89ade7e9ae46")
 	)
 	(text "MICROCONTROLLER"
 		(exclude_from_sim no)
@@ -9584,7 +9604,17 @@
 	)
 	(wire
 		(pts
-			(xy 129.54 143.51) (xy 124.46 143.51)
+			(xy 425.45 337.82) (xy 441.96 337.82)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "831f4eb0-9852-47fd-837c-e3a2b1b6b720")
+	)
+	(wire
+		(pts
+			(xy 129.54 143.51) (xy 120.65 143.51)
 		)
 		(stroke
 			(width 0)
@@ -10781,16 +10811,6 @@
 			(type default)
 		)
 		(uuid "d0c81bd3-c6bd-4ae4-baf3-1767ca3764d1")
-	)
-	(wire
-		(pts
-			(xy 435.61 337.82) (xy 441.96 337.82)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "d561b91f-5272-4c30-a417-1eacd975088f")
 	)
 	(wire
 		(pts
@@ -12282,16 +12302,6 @@
 		)
 		(uuid "b169ddb6-26b0-4564-95e7-c7eca1d2335f")
 	)
-	(label "VUSB"
-		(at 435.61 337.82 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "b4174e5e-a73c-4635-ba1a-042975e21ad8")
-	)
 	(label "D+"
 		(at 80.01 143.51 0)
 		(effects
@@ -12571,16 +12581,6 @@
 			(justify right bottom)
 		)
 		(uuid "f7062f96-70a5-4d59-868e-2ee30b0595bc")
-	)
-	(label "VUSB"
-		(at 124.46 143.51 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "f90a67ed-69cc-4150-967e-111a4c960497")
 	)
 	(label "M1_DIR_I"
 		(at 444.5 189.23 180)
@@ -16013,7 +16013,7 @@
 				)
 			)
 		)
-		(property "Value" "68R"
+		(property "Value" "20R"
 			(at 133.35 139.7 90)
 			(effects
 				(font
@@ -17452,6 +17452,72 @@
 			(project "picr_1_9tdi"
 				(path "/f4c3b324-9d8f-4d10-8101-dec9d8880fba"
 					(reference "R16")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Library:+3.3V")
+		(at 425.45 337.82 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "7b32e792-99b0-4069-8950-84621717b9d3")
+		(property "Reference" "#PWR046"
+			(at 425.45 341.63 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "+3.3V"
+			(at 425.45 332.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 425.45 337.82 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 425.45 337.82 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+3.3V\""
+			(at 425.45 337.82 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "19de4739-36f8-4fc0-919b-f544077e0535")
+		)
+		(instances
+			(project "picr_1_9tdi"
+				(path "/f4c3b324-9d8f-4d10-8101-dec9d8880fba"
+					(reference "#PWR046")
 					(unit 1)
 				)
 			)
@@ -21464,6 +21530,72 @@
 			(project "picr_1_9tdi"
 				(path "/f4c3b324-9d8f-4d10-8101-dec9d8880fba"
 					(reference "C2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Library:+3.3V")
+		(at 120.65 143.51 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "ef0ab786-5b51-4315-bee7-719c1565cc58")
+		(property "Reference" "#PWR045"
+			(at 120.65 147.32 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "+3.3V"
+			(at 120.65 138.43 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 120.65 143.51 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 120.65 143.51 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+3.3V\""
+			(at 120.65 143.51 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "294f451c-c1c2-439f-b5f2-8c31d7cf2c6b")
+		)
+		(instances
+			(project "picr_1_9tdi"
+				(path "/f4c3b324-9d8f-4d10-8101-dec9d8880fba"
+					(reference "#PWR045")
 					(unit 1)
 				)
 			)
