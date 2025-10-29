@@ -132,15 +132,18 @@ class ImageProcessor(Node):
             ).astype(np.uint8, copy=False)
         t3 = time()
 
-        if is_visualized and viz_image is not None:
-            self.publish_viz_async(viz_image)
-        t4 = time()
-
         # publish detected ball info
         img_info = ImageInfo(balls=detected_balls, basket=detected_basket)
         info_msg = String()
         info_msg.data = img_info.to_json()
         self.processed_info_pub.publish(info_msg)
+
+        t4 = time()
+        if is_visualized:
+            self.get_logger().info(
+                f"Timings (s): read={t2-t1:.3f}, detect={t3-t2:.3f}, "
+                + f"pub_info={t4-t3:.3f}, detected={len(detected_balls)} balls"
+            )
 
         elapsed_time = self.get_clock().now().nanoseconds * 1e-9 - self.timestamp
         avg_fps = self._monitor_fps(elapsed_time)
@@ -149,15 +152,10 @@ class ImageProcessor(Node):
                 f"Processing is too slow! FPS={1.0/elapsed_time:.2f} < {self.fps}"
                 + f" (avg over last {len(self.fps_queue)} frames: {avg_fps:.2f})"
             )
-
-        t5 = time()
-        if is_visualized:
-            self.get_logger().info(
-                f"Timings (s): read={t2-t1:.3f}, detect={t3-t2:.3f}, pub_img={t4-t3:.3f}, "
-                + f"pub_info={t5-t4:.3f}, detected={len(detected_balls)} balls"
-            )
-
-        return None
+        if is_visualized and viz_image is not None:
+            return self.publish_viz_async(viz_image)
+        else:
+            return None
 
     def _declare_node_parameters(self) -> None:
         """Declare parameters with descriptors."""

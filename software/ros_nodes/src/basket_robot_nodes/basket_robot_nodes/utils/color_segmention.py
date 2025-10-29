@@ -2,6 +2,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+from cv2.typing import MatLike
 from numpy.typing import NDArray
 
 from .constants import COLOR_TOLERANCES, COLOR_VIZ_RGB_MAP
@@ -69,7 +70,7 @@ class ColorSegmenter:
                 ref_lut[np.ix_(h_indices, s_indices, v_indices)] = color_idx
         return ref_lut
 
-    def segment_image(self, hsv_img: NDArray[np.uint8]) -> NDArray[np.uint8]:
+    def segment_image(self, hsv_img: Union[NDArray[np.uint8], MatLike]) -> NDArray[np.uint8]:
         """
         Segment the input HSV image based on reference colors.
         Inputs:

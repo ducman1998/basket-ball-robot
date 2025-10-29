@@ -1,11 +1,11 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
 from basket_robot_nodes.utils.color_segmention import ColorSegmenter
 from basket_robot_nodes.utils.image_info import Basket, GreenBall
+from cv2.typing import MatLike
 from numpy.typing import NDArray
-from scipy import ndimage as ndi
 
 from .constants import COLOR_REFERENCE_RGB
 
@@ -83,9 +83,11 @@ class ImageProcessing:
             detected_basket: detected basket (can be None if no basket detected)
             viz: visualization image (can be None if visualize is False)
         """
-        image_hsv = cv2.cvtColor(im_rgb, cv2.COLOR_RGB2HSV).astype(np.uint8, copy=False)
+        image_hsv = cv2.cvtColor(im_rgb, cv2.COLOR_RGB2HSV)
+
         # segment all colors (court, green, blue, magenta, white, black)
         seg_mask = self.image_segmenter.segment_image(image_hsv)
+
         viz: Optional[NDArray[np.uint8]] = None
         if visualize:
             viz = im_rgb.copy()
@@ -95,6 +97,7 @@ class ImageProcessing:
             viz_rgb=viz if visualize else None,
             min_component_area=15,
         )
+
         # detect baskets
         detected_basket = self.detect_baskets(
             seg_mask=seg_mask,
@@ -102,6 +105,7 @@ class ImageProcessing:
             viz_rgb=viz if visualize else None,
             min_component_area=1000,
         )
+
         return detected_balls, detected_basket, viz if visualize else None
 
     def detect_green_balls(
@@ -130,7 +134,7 @@ class ImageProcessing:
             green_mask, cv2.MORPH_OPEN, self.ball_kernel, iterations=1
         ).astype(np.uint8, copy=False)
         mask_dilate = cv2.morphologyEx(
-            mask_open, cv2.MORPH_DILATE, self.ball_kernel, iterations=2
+            mask_open, cv2.MORPH_DILATE, self.ball_kernel, iterations=3
         ).astype(np.uint8, copy=False)
         # after dilation, remove areas within court area which are overlapped with
         # court/white color
@@ -140,25 +144,22 @@ class ImageProcessing:
         clean_mask = cv2.bitwise_and(clean_mask, filled_court_mask)
 
         # connected component analysis
-        labeled_mask, _ = ndi.label(clean_mask)
-        components = ndi.find_objects(labeled_mask)
+        n_labels, _, stats, centroids = cv2.connectedComponentsWithStats(clean_mask, connectivity=8)
 
         balls = []
-        for i, com_slice in enumerate(components):
-            if com_slice is None:
-                continue
-            mask = (labeled_mask[com_slice] == (i + 1)).astype(np.uint8) * 255
-            area = np.count_nonzero(mask)
+        for i in range(1, n_labels):  # skip background (0)
+            area = stats[i, cv2.CC_STAT_AREA]
             if area < min_component_area:
                 continue
-            # compute center and radius
-            y_start, y_end = com_slice[0].start, com_slice[0].stop
-            x_start, x_end = com_slice[1].start, com_slice[1].stop
-            cy = (y_start + y_end) // 2
-            cx = (x_start + x_end) // 2
+            cx, cy = centroids[i]
             r, (pos_x, pos_y) = self._get_ball_radius((cx, cy))
             balls.append(
-                GreenBall(center=(cx, cy), radius=r, area=area, position_2d=(pos_x, pos_y))
+                GreenBall(
+                    center=(int(cx), int(cy)),
+                    radius=r,
+                    area=float(area),
+                    position_2d=(pos_x, pos_y),
+                )
             )
 
         # filter close detections to form one
@@ -196,7 +197,6 @@ class ImageProcessing:
                     (0, 0, 255),
                     1,
                 )
-
         return filtered_balls
 
     def detect_baskets(
@@ -223,36 +223,29 @@ class ImageProcessing:
         basket_mask: Optional[NDArray[np.uint8]] = None
 
         blue_idx, magenta_idx = self.image_segmenter.get_color_indices(["blue", "magenta"])
-        mask: NDArray[np.uint8] = ((seg_mask == blue_idx) | (seg_mask == magenta_idx)).astype(
-            np.uint8
-        ) * 255
+        mask: NDArray[np.uint8] = np.isin(seg_mask, [blue_idx, magenta_idx]).astype(np.uint8) * 255
         if np.count_nonzero(mask) < min_component_area:
             return None
 
-        labeled_mask, _ = ndi.label(mask)
-        components = ndi.find_objects(labeled_mask)
-        # find largest connected component --> likely the basket
-        for i, com_slice in enumerate(components):
-            if com_slice is None:
-                continue
-            # crop the component mask
-            _mask = (labeled_mask[com_slice] == (i + 1)).astype(np.uint8) * 255
-            area = np.count_nonzero(_mask)
+        n_labels, labels, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
+        for i in range(1, n_labels):  # skip background (label 0)
+            area = int(stats[i, cv2.CC_STAT_AREA])
             if area > max_area and area >= min_component_area:
                 max_area = area
-                y_start, y_end = com_slice[0].start, com_slice[0].stop
-                x_start, x_end = com_slice[1].start, com_slice[1].stop
+                x_start = int(stats[i, cv2.CC_STAT_LEFT])
+                y_start = int(stats[i, cv2.CC_STAT_TOP])
+                x_end = x_start + int(stats[i, cv2.CC_STAT_WIDTH])
+                y_end = y_start + int(stats[i, cv2.CC_STAT_HEIGHT])
                 bbox = (x_start, y_start, x_end, y_end)
                 # determine color
-                seg_region = seg_mask[com_slice]
+                seg_region = seg_mask[y_start:y_end, x_start:x_end]
                 num_blue = np.count_nonzero(seg_region == blue_idx)
                 num_magenta = np.count_nonzero(seg_region == magenta_idx)
                 basket_color = "blue" if num_blue >= num_magenta else "magenta"
-                basket_mask = _mask
-                break
+                basket_mask = (labels[y_start:y_end, x_start:x_end] == i).astype(np.uint8) * 255
 
         if basket_color and bbox is not None and basket_mask is not None:
-            center = ((bbox[0] + bbox[2]) // 2, (bbox[1] + bbox[3]) // 2)
+            center = (int((bbox[0] + bbox[2]) // 2), int((bbox[1] + bbox[3]) // 2))
             x_start, y_start, x_end, y_end = bbox
             if depth is not None:
                 pos_2d = self._calculate_basket_2d_pos_from_depth(depth, basket_mask, bbox)
@@ -286,8 +279,8 @@ class ImageProcessing:
             return None
 
     def _get_processed_court_masks(
-        self, seg_mask: NDArray[np.uint8], scale: float = 0.2
-    ) -> Tuple[NDArray[np.uint8], NDArray[np.uint8]]:
+        self, seg_mask: NDArray[np.uint8], scale: float = 0.15
+    ) -> Tuple[Union[NDArray[np.uint8], MatLike], Union[NDArray[np.uint8], MatLike]]:
         """
         Get processed court and background masks from the segmented image mask.
         Inputs:
@@ -302,10 +295,11 @@ class ImageProcessing:
             ["court", "white", "black"]
         )
         # Create base masks
-        court_mask: NDArray[np.uint8] = ((seg_mask == court_idx).astype(np.uint8)) * 255
+        court_mask: NDArray[np.uint8] = np.uint8(seg_mask == court_idx) * 255
         bg_mask: NDArray[np.uint8] = (
-            (seg_mask == white_idx) | (seg_mask == black_idx) | (seg_mask == court_idx)
-        ).astype(np.uint8) * 255
+            np.uint8((seg_mask == white_idx) | (seg_mask == black_idx) | (seg_mask == court_idx))
+            * 255
+        )
 
         # Downscale to speed up contour detection
         small_mask = cv2.resize(
@@ -323,7 +317,7 @@ class ImageProcessing:
 
         if contours:
             all_points = np.vstack(contours)
-            hull = cv2.convexHull(all_points).astype(np.int32)
+            hull = cv2.convexHull(all_points)
             cv2.fillPoly(filled_court_mask_small, [hull], color=(255,))
 
         # Upscale mask back to original size
@@ -334,10 +328,8 @@ class ImageProcessing:
         )
 
         # Mask out robot base and background
-        filled_court_mask_ret = cv2.bitwise_and(filled_court_mask, self.robot_base_mask).astype(
-            np.uint8, copy=False
-        )
-        court_mask_ret = cv2.bitwise_and(filled_court_mask, bg_mask).astype(np.uint8, copy=False)
+        filled_court_mask_ret = cv2.bitwise_and(filled_court_mask, self.robot_base_mask)
+        court_mask_ret = cv2.bitwise_and(filled_court_mask, bg_mask)
 
         return court_mask_ret, filled_court_mask_ret
 
@@ -382,7 +374,7 @@ class ImageProcessing:
         pts_b = pts_b / pts_b[3, :]
         xs_b, ys_b = pts_b[0, :], pts_b[1, :]
         # TODO: consider using median to be more robust to outliers
-        return xs_b.mean(), ys_b.mean()
+        return float(xs_b.mean()), float(np.min(ys_b))
 
     def _pixel_to_robot_coords(self, ball_center: Tuple[float, float]) -> Tuple[float, float]:
         """

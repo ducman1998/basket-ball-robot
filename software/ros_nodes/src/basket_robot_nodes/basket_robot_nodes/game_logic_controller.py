@@ -1,6 +1,6 @@
 import math
 from time import time
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 import modern_robotics as mr
 import numpy as np
@@ -31,6 +31,14 @@ FT_UNDETECTED_ALIGN_BALL = 20  # frames
 FT_DETECTED_APPROACH_BASKET = 40  # frames
 FT_UNDETECTED_IDLE = 120  # frames
 TOTAL_ROT_DEGREE_THRESHOLD = 270.0  # seconds
+# thrower motor parameters
+KV = 1200.0  # RPM/V
+V_BATT = 5.5  # volts
+RPM_MAX = KV * V_BATT
+RPM_MIN = 0.1 * RPM_MAX  # approx 5% of max
+THROWER_WHEEL_RADIUS = 0.014  # meters
+THROWER_ANGLE_DEG = 55.0  # degrees
+BASKET_HEIGHT = 0.55  # meters
 
 
 class GameState:
@@ -260,13 +268,13 @@ class GameLogicController(Node):
 
         best_basket_rob_frame = self.get_target_in_robot_frame(self.fathest_basket_pos)
         if best_basket_rob_frame:
-            vx, vy, wz = self.compute_control_signals(best_basket_rob_frame)
+            vx, vy, wz = self.compute_control_signals(best_basket_rob_frame, look_ahead_dis=0.15)
             self.move_robot(vx, vy, wz, 0, normalize=True)
             self.get_logger().info(
                 f"Moving towards the farthest basket: vx={vx:.2f}, vy={vy:.2f}, wz={wz:.2f}, "
                 f"pos=({best_basket_rob_frame[0]:.1f}, {best_basket_rob_frame[1]:.1f})mm"
             )
-            if np.sqrt(best_basket_rob_frame[0] ** 2 + best_basket_rob_frame[1] ** 2) <= 150.0:
+            if np.sqrt(best_basket_rob_frame[0] ** 2 + best_basket_rob_frame[1] ** 2) <= 200.0:
                 self.transition_to_state(GameState.SEARCH_BALL)
                 self.get_logger().info(
                     "Reached the farthest basket! Transitioning to SEARCH_BALL state."
@@ -289,21 +297,39 @@ class GameLogicController(Node):
                 self.image_info_msg.balls,
                 key=lambda b: math.hypot(*b.position_2d) if b.position_2d else float("inf"),
             )
-            vx, vy, wz = self.compute_control_signals(
-                closet_ball.position_2d, angle_offset=90.0, look_ahead_dis=0.25
-            )
-            self.move_robot(vx, vy, wz, 0, normalize=True)
-            self.get_logger().info(
-                f"Aligning to basket: vx={vx:.2f}, vy={vy:.2f}, wz={wz:.2f}, "
-                f"pos=({closet_ball.position_2d[0]:.1f}, {closet_ball.position_2d[1]:.1f})mm"
-            )
-            return None
+            if (
+                self.image_info_msg.basket is not None
+                and self.image_info_msg.basket.position_2d is not None
+                and self.image_info_msg.basket.color == OPPONENT_BASKET_COLOR
+            ):
+                offset_angle = self.angle_at_point(
+                    closet_ball.position_2d, self.image_info_msg.basket.position_2d
+                )
+                self.get_logger().info(f"Offset angle to basket: {offset_angle:.2f} degrees.")
+                vx, vy, wz = self.compute_control_signals(
+                    closet_ball.position_2d, angle_offset=offset_angle, look_ahead_dis=0.2
+                )
+                self.move_robot(vx, vy, wz, 0, normalize=True)
+                if abs(offset_angle) < 1.0:
+                    self.transition_to_state(GameState.THROW_BALL)
+                return None
+            else:
+                vx, vy, wz = self.compute_control_signals(
+                    closet_ball.position_2d, angle_offset=90.0, look_ahead_dis=0.2
+                )
+                self.move_robot(vx, vy, wz, 0, normalize=True)
+                self.get_logger().info(
+                    f"Aligning to basket: vx={vx:.2f}, vy={vy:.2f}, wz={wz:.2f}, "
+                    f"pos=({closet_ball.position_2d[0]:.1f}, {closet_ball.position_2d[1]:.1f})mm"
+                )
+                return None
         else:
             self.get_logger().info("No ball detected. Remaining in ALIGN_TO_BASKET state.")
             return None
 
     def throw_ball_state(self) -> None:
         assert self.odom_msg is not None
+        assert self.image_info_msg is not None
 
         current_pos_odom = (
             self.odom_msg.pose.pose.position.x,
@@ -312,9 +338,23 @@ class GameLogicController(Node):
         if self.throw_start_pos is None:
             self.throw_start_pos = current_pos_odom
         # move forward a bit to throw the ball into the basket
-        self.move_robot(0.0, 0.25, 0.0, 50, normalize=False)
+        if self.image_info_msg.basket is None or self.image_info_msg.basket.position_2d is None:
+            self.move_robot(0.0, 0.25, 0.0, 60, normalize=False)
+            self.get_logger().info(
+                "No basket detected! Throwing ball with default motor percent=60."
+            )
+        else:
+            basket_pos = self.image_info_msg.basket.position_2d  # in mm
+            motor_percent = self.motor_percent_from_basket(
+                [basket_pos[0] / 1000, basket_pos[1] / 1000, BASKET_HEIGHT]
+            )
+            self.move_robot(0.0, 0.5, 0.0, motor_percent, normalize=False)
+            self.get_logger().info(
+                f"Throwing ball towards basket at pos=({basket_pos[0]:.1f}, {basket_pos[1]:.1f})mm "
+                f"with motor percent={motor_percent}."
+            )
         if (
-            np.linalg.norm(np.array(current_pos_odom) - np.array(self.throw_start_pos)) >= 0.15
+            np.linalg.norm(np.array(current_pos_odom) - np.array(self.throw_start_pos)) >= 0.5
         ):  # in meters
             self.transition_to_state(GameState.SEARCH_BALL)
         return None
@@ -540,6 +580,8 @@ class GameLogicController(Node):
             self.fathest_basket_dis = 0.0
         elif new_state == GameState.IDLE:
             self.stop_robot()
+        elif new_state == GameState.THROW_BALL:
+            self.throw_start_pos = None
         self.get_logger().info(f"Transitioning from state {pre_state} to {new_state}.")
 
     def print_current_state(self) -> None:
@@ -553,6 +595,70 @@ class GameLogicController(Node):
         self.cummulative_rotation += delta_yaw
         self.last_angle = yaw_now
         return self.cummulative_rotation
+
+    def angle_at_point(
+        self, p1: Union[Sequence[float], np.ndarray], p2: Union[Sequence[float], np.ndarray]
+    ) -> float:
+        """
+        Calculate the signed angle at point A between vectors OA and AB.
+
+        Inputs:
+            A: Point A as (x, y)
+            B: Point B as (x, y)
+        Returns:
+            Signed angle in degrees in range [-180, 180]
+        """
+        p1 = np.array(p1, dtype=float)
+        p2 = np.array(p2, dtype=float)
+        origin = np.array([0, 0], dtype=float)
+
+        oa_vec = p1 - origin
+        ab_vec = p2 - p1
+
+        dot = np.dot(oa_vec, ab_vec)
+        det = oa_vec[0] * ab_vec[1] - oa_vec[1] * ab_vec[0]
+
+        angle_rad = np.arctan2(det, dot)
+        angle_deg = np.degrees(angle_rad)
+
+        return float(angle_deg)
+
+    def motor_percent_from_basket(
+        self,
+        basket_pos: Union[List[float], Tuple[float, float, float]],
+        h0: float = 0.07,
+        g: float = 9.81,
+    ) -> int:
+        """
+        Compute motor percent for throwing wheel to hit a basket.
+
+        Inputs:
+            basket_pos: (x, y, z) in meters relative to launcher
+            throw_angle_deg: throwing angle from horizontal
+            r_wheel: radius of the throwing wheel in meters
+            h0: launcher height
+            g: gravity
+        Returns:
+            Motor speed percent [0-100] or None if impossible
+        """
+        x, y, z = basket_pos
+        theta = math.radians(THROWER_ANGLE_DEG)
+        y -= 0.010  # adjust for robot center to launcher y-offset
+        d = math.sqrt(x**2 + y**2)
+
+        denominator = d * math.tan(theta) - (z - h0)
+        if denominator <= 0:
+            return 50  # throw impossible at this angle
+
+        v_ball = math.sqrt((g * d**2) / (2 * math.cos(theta) ** 2 * denominator))
+
+        omega_wheel = v_ball / THROWER_WHEEL_RADIUS  # rad/s
+        rpm = omega_wheel * 60 / (2 * math.pi)
+
+        percent = (rpm - RPM_MIN) / (RPM_MAX - RPM_MIN) * 100
+        percent = max(0.0, min(100.0, percent))
+
+        return int(percent)
 
 
 def main() -> None:

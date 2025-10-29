@@ -24,10 +24,10 @@ class GreenBall:
 
     def to_dict(self) -> Dict:
         return {
-            "center": self.center,
-            "radius": self.radius,
-            "area": self.area,
-            "position_2d": self.position_2d,
+            "center": [int(self.center[0]), int(self.center[1])],
+            "radius": float(self.radius),
+            "area": float(self.area),
+            "position_2d": [float(self.position_2d[0]), float(self.position_2d[1])],
         }
 
     @classmethod
@@ -65,11 +65,16 @@ class Basket:
         self.area = area
 
     def to_dict(self) -> Dict:
+        position_2d = (
+            [float(self.position_2d[0]), float(self.position_2d[1])]
+            if self.position_2d is not None
+            else None
+        )
         return {
             "color": self.color,
-            "center": self.center,
-            "position_2d": self.position_2d,
-            "area": self.area,
+            "center": [int(self.center[0]), int(self.center[1])],
+            "position_2d": position_2d,
+            "area": int(self.area),
         }
 
     @classmethod
