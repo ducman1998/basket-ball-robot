@@ -600,11 +600,11 @@ class GameLogicController(Node):
         self, p1: Union[Sequence[float], np.ndarray], p2: Union[Sequence[float], np.ndarray]
     ) -> float:
         """
-        Calculate the signed angle at point A between vectors OA and AB.
+        Calculate the signed angle at point A between vectors OP1 and P1P2.
 
         Inputs:
-            A: Point A as (x, y)
-            B: Point B as (x, y)
+            p1: Point P1 as (x, y)
+            p2: Point P2 as (x, y)
         Returns:
             Signed angle in degrees in range [-180, 180]
         """
