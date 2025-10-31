@@ -9,7 +9,7 @@ from basket_robot_nodes.utils.constants import BASE_FRAME_ID, QOS_DEPTH
 from basket_robot_nodes.utils.image_info import GreenBall, ImageInfo
 from basket_robot_nodes.utils.number_utils import FrameStabilityCounter
 from basket_robot_nodes.utils.ros_utils import (
-    bool_descriptor,
+    float_array_descriptor,
     float_descriptor,
     log_initialized_parameters,
     parse_log_level,
@@ -25,11 +25,12 @@ from std_msgs.msg import String
 
 OPPONENT_BASKET_COLOR = "magenta"  # color of the opponent's basket
 SAMPLING_RATE = 60  # Hz
-FT_DETECTED_SEARCH_BALL = 15  # frames
+FT_DETECTED_SEARCH_BALL = 6  # frames
 FT_UNDETECTED_REACH_BALL = 15  # frames
 FT_UNDETECTED_ALIGN_BALL = 20  # frames
 FT_DETECTED_APPROACH_BASKET = 40  # frames
 FT_UNDETECTED_IDLE = 120  # frames
+FT_DETECTED_STABLE_ALIGN_BALL = 6  # frames
 TOTAL_ROT_DEGREE_THRESHOLD = 270.0  # seconds
 # thrower motor parameters
 KV = 1200.0  # RPM/V
@@ -98,6 +99,9 @@ class GameLogicController(Node):
         self.prev_vx_error: float = 0.0
         self.prev_vy_error: float = 0.0
         self.prev_wz_error: float = 0.0
+        self.cumm_vx_error: float = 0.0
+        self.cumm_vy_error: float = 0.0
+        self.cumm_wz_error: float = 0.0
         # ALIGN_TO_BASKET: align to basket (not implemented)
         # TODO: add other state variables as needed
         # APPROACH_BASKET: move towards court center
@@ -112,6 +116,7 @@ class GameLogicController(Node):
         self.fcounter_search_state = FrameStabilityCounter(FT_DETECTED_SEARCH_BALL)
         self.fcounter_reach_state = FrameStabilityCounter(FT_UNDETECTED_REACH_BALL)
         self.fcounter_align_state = FrameStabilityCounter(FT_UNDETECTED_ALIGN_BALL)
+        self.fcounter_align_stable_state = FrameStabilityCounter(FT_DETECTED_STABLE_ALIGN_BALL)
         self.fcounter_approach_state = FrameStabilityCounter(FT_DETECTED_APPROACH_BASKET)
         self.fcounter_idle_state = FrameStabilityCounter(FT_UNDETECTED_IDLE)
 
@@ -123,11 +128,10 @@ class GameLogicController(Node):
         self.declare_parameter("max_rot_speed", descriptor=float_descriptor)
         self.declare_parameter("max_xy_speed", descriptor=float_descriptor)
         self.declare_parameter("search_ball_rot_speed", descriptor=float_descriptor)
-        self.declare_parameter("kp_xy", descriptor=float_descriptor)
-        self.declare_parameter("kd_xy", descriptor=float_descriptor)
-        self.declare_parameter("kp_rot", descriptor=float_descriptor)
-        self.declare_parameter("kd_rot", descriptor=float_descriptor)
-        self.declare_parameter("norm_xy_speed", descriptor=bool_descriptor)
+        self.declare_parameter("pid_linear_common", descriptor=float_array_descriptor)
+        self.declare_parameter("pid_angular_common", descriptor=float_array_descriptor)
+        self.declare_parameter("pid_linear_align_basket", descriptor=float_array_descriptor)
+        self.declare_parameter("pid_angular_align_basket", descriptor=float_array_descriptor)
         self.declare_parameter("log_level", descriptor=str_descriptor)
 
     def _read_node_parameters(self) -> None:
@@ -137,11 +141,24 @@ class GameLogicController(Node):
         self.search_rot_speed = (
             self.get_parameter("search_ball_rot_speed").get_parameter_value().double_value
         )
-        self.kp_xy = self.get_parameter("kp_xy").get_parameter_value().double_value
-        self.kd_xy = self.get_parameter("kd_xy").get_parameter_value().double_value
-        self.kp_rot = self.get_parameter("kp_rot").get_parameter_value().double_value
-        self.kd_rot = self.get_parameter("kd_rot").get_parameter_value().double_value
-        self.norm_xy_speed = self.get_parameter("norm_xy_speed").get_parameter_value().bool_value
+        self.pid_linear_common = (
+            self.get_parameter("pid_linear_common").get_parameter_value().double_array_value
+        )
+        self.pid_angular_common = (
+            self.get_parameter("pid_angular_common").get_parameter_value().double_array_value
+        )
+        self.pid_linear_align_basket = (
+            self.get_parameter("pid_linear_align_basket").get_parameter_value().double_array_value
+        )
+        self.pid_angular_align_basket = (
+            self.get_parameter("pid_angular_align_basket").get_parameter_value().double_array_value
+        )
+        # validate PID parameters
+        if len(self.pid_linear_common) != 3 or len(self.pid_angular_common) != 3:
+            raise ValueError("PID common parameters must be lists of three floats: [kp, ki, kd].")
+        if len(self.pid_linear_align_basket) != 3 or len(self.pid_angular_align_basket) != 3:
+            raise ValueError("PID align parameters must be lists of three floats: [kp, ki, kd].")
+
         # read and set logging level
         log_level = self.get_parameter("log_level").get_parameter_value().string_value
         self.get_logger().set_level(parse_log_level(log_level))
@@ -310,12 +327,12 @@ class GameLogicController(Node):
                     closet_ball.position_2d, angle_offset=offset_angle, look_ahead_dis=0.2
                 )
                 self.move_robot(vx, vy, wz, 0, normalize=True)
-                if abs(offset_angle) < 1.0:
+                if self.fcounter_align_stable_state.update(abs(offset_angle) < 0.75):
                     self.transition_to_state(GameState.THROW_BALL)
                 return None
             else:
                 vx, vy, wz = self.compute_control_signals(
-                    closet_ball.position_2d, angle_offset=90.0, look_ahead_dis=0.2
+                    closet_ball.position_2d, angle_offset=90.0, look_ahead_dis=0.20
                 )
                 self.move_robot(vx, vy, wz, 0, normalize=True)
                 self.get_logger().info(
@@ -337,9 +354,11 @@ class GameLogicController(Node):
         )
         if self.throw_start_pos is None:
             self.throw_start_pos = current_pos_odom
+
         # move forward a bit to throw the ball into the basket
+        vx, vy, wz = 0.0, 0.4, 0.0
         if self.image_info_msg.basket is None or self.image_info_msg.basket.position_2d is None:
-            self.move_robot(0.0, 0.25, 0.0, 60, normalize=False)
+            self.move_robot(vx, vy, wz, 60, normalize=False)
             self.get_logger().info(
                 "No basket detected! Throwing ball with default motor percent=60."
             )
@@ -348,7 +367,7 @@ class GameLogicController(Node):
             motor_percent = self.motor_percent_from_basket(
                 [basket_pos[0] / 1000, basket_pos[1] / 1000, BASKET_HEIGHT]
             )
-            self.move_robot(0.0, 0.5, 0.0, motor_percent, normalize=False)
+            self.move_robot(vx, vy, wz, motor_percent, normalize=False)
             self.get_logger().info(
                 f"Throwing ball towards basket at pos=({basket_pos[0]:.1f}, {basket_pos[1]:.1f})mm "
                 f"with motor percent={motor_percent}."
@@ -519,13 +538,35 @@ class GameLogicController(Node):
         wz_error = xe_vec[2]  # angular velocity error in z
 
         # PD control
-        vx = self.kp_xy * vx_error + self.kd_xy * (vx_error - self.prev_vx_error) * SAMPLING_RATE
-        vy = self.kp_xy * vy_error + self.kd_xy * (vy_error - self.prev_vy_error) * SAMPLING_RATE
-        wz = self.kp_rot * wz_error + self.kd_rot * (wz_error - self.prev_wz_error) * SAMPLING_RATE
+        if self.cur_state == GameState.ALIGN_TO_BASKET:
+            kp_xy, ki_xy, kd_xy = self.pid_linear_align_basket
+            kp_rot, ki_rot, kd_rot = self.pid_angular_align_basket
+        else:
+            kp_xy, ki_xy, kd_xy = self.pid_linear_common
+            kp_rot, ki_rot, kd_rot = self.pid_angular_common
+
+        vx = (
+            kp_xy * vx_error
+            + kd_xy * (vx_error - self.prev_vx_error) * SAMPLING_RATE
+            + ki_xy * self.cumm_vx_error
+        )
+        vy = (
+            kp_xy * vy_error
+            + kd_xy * (vy_error - self.prev_vy_error) * SAMPLING_RATE
+            + ki_xy * self.cumm_vy_error
+        )
+        wz = (
+            kp_rot * wz_error
+            + kd_rot * (wz_error - self.prev_wz_error) * SAMPLING_RATE
+            + ki_rot * self.cumm_wz_error
+        )
 
         self.prev_vx_error = vx_error
         self.prev_vy_error = vy_error
         self.prev_wz_error = wz_error
+        self.cumm_vx_error += vx_error / SAMPLING_RATE
+        self.cumm_vy_error += vy_error / SAMPLING_RATE
+        self.cumm_wz_error += wz_error / SAMPLING_RATE
         return vx, vy, wz
 
     def yaw_from_odom(self, odom_msg: Odometry) -> float:
@@ -582,6 +623,14 @@ class GameLogicController(Node):
             self.stop_robot()
         elif new_state == GameState.THROW_BALL:
             self.throw_start_pos = None
+
+        if pre_state != new_state:
+            self.prev_vx_error = 0.0
+            self.prev_vy_error = 0.0
+            self.prev_wz_error = 0.0
+            self.cumm_vx_error = 0.0
+            self.cumm_vy_error = 0.0
+            self.cumm_wz_error = 0.0
         self.get_logger().info(f"Transitioning from state {pre_state} to {new_state}.")
 
     def print_current_state(self) -> None:
