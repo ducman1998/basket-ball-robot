@@ -65,8 +65,8 @@
 		(uuid "f447ce39-ef48-4fd8-be96-8bdbe2317ff2")
 	)
 	(fp_rect
-		(start 6.25 -1.35)
-		(end 9.75 3.25)
+		(start 8.25 -1.35)
+		(end 11.75 3.25)
 		(stroke
 			(width 0.05)
 			(type solid)
@@ -87,8 +87,8 @@
 		(uuid "c93ac70e-ab86-475a-aa0f-5e24b9e621dc")
 	)
 	(fp_rect
-		(start 6.35 -1.35)
-		(end 9.65 3.15)
+		(start 8.35 -1.35)
+		(end 11.65 3.15)
 		(stroke
 			(width 0.1)
 			(type solid)
@@ -116,7 +116,7 @@
 		(uuid "5fa0104d-27f9-4cce-a3ed-935a2e6ec8e6")
 	)
 	(pad "2" smd roundrect
-		(at 8 1)
+		(at 10 1)
 		(size 3 4)
 		(layers "F.Cu" "F.Mask")
 		(roundrect_rratio 0.25)
