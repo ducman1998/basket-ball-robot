@@ -277,7 +277,8 @@ class ImageProcessing:
         """
         Check if the detected ball is valid based on area and position.
         Inputs:
-            ball: GreenBall object
+            area: area of the detected ball
+            position_2d: (x, y) position of the ball in robot base_footprint frame
             min_component_area: minimum area threshold to filter small components
         Outputs:
             is_valid: True if the ball is valid, False otherwise
