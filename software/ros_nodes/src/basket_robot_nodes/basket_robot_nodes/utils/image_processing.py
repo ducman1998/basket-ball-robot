@@ -153,27 +153,20 @@ class ImageProcessing:
                 continue
             cx, cy = centroids[i]
             r, (pos_x, pos_y) = self._get_ball_radius((cx, cy))
-            balls.append(
-                GreenBall(
-                    center=(int(cx), int(cy)),
-                    radius=r,
-                    area=float(area),
-                    position_2d=(pos_x, pos_y),
+            if self._is_valid_ball(area, (pos_x, pos_y), min_component_area):
+                balls.append(
+                    GreenBall(
+                        center=(int(cx), int(cy)),
+                        radius=r,
+                        area=float(area),
+                        position_2d=(pos_x, pos_y),
+                    )
                 )
-            )
 
         # filter close detections to form one
         balls = sorted(balls, key=lambda b: b.radius * b.area, reverse=True)
         filtered_balls: List[GreenBall] = []
         for ball in balls:
-            if ball.area < min_component_area:
-                continue
-            # below thesholds are likely noise, based on empirical observations
-            if (
-                np.linalg.norm(np.array(ball.position_2d)) < 500
-                and ball.area < 100 * CALIB_SCALE**2
-            ):
-                continue
             if all(
                 np.linalg.norm(np.array(ball.center) - np.array(b.center)) > ball.radius * 2
                 for b in filtered_balls
@@ -185,7 +178,7 @@ class ImageProcessing:
                 cv2.circle(viz_rgb, ball.center, int(ball.radius), (255, 0, 255), 2)
                 text_pos = (
                     (ball.center[0] - 20, ball.center[1] - 10)
-                    if ball.center[0] < 1150
+                    if ball.center[0] < viz_rgb.shape[1] - 100
                     else (ball.center[0] - 150, ball.center[1] - 10)
                 )
                 cv2.putText(
@@ -277,6 +270,24 @@ class ImageProcessing:
             return Basket(color=basket_color, center=center, position_2d=pos_2d, area=max_area)
         else:
             return None
+
+    def _is_valid_ball(
+        self, area: int, position_2d: Tuple[float, float], min_component_area: int
+    ) -> bool:
+        """
+        Check if the detected ball is valid based on area and position.
+        Inputs:
+            ball: GreenBall object
+            min_component_area: minimum area threshold to filter small components
+        Outputs:
+            is_valid: True if the ball is valid, False otherwise
+        """
+        if area < min_component_area:
+            return False
+        # below thesholds are likely noise, based on empirical observations
+        if np.linalg.norm(np.array(position_2d)) < 500 and area < 100 * CALIB_SCALE**2:
+            return False
+        return True
 
     def _get_processed_court_masks(
         self, seg_mask: NDArray[np.uint8], scale: float = 0.15

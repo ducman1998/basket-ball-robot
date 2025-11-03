@@ -6,6 +6,10 @@ BASE_FRAME_ID = "base_footprint"
 # buffer depth for QoS profiles
 QOS_DEPTH = 3
 
+# the order of enabled colors for segmentation, the order matters as later colors will override
+# previous ones in the look-up table, helping to reduce false positives
+ENABLED_SEGMENTED_COLORS = ["white", "magenta", "blue", "black", "green", "court"]
+
 # color visualization RGB map, only used for visualization purposes
 COLOR_VIZ_RGB_MAP: dict[str, tuple[int, int, int]] = {
     "green": (0, 255, 0),

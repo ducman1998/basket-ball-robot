@@ -8,6 +8,7 @@ import numpy as np
 import pyrealsense2 as rs
 import rclpy
 from ament_index_python.packages import get_package_share_directory
+from basket_robot_nodes.utils.custom_exceptions import FileNotFoundError, CameraNoInitializedError
 from basket_robot_nodes.utils.constants import QOS_DEPTH
 from basket_robot_nodes.utils.image_info import ImageInfo
 from basket_robot_nodes.utils.image_processing import ImageProcessing
@@ -68,7 +69,7 @@ class ImageProcessor(Node):
             os.path.join(self.shared_dir, "images/robot_base_mask.png"), cv2.IMREAD_GRAYSCALE
         )
         if _robot_mask is None:
-            raise RuntimeError("Failed to load robot base mask image.")
+            raise FileNotFoundError("Failed to load robot base mask image.")
         else:
             _robot_mask = _robot_mask.astype(bool).astype(np.uint8) * 255
             self.robot_base_mask: NDArray[np.uint8] = cv2.resize(
@@ -267,7 +268,7 @@ class ImageProcessor(Node):
     def _get_depth_scale(self) -> float:
         """Get depth scale from the RealSense device."""
         if self.profile is None:
-            raise RuntimeError("RealSense camera is not initialized.")
+            raise CameraNoInitializedError("RealSense camera is not initialized.")
         depth_sensor = self.profile.get_device().first_depth_sensor()
         depth_scale = depth_sensor.get_depth_scale()
         return float(depth_scale)

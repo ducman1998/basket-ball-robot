@@ -5,7 +5,7 @@ import numpy as np
 from cv2.typing import MatLike
 from numpy.typing import NDArray
 
-from .constants import COLOR_TOLERANCES, COLOR_VIZ_RGB_MAP
+from .constants import ENABLED_SEGMENTED_COLORS, COLOR_TOLERANCES, COLOR_VIZ_RGB_MAP
 
 
 class ColorSegmenter:
@@ -48,7 +48,7 @@ class ColorSegmenter:
         ref_lut: NDArray[np.uint8] = np.zeros((180, 128, 128), dtype=np.uint8)
         # the order of processing colors matters, for example, court will override green,
         # helping to reduce false positives
-        for color in ["white", "magenta", "blue", "black", "green", "court"]:
+        for color in ENABLED_SEGMENTED_COLORS:
             if color not in ref_color_dict:
                 raise ValueError(
                     f"Color {color} not found in reference color map. Please update it."

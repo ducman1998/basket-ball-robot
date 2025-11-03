@@ -1,10 +1,10 @@
-class SerialPortNotFound(Exception):
+class SerialPortNotFoundError(Exception):
     pass
 
 
-class InvalidYamlConfig(Exception):
+class FileNotFoundError(Exception):
     pass
 
 
-class SettingFileNotFound(Exception):
+class CameraNoInitializedError(Exception):
     pass

@@ -32,12 +32,7 @@ class GreenBall:
 
     @classmethod
     def from_dict(cls, data: Dict) -> "GreenBall":
-        return cls(
-            center=data["center"],
-            radius=data["radius"],
-            area=data["area"],
-            position_2d=data["position_2d"],
-        )
+        return cls(**data)
 
 
 class Basket:
@@ -79,12 +74,10 @@ class Basket:
 
     @classmethod
     def from_dict(cls, data: Dict) -> "Basket":
-        return cls(
-            color=data["color"],
-            center=tuple(data["center"]),
-            position_2d=tuple(data["position_2d"]) if data["position_2d"] is not None else None,
-            area=data["area"],
-        )
+        # Convert position_2d to tuple if it exists
+        if data.get("position_2d") is not None:
+            data = {**data, "position_2d": tuple(data["position_2d"])}
+        return cls(**data)
 
 
 class ImageInfo:

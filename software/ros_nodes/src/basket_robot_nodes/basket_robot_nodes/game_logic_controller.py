@@ -327,7 +327,7 @@ class GameLogicController(Node):
                     closet_ball.position_2d, angle_offset=offset_angle, look_ahead_dis=0.2
                 )
                 self.move_robot(vx, vy, wz, 0, normalize=True)
-                if self.fcounter_align_stable_state.update(abs(offset_angle) < 0.75):
+                if self.fcounter_align_stable_state.update(abs(offset_angle) < 1.5):
                     self.transition_to_state(GameState.THROW_BALL)
                 return None
             else:
