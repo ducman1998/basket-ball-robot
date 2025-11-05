@@ -1005,200 +1005,6 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Library:215079-4_PWM"
-			(pin_names
-				(hide yes)
-			)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(property "Reference" "U"
-				(at -1.27 6.096 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Value" ""
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" "Library:TE_Micro-MaTch_215079-4_2x02_P1.27mm_Vertical"
-				(at -4.064 -11.176 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Datasheet" "https://atta.szlcsc.com/upload/public/pdf/source/20181106/C306160_C0F6687678D8320B9FEA0BB065D7ACFE.pdf"
-				(at -5.588 -9.906 0)
-				(do_not_autoplace)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Description" "Pins Structure:2x2P Pitch:2.54mm Mounting Style:Direct Insert Reference Series:- Number of Pins:4P Number of Rows:2 Number of PINs Per Row:2 Row Spacing:2.54mm Contact Material:Phosphor Bronze Contact Plating:Tin Operating Temperature Range:-40°C~+105°C Ope"
-				(at -1.016 -11.938 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Manufacturer Part" "215079-4"
-				(at 0.254 -4.064 0)
-				(effects
-					(font
-						(size 1 1)
-					)
-					(hide yes)
-				)
-			)
-			(property "Manufacturer" "TE Connectivity(泰科电子)"
-				(at -1.016 -15.494 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Supplier Part" "C306232"
-				(at -2.794 -10.414 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Supplier" "LCSC"
-				(at -8.382 -10.414 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "LCSC Part Name" "215079-4"
-				(at -1.778 -9.398 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(symbol "215079-4_PWM_1_0"
-				(rectangle
-					(start -5.08 5.08)
-					(end 2.54 -2.54)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(circle
-					(center -1.27 3.81)
-					(radius 0.381)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(pin passive line
-					(at -10.16 2.54 0)
-					(length 5.08)
-					(name "1"
-						(effects
-							(font
-								(size 0.5 0.5)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin no_connect line
-					(at -10.16 0 0)
-					(length 5.08)
-					(name "3"
-						(effects
-							(font
-								(size 0.5 0.5)
-							)
-						)
-					)
-					(number "3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 7.62 2.54 180)
-					(length 5.08)
-					(name "2"
-						(effects
-							(font
-								(size 0.5 0.5)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin no_connect line
-					(at 7.62 0 180)
-					(length 5.08)
-					(name "4"
-						(effects
-							(font
-								(size 0.5 0.5)
-							)
-						)
-					)
-					(number "4"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
 		(symbol "Library:AON6411_copy"
 			(pin_names
 				(hide yes)
@@ -8134,16 +7940,6 @@
 	)
 	(wire
 		(pts
-			(xy 535.94 243.84) (xy 535.94 241.3)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "27a1bfe1-d6ba-44ec-8f44-7db2093d5d77")
-	)
-	(wire
-		(pts
 			(xy 219.71 280.67) (xy 229.87 280.67)
 		)
 		(stroke
@@ -9604,6 +9400,16 @@
 	)
 	(wire
 		(pts
+			(xy 546.1 241.3) (xy 553.72 241.3)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "82d5ee36-d460-4a15-924a-d31cc7797e21")
+	)
+	(wire
+		(pts
 			(xy 425.45 337.82) (xy 441.96 337.82)
 		)
 		(stroke
@@ -9684,16 +9490,6 @@
 	)
 	(wire
 		(pts
-			(xy 565.15 241.3) (xy 570.23 241.3)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "88df8250-3280-4c8b-8288-1c30214935c2")
-	)
-	(wire
-		(pts
 			(xy 365.76 328.93) (xy 365.76 331.47)
 		)
 		(stroke
@@ -9771,16 +9567,6 @@
 			(type default)
 		)
 		(uuid "91d10f48-54af-4a39-952f-d4a5e3816f83")
-	)
-	(wire
-		(pts
-			(xy 535.94 241.3) (xy 547.37 241.3)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "91ef4692-6cdd-4ae9-b172-5c341e3bc12e")
 	)
 	(wire
 		(pts
@@ -10114,6 +9900,16 @@
 	)
 	(wire
 		(pts
+			(xy 549.91 238.76) (xy 553.72 238.76)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a60fe3b7-cc77-463f-aaf0-98840ddd0fc7")
+	)
+	(wire
+		(pts
 			(xy 127 187.96) (xy 128.27 187.96)
 		)
 		(stroke
@@ -10341,6 +10137,16 @@
 			(type default)
 		)
 		(uuid "b0ccdfc9-efe4-4e1a-a335-0f6e90d7136f")
+	)
+	(wire
+		(pts
+			(xy 546.1 245.11) (xy 546.1 241.3)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b249036c-673b-469c-8c60-0f070dee1151")
 	)
 	(wire
 		(pts
@@ -11812,6 +11618,16 @@
 		)
 		(uuid "38f82835-758a-427b-b770-248f974d72c7")
 	)
+	(label "PWM_TH_O"
+		(at 549.91 238.76 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "407b17c6-4f5a-491f-abcb-8c927d3c783e")
+	)
 	(label "PWM_M3_O"
 		(at 474.98 139.7 0)
 		(effects
@@ -12311,16 +12127,6 @@
 			(justify left bottom)
 		)
 		(uuid "b6631dbb-f11b-4eb9-b91f-6bf30a82bed9")
-	)
-	(label "PWM_TH_O"
-		(at 570.23 241.3 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "b6e10578-c7ac-4d53-88f4-2c7fe9091062")
 	)
 	(label "IR_TX"
 		(at 140.97 143.51 0)
@@ -13205,6 +13011,72 @@
 			(project "picr_1_9tdi"
 				(path "/f4c3b324-9d8f-4d10-8101-dec9d8880fba"
 					(reference "#PWR030")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Library:GND")
+		(at 546.1 245.11 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "0622c503-db5b-4950-99c9-cee854cf10f9")
+		(property "Reference" "#PWR043"
+			(at 546.1 251.46 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "GND_MOT"
+			(at 546.1 250.19 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 546.1 245.11 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 546.1 245.11 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 546.1 245.11 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "3652501f-1af8-4bfb-847c-13748b0c395d")
+		)
+		(instances
+			(project ""
+				(path "/f4c3b324-9d8f-4d10-8101-dec9d8880fba"
+					(reference "#PWR043")
 					(unit 1)
 				)
 			)
@@ -14500,72 +14372,6 @@
 			(project "picr_1_9tdi"
 				(path "/f4c3b324-9d8f-4d10-8101-dec9d8880fba"
 					(reference "#PWR036")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Library:GND")
-		(at 535.94 243.84 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "21941b13-7e57-42f5-a85c-b76a3c64c87e")
-		(property "Reference" "#PWR043"
-			(at 535.94 250.19 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Value" "GND_MOT"
-			(at 535.94 248.92 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 535.94 243.84 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" ""
-			(at 535.94 243.84 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 535.94 243.84 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "7af6562e-53ee-4ced-9772-bf2d743f41a7")
-		)
-		(instances
-			(project "picr_1_9tdi"
-				(path "/f4c3b324-9d8f-4d10-8101-dec9d8880fba"
-					(reference "#PWR043")
 					(unit 1)
 				)
 			)
@@ -21210,6 +21016,76 @@
 		)
 	)
 	(symbol
+		(lib_id "Library:Conn_01x02_Pin")
+		(at 558.8 241.3 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "e7bb5d69-7e1d-42d9-9719-948df7c078dc")
+		(property "Reference" "J10"
+			(at 560.07 238.7599 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "Conn_01x02_Pin"
+			(at 560.07 241.2999 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
+			(at 558.8 241.3 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 558.8 241.3 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x02, script generated"
+			(at 558.8 241.3 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "4710a5fc-bc7d-4cb1-9709-1bdc6d288fab")
+		)
+		(pin "1"
+			(uuid "d76ead8f-eeff-445f-b3e1-618c422dcc15")
+		)
+		(instances
+			(project "picr_1_9tdi"
+				(path "/f4c3b324-9d8f-4d10-8101-dec9d8880fba"
+					(reference "J10")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Library:215079-4_2")
 		(at 450.85 294.64 0)
 		(unit 1)
@@ -21801,126 +21677,6 @@
 			(project "picr_1_9tdi"
 				(path "/f4c3b324-9d8f-4d10-8101-dec9d8880fba"
 					(reference "C30")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Library:215079-4_PWM")
-		(at 557.53 243.84 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "f39ddfe1-62d8-4da3-a7da-81b2ad755971")
-		(property "Reference" "U15"
-			(at 556.26 233.68 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "215079-4"
-			(at 556.26 236.22 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Library:TE_Micro-MaTch_215079-4_2x02_P1.27mm_Vertical"
-			(at 553.466 255.016 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "https://atta.szlcsc.com/upload/public/pdf/source/20181106/C306160_C0F6687678D8320B9FEA0BB065D7ACFE.pdf"
-			(at 551.942 253.746 0)
-			(do_not_autoplace yes)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Pins Structure:2x2P Pitch:2.54mm Mounting Style:Direct Insert Reference Series:- Number of Pins:4P Number of Rows:2 Number of PINs Per Row:2 Row Spacing:2.54mm Contact Material:Phosphor Bronze Contact Plating:Tin Operating Temperature Range:-40°C~+105°C Ope"
-			(at 556.514 255.778 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Manufacturer Part" "215079-4"
-			(at 557.784 247.904 0)
-			(effects
-				(font
-					(size 1 1)
-				)
-				(hide yes)
-			)
-		)
-		(property "Manufacturer" "TE Connectivity(泰科电子)"
-			(at 556.514 259.334 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Supplier Part" "C306232"
-			(at 554.736 254.254 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Supplier" "LCSC"
-			(at 549.148 254.254 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "LCSC Part Name" "215079-4"
-			(at 555.752 253.238 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "fed9130f-faf9-48b6-9084-d63ea17dfe32")
-		)
-		(pin "3"
-			(uuid "5e770c8a-51c0-4583-95fd-09478c62eec7")
-		)
-		(pin "4"
-			(uuid "499f99ad-7e83-40dd-ac56-cc2e6b3b5972")
-		)
-		(pin "2"
-			(uuid "90a176e4-742a-4bb9-b498-1db589b386dc")
-		)
-		(instances
-			(project ""
-				(path "/f4c3b324-9d8f-4d10-8101-dec9d8880fba"
-					(reference "U15")
 					(unit 1)
 				)
 			)
