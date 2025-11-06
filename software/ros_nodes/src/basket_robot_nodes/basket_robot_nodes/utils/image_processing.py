@@ -83,6 +83,7 @@ class ImageProcessing:
             detected_basket: detected basket (can be None if no basket detected)
             viz: visualization image (can be None if visualize is False)
         """
+        im_h, im_w = im_rgb.shape[:2]
         image_hsv = cv2.cvtColor(im_rgb, cv2.COLOR_RGB2HSV)
 
         # segment all colors (court, green, blue, magenta, white, black)
@@ -95,7 +96,7 @@ class ImageProcessing:
         detected_balls = self.detect_green_balls(
             seg_mask=seg_mask,
             viz_rgb=viz if visualize else None,
-            min_component_area=15,
+            min_component_area=15 / (im_h * im_w),
         )
 
         # detect baskets
@@ -103,7 +104,7 @@ class ImageProcessing:
             seg_mask=seg_mask,
             depth=depth,
             viz_rgb=viz if visualize else None,
-            min_component_area=1000,
+            min_component_area=1000 / (im_h * im_w),
         )
 
         return detected_balls, detected_basket, viz if visualize else None
@@ -112,7 +113,7 @@ class ImageProcessing:
         self,
         seg_mask: NDArray[np.uint8],
         viz_rgb: Optional[NDArray[np.uint8]] = None,
-        min_component_area: int = 15,
+        min_component_area: float = 15 / (1280 * 720),
     ) -> List[GreenBall]:
         """
         Detect green balls from the segmented image mask.
@@ -123,6 +124,7 @@ class ImageProcessing:
         Outputs:
             detected_balls: list of detected green balls
         """
+        min_component_area = int(min_component_area * seg_mask.shape[0] * seg_mask.shape[1])
         green_idx = self.image_segmenter.get_color_index("green")
         # get processed court and background masks, scale down to speed up processing
         court_mask, filled_court_mask = self._get_processed_court_masks(seg_mask, scale=0.15)
@@ -197,7 +199,7 @@ class ImageProcessing:
         seg_mask: NDArray[np.uint8],
         depth: Optional[NDArray[np.float32]] = None,
         viz_rgb: Optional[NDArray[np.uint8]] = None,
-        min_component_area: int = 1000,
+        min_component_area: float = 1000 / (1280 * 720),
     ) -> Optional[Basket]:
         """
         Detect baskets from the segmented image mask.
@@ -209,6 +211,7 @@ class ImageProcessing:
         Outputs:
             detected_basket: detected basket (can be None if no basket detected)
         """
+        min_component_area = int(min_component_area * seg_mask.shape[0] * seg_mask.shape[1])
         basket_color: Optional[str] = None
         max_area: int = 0
         # bbox: (x_start, y_start, x_end, y_end)
