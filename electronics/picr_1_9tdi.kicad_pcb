@@ -25542,8 +25542,8 @@
 		)
 	)
 	(gr_circle
-		(center 70 90.5)
-		(end 71.5 90.5)
+		(center 70.5 90.5)
+		(end 72 90.5)
 		(stroke
 			(width 0.05)
 			(type solid)
@@ -25564,8 +25564,8 @@
 		(uuid "7913f3c3-da89-4756-af0b-f00ad5bc4525")
 	)
 	(gr_circle
-		(center 116 90.5)
-		(end 117.5 90.5)
+		(center 115.5 90.5)
+		(end 117 90.5)
 		(stroke
 			(width 0.05)
 			(type solid)
