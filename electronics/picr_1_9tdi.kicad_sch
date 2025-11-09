@@ -1005,6 +1005,200 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "Library:215079-4_PWM"
+			(pin_names
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "U"
+				(at -1.27 6.096 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" "Library:TE_Micro-MaTch_215079-4_2x02_P1.27mm_Vertical"
+				(at -4.064 -11.176 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "https://atta.szlcsc.com/upload/public/pdf/source/20181106/C306160_C0F6687678D8320B9FEA0BB065D7ACFE.pdf"
+				(at -5.588 -9.906 0)
+				(do_not_autoplace)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Pins Structure:2x2P Pitch:2.54mm Mounting Style:Direct Insert Reference Series:- Number of Pins:4P Number of Rows:2 Number of PINs Per Row:2 Row Spacing:2.54mm Contact Material:Phosphor Bronze Contact Plating:Tin Operating Temperature Range:-40°C~+105°C Ope"
+				(at -1.016 -11.938 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Manufacturer Part" "215079-4"
+				(at 0.254 -4.064 0)
+				(effects
+					(font
+						(size 1 1)
+					)
+					(hide yes)
+				)
+			)
+			(property "Manufacturer" "TE Connectivity(泰科电子)"
+				(at -1.016 -15.494 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Supplier Part" "C306232"
+				(at -2.794 -10.414 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Supplier" "LCSC"
+				(at -8.382 -10.414 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "LCSC Part Name" "215079-4"
+				(at -1.778 -9.398 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "215079-4_PWM_1_0"
+				(rectangle
+					(start -5.08 5.08)
+					(end 2.54 -2.54)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(circle
+					(center -1.27 3.81)
+					(radius 0.381)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(pin passive line
+					(at -10.16 2.54 0)
+					(length 5.08)
+					(name "1"
+						(effects
+							(font
+								(size 0.5 0.5)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin no_connect line
+					(at -10.16 0 0)
+					(length 5.08)
+					(name "3"
+						(effects
+							(font
+								(size 0.5 0.5)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 7.62 2.54 180)
+					(length 5.08)
+					(name "2"
+						(effects
+							(font
+								(size 0.5 0.5)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin no_connect line
+					(at 7.62 0 180)
+					(length 5.08)
+					(name "4"
+						(effects
+							(font
+								(size 0.5 0.5)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Library:AON6411_copy"
 			(pin_names
 				(hide yes)
@@ -7510,6 +7704,16 @@
 	)
 	(wire
 		(pts
+			(xy 546.1 238.76) (xy 549.91 238.76)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "07498fb7-fd0e-49b0-a69f-d0981010fa30")
+	)
+	(wire
+		(pts
 			(xy 233.68 341.63) (xy 236.22 341.63)
 		)
 		(stroke
@@ -9310,6 +9514,16 @@
 	)
 	(wire
 		(pts
+			(xy 570.23 238.76) (xy 567.69 238.76)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "777a345e-de91-487c-98f0-e84a417f0744")
+	)
+	(wire
+		(pts
 			(xy 472.44 144.78) (xy 488.95 144.78)
 		)
 		(stroke
@@ -9397,16 +9611,6 @@
 			(type default)
 		)
 		(uuid "825de444-e94c-4005-b8b0-654c82c907da")
-	)
-	(wire
-		(pts
-			(xy 546.1 241.3) (xy 553.72 241.3)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "82d5ee36-d460-4a15-924a-d31cc7797e21")
 	)
 	(wire
 		(pts
@@ -9900,16 +10104,6 @@
 	)
 	(wire
 		(pts
-			(xy 549.91 238.76) (xy 553.72 238.76)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "a60fe3b7-cc77-463f-aaf0-98840ddd0fc7")
-	)
-	(wire
-		(pts
 			(xy 127 187.96) (xy 128.27 187.96)
 		)
 		(stroke
@@ -10140,7 +10334,7 @@
 	)
 	(wire
 		(pts
-			(xy 546.1 245.11) (xy 546.1 241.3)
+			(xy 546.1 238.76) (xy 546.1 245.11)
 		)
 		(stroke
 			(width 0)
@@ -11618,16 +11812,6 @@
 		)
 		(uuid "38f82835-758a-427b-b770-248f974d72c7")
 	)
-	(label "PWM_TH_O"
-		(at 549.91 238.76 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "407b17c6-4f5a-491f-abcb-8c927d3c783e")
-	)
 	(label "PWM_M3_O"
 		(at 474.98 139.7 0)
 		(effects
@@ -12337,6 +12521,16 @@
 			(justify left bottom)
 		)
 		(uuid "eaacc1f2-bc9b-449d-b9a7-5f521c921669")
+	)
+	(label "PWM_TH_O"
+		(at 570.23 238.76 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "f295c664-f056-4cc6-9c47-3bfb93636676")
 	)
 	(label "PWM_TH_I"
 		(at 444.5 142.24 180)
@@ -14573,6 +14767,126 @@
 			(project "picr_1_9tdi"
 				(path "/f4c3b324-9d8f-4d10-8101-dec9d8880fba"
 					(reference "C33")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Library:215079-4_PWM")
+		(at 560.07 241.3 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "28a93a05-21c5-48ee-8e53-883531d064c0")
+		(property "Reference" "U15"
+			(at 558.546 234.188 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "~"
+			(at 558.8 233.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Footprint" "Library:TE_Micro-MaTch_215079-4_2x02_P1.27mm_Vertical"
+			(at 556.006 252.476 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "https://atta.szlcsc.com/upload/public/pdf/source/20181106/C306160_C0F6687678D8320B9FEA0BB065D7ACFE.pdf"
+			(at 554.482 251.206 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Pins Structure:2x2P Pitch:2.54mm Mounting Style:Direct Insert Reference Series:- Number of Pins:4P Number of Rows:2 Number of PINs Per Row:2 Row Spacing:2.54mm Contact Material:Phosphor Bronze Contact Plating:Tin Operating Temperature Range:-40°C~+105°C Ope"
+			(at 559.054 253.238 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Manufacturer Part" "215079-4"
+			(at 560.324 245.364 0)
+			(effects
+				(font
+					(size 1 1)
+				)
+				(hide yes)
+			)
+		)
+		(property "Manufacturer" "TE Connectivity(泰科电子)"
+			(at 559.054 256.794 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Supplier Part" "C306232"
+			(at 557.276 251.714 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Supplier" "LCSC"
+			(at 551.688 251.714 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC Part Name" "215079-4"
+			(at 558.292 250.698 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "0b5eeaee-7640-4bad-ad9c-afa36011e3ea")
+		)
+		(pin "1"
+			(uuid "faabcea7-148b-409b-90f0-26c40d8648b4")
+		)
+		(pin "3"
+			(uuid "58f06448-b074-4008-9209-1af18e74cadc")
+		)
+		(pin "4"
+			(uuid "36ad5086-60bc-42b8-b9c2-16c4c366cf62")
+		)
+		(instances
+			(project ""
+				(path "/f4c3b324-9d8f-4d10-8101-dec9d8880fba"
+					(reference "U15")
 					(unit 1)
 				)
 			)
@@ -21010,76 +21324,6 @@
 			(project ""
 				(path "/f4c3b324-9d8f-4d10-8101-dec9d8880fba"
 					(reference "J3")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Library:Conn_01x02_Pin")
-		(at 558.8 241.3 180)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "e7bb5d69-7e1d-42d9-9719-948df7c078dc")
-		(property "Reference" "J10"
-			(at 560.07 238.7599 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Value" "Conn_01x02_Pin"
-			(at 560.07 241.2999 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
-			(at 558.8 241.3 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 558.8 241.3 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Generic connector, single row, 01x02, script generated"
-			(at 558.8 241.3 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "2"
-			(uuid "4710a5fc-bc7d-4cb1-9709-1bdc6d288fab")
-		)
-		(pin "1"
-			(uuid "d76ead8f-eeff-445f-b3e1-618c422dcc15")
-		)
-		(instances
-			(project "picr_1_9tdi"
-				(path "/f4c3b324-9d8f-4d10-8101-dec9d8880fba"
-					(reference "J10")
 					(unit 1)
 				)
 			)
