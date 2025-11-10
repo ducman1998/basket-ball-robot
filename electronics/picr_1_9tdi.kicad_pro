@@ -520,7 +520,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "./",
-      "plot": "",
+      "plot": "/home/crismar/picr25-team-1_9-tdi/electronics/Gerber/",
       "pos_files": "",
       "specctra_dsn": "",
       "step": "../../../Desktop/picr_1_9tdi.step",
