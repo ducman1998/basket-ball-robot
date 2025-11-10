@@ -14316,7 +14316,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical"
+		(property "Footprint" "Library:PinHeader_1x03_P2.54mm_Vertical"
 			(at 505.46 242.57 0)
 			(effects
 				(font
@@ -17325,7 +17325,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical"
+		(property "Footprint" "Library:PinHeader_1x03_P2.54mm_Vertical"
 			(at 450.85 241.3 0)
 			(effects
 				(font
@@ -21281,7 +21281,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical"
+		(property "Footprint" "Library:PinHeader_1x04_P2.54mm_Vertical"
 			(at 447.04 342.9 0)
 			(effects
 				(font
@@ -22021,7 +22021,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
+		(property "Footprint" "Library:PinHeader_1x02_P2.54mm_Vertical"
 			(at 481.33 341.63 0)
 			(effects
 				(font
