@@ -1,6 +1,7 @@
 import math
+import sys
 from time import time
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Sequence, Tuple, Union, Literal
 
 import modern_robotics as mr
 import numpy as np
@@ -8,12 +9,14 @@ import rclpy
 from basket_robot_nodes.utils.constants import BASE_FRAME_ID, QOS_DEPTH
 from basket_robot_nodes.utils.image_info import GreenBall, ImageInfo
 from basket_robot_nodes.utils.number_utils import FrameStabilityCounter
+from basket_robot_nodes.utils.referee_client import RefereeClient
 from basket_robot_nodes.utils.ros_utils import (
-    float_array_descriptor,
-    float_descriptor,
     log_initialized_parameters,
     parse_log_level,
+    float_array_descriptor,
+    float_descriptor,
     str_descriptor,
+    int_descriptor,
 )
 from nav_msgs.msg import Odometry
 from rclpy.clock import Clock
@@ -23,14 +26,13 @@ from scipy.spatial.transform import Rotation as R
 from shared_interfaces.msg import TwistStamped  # a custom message with thrower_percent
 from std_msgs.msg import String
 
-OPPONENT_BASKET_COLOR = "magenta"  # color of the opponent's basket
 SAMPLING_RATE = 60  # Hz
 FT_DETECTED_SEARCH_BALL = 6  # frames
 FT_UNDETECTED_REACH_BALL = 15  # frames
 FT_UNDETECTED_ALIGN_BALL = 20  # frames
 FT_DETECTED_APPROACH_BASKET = 40  # frames
 FT_UNDETECTED_IDLE = 120  # frames
-FT_DETECTED_STABLE_ALIGN_BALL = 6  # frames
+FT_DETECTED_STABLE_ALIGN_BALL = 10  # frames
 TOTAL_ROT_DEGREE_THRESHOLD = 270.0  # seconds
 # thrower motor parameters
 KV = 1200.0  # RPM/V
@@ -52,6 +54,12 @@ class GameState:
     THROW_BALL: int = 4
     APROACH_BASKET: int = 5
     IDLE: int = 6
+
+    def __init__(self) -> None:
+        self.state2name = {v: k for k, v in vars(GameState).items() if isinstance(v, int)}
+
+    def get_state_name(self, state_value: int) -> str:
+        return self.state2name.get(state_value, "UNKNOWN")
 
 
 class GameLogicController(Node):
@@ -85,6 +93,7 @@ class GameLogicController(Node):
         self.odom_msg: Optional[Odometry] = None
         self.last_odom_time: float = 0.0
 
+        self.image_size: Optional[Tuple[int, int]] = None
         self.image_info_msg: Optional[ImageInfo] = None
         self.last_image_info_time: float = 0.0
 
@@ -123,21 +132,51 @@ class GameLogicController(Node):
         # reusable control msg
         self.control_msg = TwistStamped()
 
+        # Referee client state
+        self.is_game_started = False  # True when referee sends START, False when STOP
+        self.opponent_basket_color = "n/a"
+
+        # Initialize and start referee client
+        self.referee_client = RefereeClient(
+            robot_id=self.robot_id,
+            referee_ip=self.referee_ip_address,
+            referee_port=self.referee_port,
+            on_signal=self.handle_referee_signals,
+            logger=self.get_logger(),
+        )
+        self.referee_client.start()
+        self.get_logger().info(f"Started referee client for robot ID: {self.robot_id}")
+
     def _declare_node_parameter(self) -> None:
         """Declare parameters with descriptors."""
+        self.declare_parameter("referee_ip_address", descriptor=str_descriptor)
+        self.declare_parameter("referee_port", descriptor=int_descriptor)
+        self.declare_parameter("robot_id", descriptor=str_descriptor)
         self.declare_parameter("max_rot_speed", descriptor=float_descriptor)
         self.declare_parameter("max_xy_speed", descriptor=float_descriptor)
+        self.declare_parameter("throwing_xy_speed", descriptor=float_descriptor)
         self.declare_parameter("search_ball_rot_speed", descriptor=float_descriptor)
         self.declare_parameter("pid_linear_common", descriptor=float_array_descriptor)
         self.declare_parameter("pid_angular_common", descriptor=float_array_descriptor)
         self.declare_parameter("pid_linear_align_basket", descriptor=float_array_descriptor)
         self.declare_parameter("pid_angular_align_basket", descriptor=float_array_descriptor)
+        self.declare_parameter("pid_linear_throw_ball", descriptor=float_array_descriptor)
+        self.declare_parameter("pid_angular_throw_ball", descriptor=float_array_descriptor)
         self.declare_parameter("log_level", descriptor=str_descriptor)
 
     def _read_node_parameters(self) -> None:
         """Read parameters into class variables."""
+        # Read all parameters
+        self.referee_ip_address = (
+            self.get_parameter("referee_ip_address").get_parameter_value().string_value
+        )
+        self.referee_port = self.get_parameter("referee_port").get_parameter_value().integer_value
+        self.robot_id = self.get_parameter("robot_id").get_parameter_value().string_value
         self.max_rot = self.get_parameter("max_rot_speed").get_parameter_value().double_value
         self.max_xy = self.get_parameter("max_xy_speed").get_parameter_value().double_value
+        self.throwing_xy_speed = (
+            self.get_parameter("throwing_xy_speed").get_parameter_value().double_value
+        )
         self.search_rot_speed = (
             self.get_parameter("search_ball_rot_speed").get_parameter_value().double_value
         )
@@ -153,16 +192,35 @@ class GameLogicController(Node):
         self.pid_angular_align_basket = (
             self.get_parameter("pid_angular_align_basket").get_parameter_value().double_array_value
         )
-        # validate PID parameters
+        self.pid_linear_throw_ball = (
+            self.get_parameter("pid_linear_throw_ball").get_parameter_value().double_array_value
+        )
+        self.pid_angular_throw_ball = (
+            self.get_parameter("pid_angular_throw_ball").get_parameter_value().double_array_value
+        )
+        log_level = self.get_parameter("log_level").get_parameter_value().string_value
+
+        # Validate all parameters
+        self._validate_parameters()
+
+        # Set logging level
+        self.get_logger().set_level(parse_log_level(log_level))
+        self.get_logger().info(f"Set node {self.get_name()} log level to {log_level}.")
+
+    def _validate_parameters(self) -> None:
+        """Validate all node parameters."""
+        # Validate referee connection
+        if not self.referee_ip_address or not isinstance(self.referee_port, int):
+            raise ValueError("Invalid referee IP address or port number.")
+
+        if not self.robot_id or not isinstance(self.robot_id, str):
+            raise ValueError("Invalid robot ID.")
+
+        # Validate PID parameters
         if len(self.pid_linear_common) != 3 or len(self.pid_angular_common) != 3:
             raise ValueError("PID common parameters must be lists of three floats: [kp, ki, kd].")
         if len(self.pid_linear_align_basket) != 3 or len(self.pid_angular_align_basket) != 3:
             raise ValueError("PID align parameters must be lists of three floats: [kp, ki, kd].")
-
-        # read and set logging level
-        log_level = self.get_parameter("log_level").get_parameter_value().string_value
-        self.get_logger().set_level(parse_log_level(log_level))
-        self.get_logger().info(f"Set node {self.get_name()} log level to {log_level}.")
 
     def odom_callback(self, msg: Odometry) -> None:
         """Handle incoming odometry messages."""
@@ -174,12 +232,37 @@ class GameLogicController(Node):
         """Handle incoming image info messages."""
         # Process image info data as needed
         self.image_info_msg = ImageInfo.from_json(msg.data)
+        if self.image_size is None and self.image_info_msg.image_size is not None:
+            self.image_size = self.image_info_msg.image_size
         self.last_image_info_time = time()
+
+    def handle_referee_signals(
+        self, signal: Literal["start", "stop"], basket: Optional[str]
+    ) -> None:
+        """Handle START/STOP signal from referee."""
+        if signal == "start":
+            if self.is_game_started:
+                self.get_logger().warn("Received duplicate START signal from referee --> Ignored.")
+            else:
+                self.opponent_basket_color = basket if basket is not None else "n/a"
+                self.is_game_started = True
+        else:
+            self.is_game_started = False
+            # Stop robot movement immediately
+            self.stop_robot()
 
     def game_logic_loop(self) -> None:
         """Main game logic loop, called periodically by a timer."""
         start_time = time()
         self.print_current_state()
+
+        # If game is not active (referee hasn't started or has stopped), don't execute game logic
+        if not self.is_game_started:
+            if self.cur_state != GameState.INIT:
+                # if we were playing and referee stopped us, ensure robot is stopped
+                self.stop_robot()
+                self.cur_state = GameState.INIT
+            return
 
         match self.cur_state:
             case GameState.INIT:
@@ -304,6 +387,7 @@ class GameLogicController(Node):
 
     def handle_align_to_basket_state(self) -> None:
         assert self.image_info_msg is not None
+        assert self.image_size is not None
 
         if self.fcounter_align_state.update(not self.is_ball_in_view()):
             self.get_logger().info("Lost sight of the ball. Returning to SEARCH_BALL state.")
@@ -316,23 +400,20 @@ class GameLogicController(Node):
             )
             if (
                 self.image_info_msg.basket is not None
-                and self.image_info_msg.basket.position_2d is not None
-                and self.image_info_msg.basket.color == OPPONENT_BASKET_COLOR
+                and self.image_info_msg.basket.color == self.opponent_basket_color
             ):
-                offset_angle = self.angle_at_point(
-                    closet_ball.position_2d, self.image_info_msg.basket.position_2d
-                )
+                offset_angle = self.measure_angle_error(self.image_info_msg.basket.center)
                 self.get_logger().info(f"Offset angle to basket: {offset_angle:.2f} degrees.")
                 vx, vy, wz = self.compute_control_signals(
-                    closet_ball.position_2d, angle_offset=offset_angle, look_ahead_dis=0.2
+                    closet_ball.position_2d, angle_offset=offset_angle * 2.5, look_ahead_dis=0.2
                 )
                 self.move_robot(vx, vy, wz, 0, normalize=True)
-                if self.fcounter_align_stable_state.update(abs(offset_angle) < 1.5):
+                if self.fcounter_align_stable_state.update(abs(offset_angle) < 0.75):
                     self.transition_to_state(GameState.THROW_BALL)
                 return None
             else:
                 vx, vy, wz = self.compute_control_signals(
-                    closet_ball.position_2d, angle_offset=90.0, look_ahead_dis=0.20
+                    closet_ball.position_2d, angle_offset=90.0, look_ahead_dis=0.2
                 )
                 self.move_robot(vx, vy, wz, 0, normalize=True)
                 self.get_logger().info(
@@ -356,9 +437,8 @@ class GameLogicController(Node):
             self.throw_start_pos = current_pos_odom
 
         # move forward a bit to throw the ball into the basket
-        vx, vy, wz = 0.0, 0.4, 0.0
         if self.image_info_msg.basket is None or self.image_info_msg.basket.position_2d is None:
-            self.move_robot(vx, vy, wz, 60, normalize=False)
+            self.move_robot(0.0, self.throwing_xy_speed, 0.0, 60, normalize=False)
             self.get_logger().info(
                 "No basket detected! Throwing ball with default motor percent=60."
             )
@@ -367,10 +447,19 @@ class GameLogicController(Node):
             motor_percent = self.motor_percent_from_basket(
                 [basket_pos[0] / 1000, basket_pos[1] / 1000, BASKET_HEIGHT]
             )
+            offset_angle = self.measure_angle_error(self.image_info_msg.basket.center)
+            self.get_logger().info(f"Throwing: offset angle to basket: {offset_angle:.2f} degrees.")
+            vx, vy, wz = self.compute_control_signals(
+                (0, 500),  # target 500mm (0.5m) forward in robot frame
+                angle_offset=offset_angle * 1.5,
+                look_ahead_dis=0.25,
+            )
+            # normalize vx, vy to a fixed speed of 0.4 m/s
+            vx, vy = self.normalize_velocity(vx, vy, self.throwing_xy_speed)
             self.move_robot(vx, vy, wz, motor_percent, normalize=False)
             self.get_logger().info(
-                f"Throwing ball towards basket at pos=({basket_pos[0]:.1f}, {basket_pos[1]:.1f})mm "
-                f"with motor percent={motor_percent}."
+                f"Throwing ball: vx={vx:.2f}, vy={vy:.2f}, wz={wz:.2f}, "
+                f"basket pos=({basket_pos[0]:.1f}, {basket_pos[1]:.1f})mm, motor={motor_percent}%"
             )
         if (
             np.linalg.norm(np.array(current_pos_odom) - np.array(self.throw_start_pos)) >= 0.5
@@ -445,10 +534,7 @@ class GameLogicController(Node):
     ) -> None:
         """Send velocity commands to the robot. vx, vy in m/s, wz in rad/s."""
         if normalize:
-            if np.linalg.norm([vx, vy]) > self.max_xy:
-                scale = self.max_xy / np.linalg.norm([vx, vy])
-                vx *= scale
-                vy *= scale
+            vx, vy = self.normalize_velocity(vx, vy, self.max_xy)
         else:
             vx = np.clip(vx, -self.max_xy, self.max_xy)
             vy = np.clip(vy, -self.max_xy, self.max_xy)
@@ -541,6 +627,9 @@ class GameLogicController(Node):
         if self.cur_state == GameState.ALIGN_TO_BASKET:
             kp_xy, ki_xy, kd_xy = self.pid_linear_align_basket
             kp_rot, ki_rot, kd_rot = self.pid_angular_align_basket
+        elif self.cur_state == GameState.THROW_BALL:
+            kp_xy, ki_xy, kd_xy = self.pid_linear_throw_ball
+            kp_rot, ki_rot, kd_rot = self.pid_angular_throw_ball
         else:
             kp_xy, ki_xy, kd_xy = self.pid_linear_common
             kp_rot, ki_rot, kd_rot = self.pid_angular_common
@@ -631,12 +720,22 @@ class GameLogicController(Node):
             self.cumm_vx_error = 0.0
             self.cumm_vy_error = 0.0
             self.cumm_wz_error = 0.0
-        self.get_logger().info(f"Transitioning from state {pre_state} to {new_state}.")
+
+        pre_state_name = GameState().get_state_name(pre_state)
+        new_state_name = GameState().get_state_name(new_state)
+        self.get_logger().info(f"Transitioning from state {pre_state_name} to {new_state_name}.")
 
     def print_current_state(self) -> None:
         """Log the current state and relevant information."""
-        state_name = next((k for k, v in vars(GameState).items() if v == self.cur_state), "UNKNOWN")
-        self.get_logger().info(f"Current State: {state_name}")
+        state_name = GameState().get_state_name(self.cur_state)
+        if not self.referee_client.is_connected():
+            status = "DISCONNECTED"
+        else:
+            status = "STARTED" if self.is_game_started else "INACTIVE"
+        self.get_logger().info(
+            f"Current State: {state_name} | Referee Status: {status}"
+            + f" | Color: {self.opponent_basket_color}"
+        )
 
     def compute_cumulative_rotation(self) -> float:
         yaw_now = self.yaw_from_odom(self.odom_msg)
@@ -645,27 +744,29 @@ class GameLogicController(Node):
         self.last_angle = yaw_now
         return self.cummulative_rotation
 
-    def angle_at_point(
-        self, p1: Union[Sequence[float], np.ndarray], p2: Union[Sequence[float], np.ndarray]
+    def measure_angle_error(
+        self,
+        basket_center: Union[Sequence[float], np.ndarray],
     ) -> float:
         """
-        Calculate the signed angle at point A between vectors OP1 and P1P2.
+        Calculate the signed angle between vectors OA and OB.
 
         Inputs:
-            p1: Point P1 as (x, y)
-            p2: Point P2 as (x, y)
+            basket_center: basket center point as (x, y) in image coordinates
         Returns:
             Signed angle in degrees in range [-180, 180]
         """
-        p1 = np.array(p1, dtype=float)
-        p2 = np.array(p2, dtype=float)
-        origin = np.array([0, 0], dtype=float)
+        assert self.image_size is not None
 
-        oa_vec = p1 - origin
-        ab_vec = p2 - p1
+        p1 = np.array(basket_center, dtype=float)
+        p2 = np.array([self.image_size[0] / 2, 0], dtype=float)
+        o = np.array([self.image_size[0] / 2, self.image_size[1] * 2 / 3], dtype=float)
 
-        dot = np.dot(oa_vec, ab_vec)
-        det = oa_vec[0] * ab_vec[1] - oa_vec[1] * ab_vec[0]
+        oa_vec = p1 - o
+        ob_vec = p2 - o
+
+        dot = np.dot(oa_vec, ob_vec)
+        det = oa_vec[0] * ob_vec[1] - oa_vec[1] * ob_vec[0]
 
         angle_rad = np.arctan2(det, dot)
         angle_deg = np.degrees(angle_rad)
@@ -709,13 +810,38 @@ class GameLogicController(Node):
 
         return int(percent)
 
+    def normalize_velocity(self, vx: float, vy: float, max_speed: float) -> Tuple[float, float]:
+        """
+        Normalize velocity vector to a maximum speed while preserving direction.
+
+        Inputs:
+            vx: velocity in x direction (m/s)
+            vy: velocity in y direction (m/s)
+            max_speed: maximum allowed speed (m/s)
+        Returns:
+            Normalized (vx, vy) tuple
+        """
+        speed = np.linalg.norm([vx, vy])
+        if speed > max_speed:
+            scale = max_speed / speed
+            vx *= scale
+            vy *= scale
+        return vx, vy
+
 
 def main() -> None:
     rclpy.init()
     node = GameLogicController()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        # Stop referee client before destroying node
+        if hasattr(node, "referee_client"):
+            node.referee_client.stop()
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == "__main__":

@@ -25,11 +25,11 @@
 
 mainboard_controller_node:
   ros__parameters:
-    log_level: 'info'
+    log_level: 'warn'
 
 odometry_node:
   ros__parameters:
-    log_level: 'info'
+    log_level: 'warn'
 
 image_processor_node:
   ros__parameters:
@@ -46,9 +46,15 @@ image_processor_node:
 
 game_logic_controller_node:
   ros__parameters:
+    referee_ip_address: "localhost"  # IP address of the referee server
+    referee_port: 8222               # Port of the referee server
+    robot_id: "tdi_team"
     search_ball_rot_speed: -1.0  # rad/s
+    throwing_xy_speed: 0.4
     pid_linear_common: [1.5, 0.001, 0.1]  # [kp, ki, kd] for linear velocity control
     pid_angular_common: [2.0, 0.001, 0.1]  # [kp, ki, kd] for angular velocity control
-    pid_linear_align_basket: [5.0, 0.01, 0.1]  # [kp, ki, kd] for linear velocity control when aligning to basket
-    pid_angular_align_basket: [3.0, 0.01, 0.1]  # [kp, ki, kd] for angular velocity control when aligning to basket
+    pid_linear_align_basket: [2.5, 0.01, 0.1]  # [kp, ki, kd] for linear velocity control when aligning to basket
+    pid_angular_align_basket: [2.0, 0.01, 0.1]  # [kp, ki, kd] for angular velocity control when aligning to basket
+    pid_linear_throw_ball: [1.5, 0.001, 0.0]  # [kp, ki, kd] for linear velocity control when throwing ball
+    pid_angular_throw_ball: [1.0, 0.001, 0.0]  # [kp, ki, kd] for angular velocity control when throwing ball
     log_level: 'info'

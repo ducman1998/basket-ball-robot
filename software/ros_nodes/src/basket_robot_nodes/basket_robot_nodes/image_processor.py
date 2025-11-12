@@ -134,7 +134,9 @@ class ImageProcessor(Node):
         t3 = time()
 
         # publish detected ball info
-        img_info = ImageInfo(balls=detected_balls, basket=detected_basket)
+        img_info = ImageInfo(
+            image_size=self.resolution, balls=detected_balls, basket=detected_basket
+        )
         info_msg = String()
         info_msg.data = img_info.to_json()
         self.processed_info_pub.publish(info_msg)
