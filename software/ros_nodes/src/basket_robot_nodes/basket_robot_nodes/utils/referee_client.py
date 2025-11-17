@@ -1,11 +1,12 @@
 import asyncio
 import json
 import threading
-from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
+from typing import TYPE_CHECKING, Callable, Literal, Optional, Union
 
 import websockets
 from rclpy.impl.rcutils_logger import RcutilsLogger
 from websockets.exceptions import WebSocketException
+from websockets.legacy.client import WebSocketClientProtocol
 
 if TYPE_CHECKING:
     # only import for type checking to avoid circular imports
@@ -38,7 +39,7 @@ class RefereeClient:
         self.on_signal_fnc = on_signal
         self.logger = logger
 
-        self.websocket: Optional[Any] = None
+        self.websocket: Optional[WebSocketClientProtocol] = None
         self.is_running = False
         self.reconnect_delay = 1.0  # seconds
         self._loop: Optional[asyncio.AbstractEventLoop] = None
