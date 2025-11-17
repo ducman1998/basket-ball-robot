@@ -1,7 +1,6 @@
 import math
-import sys
 from time import time
-from typing import List, Optional, Sequence, Tuple, Union, Literal
+from typing import List, Literal, Optional, Sequence, Tuple, Union
 
 import modern_robotics as mr
 import numpy as np
@@ -11,12 +10,12 @@ from basket_robot_nodes.utils.image_info import GreenBall, ImageInfo
 from basket_robot_nodes.utils.number_utils import FrameStabilityCounter
 from basket_robot_nodes.utils.referee_client import RefereeClient
 from basket_robot_nodes.utils.ros_utils import (
-    log_initialized_parameters,
-    parse_log_level,
     float_array_descriptor,
     float_descriptor,
-    str_descriptor,
     int_descriptor,
+    log_initialized_parameters,
+    parse_log_level,
+    str_descriptor,
 )
 from nav_msgs.msg import Odometry
 from rclpy.clock import Clock
@@ -258,10 +257,9 @@ class GameLogicController(Node):
 
         # If game is not active (referee hasn't started or has stopped), don't execute game logic
         if not self.is_game_started:
-            if self.cur_state != GameState.INIT:
-                # if we were playing and referee stopped us, ensure robot is stopped
-                self.stop_robot()
-                self.cur_state = GameState.INIT
+            # if we were playing and referee stopped us, ensure robot is stopped
+            self.stop_robot()
+            self.cur_state = GameState.INIT
             return
 
         match self.cur_state:
