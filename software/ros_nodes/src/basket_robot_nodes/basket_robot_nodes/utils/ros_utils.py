@@ -1,5 +1,27 @@
+from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from rclpy.logging import LoggingSeverity
 from rclpy.node import Node
+
+fint_array_descriptor = ParameterDescriptor(
+    type=ParameterType.PARAMETER_INTEGER_ARRAY,
+    description="An array of integer numbers.",
+)
+float_array_descriptor = ParameterDescriptor(
+    type=ParameterType.PARAMETER_DOUBLE_ARRAY,
+    description="An array of floating point numbers.",
+)
+int_descriptor = ParameterDescriptor(
+    type=ParameterType.PARAMETER_INTEGER, description="An integer parameter."
+)
+bool_descriptor = ParameterDescriptor(
+    type=ParameterType.PARAMETER_BOOL, description="A boolean parameter."
+)
+float_descriptor = ParameterDescriptor(
+    type=ParameterType.PARAMETER_DOUBLE, description="A floating point parameter."
+)
+str_descriptor = ParameterDescriptor(
+    type=ParameterType.PARAMETER_STRING, description="A string parameter."
+)
 
 
 def log_initialized_parameters(node: Node) -> None:

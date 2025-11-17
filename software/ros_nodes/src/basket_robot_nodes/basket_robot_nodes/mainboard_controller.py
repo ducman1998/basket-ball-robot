@@ -2,13 +2,17 @@ import time
 from typing import Optional
 
 import rclpy
+from basket_robot_nodes.utils.constants import QOS_DEPTH
 from basket_robot_nodes.utils.feedback import FeedbackSerial
 from basket_robot_nodes.utils.robot_motion import OmniMotionRobot
 from basket_robot_nodes.utils.ros_utils import (
+    float_array_descriptor,
+    float_descriptor,
+    int_descriptor,
     log_initialized_parameters,
     parse_log_level,
+    str_descriptor,
 )
-from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
 from shared_interfaces.msg import TwistStamped, WheelPositions
@@ -33,14 +37,14 @@ class MainboardController(Node):
         # create a timer to keep the node alive
         self.timer = self.create_timer(0.1, self.controller_placeholder_func)
         self.cmd_vel_sub = self.create_subscription(
-            TwistStamped, "cmd_vel", self.control_callback, QoSProfile(depth=3)
+            TwistStamped, "cmd_vel", self.control_callback, QoSProfile(depth=QOS_DEPTH)
         )
 
         self.timestamp = time.time()
 
         # Publisher for wheel positions
         self.wheel_pos_pub = self.create_publisher(
-            WheelPositions, "wheel_positions", QoSProfile(depth=3)
+            WheelPositions, "wheel_positions", QoSProfile(depth=QOS_DEPTH)
         )
         # for checking: log all initialized parameters
         log_initialized_parameters(self)
@@ -48,20 +52,6 @@ class MainboardController(Node):
     @staticmethod
     def declare_common_parameters(node: Node) -> None:
         """Declare parameters common to both MainboardControllerNode and OdometryNode."""
-        float_descriptor = ParameterDescriptor(
-            type=ParameterType.PARAMETER_DOUBLE, description="A floating point parameter."
-        )
-        int_descriptor = ParameterDescriptor(
-            type=ParameterType.PARAMETER_INTEGER, description="An integer parameter."
-        )
-        str_descriptor = ParameterDescriptor(
-            type=ParameterType.PARAMETER_STRING, description="A string parameter."
-        )
-        float_array_descriptor = ParameterDescriptor(
-            type=ParameterType.PARAMETER_DOUBLE_ARRAY,
-            description="An array of floating point numbers.",
-        )
-
         node.declare_parameter("wheel_radius", descriptor=float_descriptor)
         node.declare_parameter("center_to_wheel_dis", descriptor=float_descriptor)
         node.declare_parameter("motor_01", descriptor=float_array_descriptor)
@@ -91,12 +81,8 @@ class MainboardController(Node):
         motor_02_angles = node.get_parameter("motor_02").get_parameter_value().double_array_value
         motor_03_angles = node.get_parameter("motor_03").get_parameter_value().double_array_value
         gear_ratio = node.get_parameter("gear_ratio").get_parameter_value().double_value
-        encoder_resolution = (
-            node.get_parameter("encoder_resolution").get_parameter_value().integer_value
-        )
-        pid_control_freq = (
-            node.get_parameter("pid_control_freq").get_parameter_value().integer_value
-        )
+        en_resolution = node.get_parameter("encoder_resolution").get_parameter_value().integer_value
+        pid_freq = node.get_parameter("pid_control_freq").get_parameter_value().integer_value
         max_rot_speed = node.get_parameter("max_rot_speed").get_parameter_value().double_value
         max_xy_speed = node.get_parameter("max_xy_speed").get_parameter_value().double_value
         hwid = node.get_parameter("hwid").get_parameter_value().string_value
@@ -109,7 +95,7 @@ class MainboardController(Node):
         delimieter = node.get_parameter("delimiter").get_parameter_value().integer_value
         log_level = node.get_parameter("log_level").get_parameter_value().string_value
 
-        # set logging level
+        # read and set logging level
         node.get_logger().set_level(parse_log_level(log_level))
         node.get_logger().info(f"Set node {node.get_name()} log level to {log_level}.")
 
@@ -120,8 +106,8 @@ class MainboardController(Node):
             motor_02_angles=motor_02_angles.tolist(),
             motor_03_angles=motor_03_angles.tolist(),
             gear_ratio=gear_ratio,
-            encoder_resolution=encoder_resolution,
-            pid_control_freq=pid_control_freq,
+            encoder_resolution=en_resolution,
+            pid_control_freq=pid_freq,
             max_rot_speed=max_rot_speed,
             max_xy_speed=max_xy_speed,
             hwid=hwid,

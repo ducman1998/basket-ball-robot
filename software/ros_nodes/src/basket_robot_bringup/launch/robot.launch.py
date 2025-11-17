@@ -1,5 +1,5 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -17,6 +17,11 @@ def generate_launch_description() -> LaunchDescription:
     )
 
     launch_cfg = [LaunchConfiguration("param_file")]
+
+    # Set custom logger format
+    set_logger_format = SetEnvironmentVariable(
+        name="RCUTILS_CONSOLE_OUTPUT_FORMAT", value="[{severity}]: {message}"
+    )
 
     # Define your nodes
     nodes = [
@@ -44,4 +49,4 @@ def generate_launch_description() -> LaunchDescription:
     ]
 
     # Return the LaunchDescription object
-    return LaunchDescription([param_file_arg] + nodes)
+    return LaunchDescription([param_file_arg, set_logger_format] + nodes)

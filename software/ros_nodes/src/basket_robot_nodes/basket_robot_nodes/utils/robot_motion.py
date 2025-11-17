@@ -8,7 +8,7 @@ import serial
 from serial.serialutil import SerialException
 from serial.tools import list_ports
 
-from .custom_exceptions import SerialPortNotFound
+from .custom_exceptions import SerialPortNotFoundError
 from .feedback import FeedbackSerial
 from .number_utils import clip_int16, clip_uint16
 
@@ -155,18 +155,18 @@ class OmniMotionRobot(IRobotMotion):
                 self._ser = self._open_sport(self.port)
                 return
             except (FileNotFoundError, SerialException):
-                raise SerialPortNotFound(f"Failed to open specified serial port {self.port}.")
+                raise SerialPortNotFoundError(f"Failed to open specified serial port {self.port}.")
 
         auto_port = self._autoselect_port()
         if not auto_port:
-            raise SerialPortNotFound("No serial ports found.")
+            raise SerialPortNotFoundError("No serial ports found.")
         self.logger.info(f"Opening scanned serial port {auto_port} @ {self.baudrate}…")
 
         try:
             self._ser = self._open_sport(auto_port)
             return
         except (FileNotFoundError, SerialException) as e:
-            raise SerialPortNotFound(f"Failed to open serial port {auto_port}: {e}")
+            raise SerialPortNotFoundError(f"Failed to open serial port {auto_port}: {e}")
 
     def close(self) -> None:
         self.logger.info("Shutting down…")
