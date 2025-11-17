@@ -60,7 +60,7 @@ class RefereeClient:
                     # Listen for messages
                     await self._listen()
 
-            except (WebSocketException, ConnectionRefusedError, OSError) as e:
+            except (WebSocketException, ConnectionRefusedError, OSError, TimeoutError) as e:
                 self.logger.error(f"Connection failed: {e}")
                 self.websocket = None
 
