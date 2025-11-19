@@ -1,4 +1,5 @@
 import math
+from collections import deque
 from time import time
 from typing import List, Literal, Optional, Sequence, Tuple, Union
 
@@ -33,14 +34,8 @@ FT_DETECTED_APPROACH_BASKET = 40  # frames
 FT_UNDETECTED_IDLE = 120  # frames
 FT_DETECTED_STABLE_ALIGN_BALL = 10  # frames
 TOTAL_ROT_DEGREE_THRESHOLD = 270.0  # seconds
-# thrower motor parameters
-KV = 1200.0  # RPM/V
-V_BATT = 5.5  # volts
-RPM_MAX = KV * V_BATT
-RPM_MIN = 0.1 * RPM_MAX  # approx 5% of max
-THROWER_WHEEL_RADIUS = 0.014  # meters
-THROWER_ANGLE_DEG = 55.0  # degrees
-BASKET_HEIGHT = 0.55  # meters
+ALIGNING_TIMEOUT = 6.0  # seconds
+BASKET_DISTANCE_QUEUE_SIZE = 20  # frames for moving average
 
 
 class GameState:
@@ -112,11 +107,13 @@ class GameLogicController(Node):
         self.cumm_wz_error: float = 0.0
         # ALIGN_TO_BASKET: align to basket (not implemented)
         # TODO: add other state variables as needed
+        self.align_start_time: Optional[float] = None
         # APPROACH_BASKET: move towards court center
         self.fathest_basket_pos: Optional[Tuple[float, float]] = None
         self.fathest_basket_dis: float = 0.0
         # THROW_BALL: throw the ball
         self.throw_start_pos: Optional[Tuple[float, float]] = None
+        self.basket_distance_queue: deque = deque(maxlen=BASKET_DISTANCE_QUEUE_SIZE)
         # IDLE: stop
         # TODO: add other state variables as needed
 
@@ -387,6 +384,20 @@ class GameLogicController(Node):
         assert self.image_info_msg is not None
         assert self.image_size is not None
 
+        # Initialize alignment start time on first entry
+        if self.align_start_time is None:
+            self.align_start_time = time()
+
+        # Check for timeout
+        elapsed_time = time() - self.align_start_time
+        if elapsed_time > ALIGNING_TIMEOUT:
+            self.get_logger().warn(
+                f"Alignment timeout ({ALIGNING_TIMEOUT}s) exceeded! "
+                f"Transitioning to THROW_BALL state."
+            )
+            self.transition_to_state(GameState.THROW_BALL)
+            return None
+
         if self.fcounter_align_state.update(not self.is_ball_in_view()):
             self.get_logger().info("Lost sight of the ball. Returning to SEARCH_BALL state.")
             self.transition_to_state(GameState.SEARCH_BALL)
@@ -398,20 +409,28 @@ class GameLogicController(Node):
             )
             if (
                 self.image_info_msg.basket is not None
+                and self.image_info_msg.basket.position_2d is not None
                 and self.image_info_msg.basket.color == self.opponent_basket_color
             ):
+                basket_pos = self.image_info_msg.basket.position_2d  # in mm
+                basket_distance_m = float(np.linalg.norm(basket_pos) / 1000.0)
+                alignment_threshold = self.get_alignment_threshold(basket_distance_m)
+
                 offset_angle = self.measure_angle_error(self.image_info_msg.basket.center)
-                self.get_logger().info(f"Offset angle to basket: {offset_angle:.2f} degrees.")
-                vx, vy, wz = self.compute_control_signals(
-                    closet_ball.position_2d, angle_offset=offset_angle * 2.5, look_ahead_dis=0.2
+                self.get_logger().info(
+                    f"Offset angle: {offset_angle:.2f}°, threshold: {alignment_threshold:.2f}°, "
+                    f"distance: {basket_distance_m:.2f}m"
                 )
-                self.move_robot(vx, vy, wz, 0, normalize=True)
-                if self.fcounter_align_stable_state.update(abs(offset_angle) < 0.75):
+                vx, vy, wz = self.compute_control_signals(
+                    closet_ball.position_2d, angle_offset=offset_angle, look_ahead_dis=0.15
+                )
+                self.move_robot(vx, vy, wz, 0, normalize=True, override_max_xy_speed=0.4)
+                if self.fcounter_align_stable_state.update(abs(offset_angle) < alignment_threshold):
                     self.transition_to_state(GameState.THROW_BALL)
                 return None
             else:
                 vx, vy, wz = self.compute_control_signals(
-                    closet_ball.position_2d, angle_offset=90.0, look_ahead_dis=0.2
+                    closet_ball.position_2d, angle_offset=90.0, look_ahead_dis=0.20
                 )
                 self.move_robot(vx, vy, wz, 0, normalize=True)
                 self.get_logger().info(
@@ -442,11 +461,22 @@ class GameLogicController(Node):
             )
         else:
             basket_pos = self.image_info_msg.basket.position_2d  # in mm
-            motor_percent = self.motor_percent_from_basket(
-                [basket_pos[0] / 1000, basket_pos[1] / 1000, BASKET_HEIGHT]
-            )
+            basket_distance = float(np.linalg.norm(basket_pos) / 1000.0)  # convert to meters
+
+            # Add current distance to queue for moving average
+            self.basket_distance_queue.append(basket_distance)
+
+            # Calculate moving average distance
+            avg_basket_distance = float(np.mean(self.basket_distance_queue))
+
+            # motor_percent = self.motor_percent_from_basket(avg_basket_distance)
+            motor_percent = 54  # fixed motor percent for consistent throwing
             offset_angle = self.measure_angle_error(self.image_info_msg.basket.center)
-            self.get_logger().info(f"Throwing: offset angle to basket: {offset_angle:.2f} degrees.")
+            self.get_logger().info(
+                f"Throwing: offset angle to basket: {offset_angle:.2f} degrees. "
+                f"Distance: current={basket_distance:.2f}m, avg={avg_basket_distance:.2f}m "
+                f"(n={len(self.basket_distance_queue)})"
+            )
             vx, vy, wz = self.compute_control_signals(
                 (0, 500),  # target 500mm (0.5m) forward in robot frame
                 angle_offset=offset_angle * 1.5,
@@ -528,14 +558,27 @@ class GameLogicController(Node):
             return None
 
     def move_robot(
-        self, vx: float, vy: float, wz: float, thrower_percent: int, normalize: bool = False
+        self,
+        vx: float,
+        vy: float,
+        wz: float,
+        thrower_percent: int,
+        normalize: bool = False,
+        override_max_xy_speed: Optional[float] = None,
     ) -> None:
         """Send velocity commands to the robot. vx, vy in m/s, wz in rad/s."""
         if normalize:
-            vx, vy = self.normalize_velocity(vx, vy, self.max_xy)
+            if override_max_xy_speed is not None and override_max_xy_speed > 0:
+                vx, vy = self.normalize_velocity(vx, vy, override_max_xy_speed)
+            else:
+                vx, vy = self.normalize_velocity(vx, vy, self.max_xy)
         else:
-            vx = np.clip(vx, -self.max_xy, self.max_xy)
-            vy = np.clip(vy, -self.max_xy, self.max_xy)
+            if override_max_xy_speed is not None and override_max_xy_speed > 0:
+                vx = np.clip(vx, -override_max_xy_speed, override_max_xy_speed)
+                vy = np.clip(vy, -override_max_xy_speed, override_max_xy_speed)
+            else:
+                vx = np.clip(vx, -self.max_xy, self.max_xy)
+                vy = np.clip(vy, -self.max_xy, self.max_xy)
 
         wz = np.clip(wz, -self.max_rot, self.max_rot)
         thrower_percent = np.clip(thrower_percent, 0, 100)
@@ -710,6 +753,9 @@ class GameLogicController(Node):
             self.stop_robot()
         elif new_state == GameState.THROW_BALL:
             self.throw_start_pos = None
+            self.basket_distance_queue.clear()
+        elif new_state == GameState.ALIGN_TO_BASKET:
+            self.align_start_time = None
 
         if pre_state != new_state:
             self.prev_vx_error = 0.0
@@ -758,7 +804,7 @@ class GameLogicController(Node):
 
         p1 = np.array(basket_center, dtype=float)
         p2 = np.array([self.image_size[0] / 2, 0], dtype=float)
-        o = np.array([self.image_size[0] / 2, self.image_size[1] * 2 / 3], dtype=float)
+        o = np.array([self.image_size[0] / 2, self.image_size[1] * 3 / 4], dtype=float)
 
         oa_vec = p1 - o
         ob_vec = p2 - o
@@ -771,42 +817,86 @@ class GameLogicController(Node):
 
         return float(angle_deg)
 
-    def motor_percent_from_basket(
-        self,
-        basket_pos: Union[List[float], Tuple[float, float, float]],
-        h0: float = 0.07,
-        g: float = 9.81,
-    ) -> int:
+    def get_alignment_threshold(
+        self, basket_dis: float, min_v: float = 0.5, max_v: float = 2.5
+    ) -> float:
         """
-        Compute motor percent for throwing wheel to hit a basket.
+        Calculate distance-dependent alignment threshold.
+        Closer baskets need larger tolerances due to bigger angular size.
+
+        Uses exponential decay: threshold = 4.5 * exp(-0.9 * distance) + 0.15
+
+        Distance → Threshold:
+        - 1.0m → 3.00°
+        - 2.6m → 0.60°
+        - 4.2m → 0.24°
 
         Inputs:
-            basket_pos: (x, y, z) in meters relative to launcher
-            throw_angle_deg: throwing angle from horizontal
-            r_wheel: radius of the throwing wheel in meters
-            h0: launcher height
-            g: gravity
+            basket_pos: (x, y) in meters relative to robot base center
         Returns:
-            Motor speed percent [0-100] or None if impossible
+            Alignment threshold in degrees
         """
-        x, y, z = basket_pos
-        theta = math.radians(THROWER_ANGLE_DEG)
-        y -= 0.010  # adjust for robot center to launcher y-offset
-        d = math.sqrt(x**2 + y**2)
 
-        denominator = d * math.tan(theta) - (z - h0)
-        if denominator <= 0:
-            return 50  # throw impossible at this angle
+        # Exponential decay function: stricter tolerance at longer distances
+        threshold = 4.5 * math.exp(-0.9 * basket_dis) + 0.15
 
-        v_ball = math.sqrt((g * d**2) / (2 * math.cos(theta) ** 2 * denominator))
+        # Clamp to reasonable bounds
+        return max(min_v, min(max_v, threshold))
 
-        omega_wheel = v_ball / THROWER_WHEEL_RADIUS  # rad/s
-        rpm = omega_wheel * 60 / (2 * math.pi)
+    def motor_percent_from_basket(self, basket_dis: float, offset_val: int = 0) -> int:
+        """
+        Estimate motor percent needed to throw ball into basket based on distance.
+        Inputs:
+            basket_dis: distance to basket in meters
+            offset_val: offset to add to motor percent (can be negative)
+        Returns:
+            Estimated motor percent (0-100)
+        """
+        # Experimental data points: (distance in meters, motor percent)
+        data_points = [
+            (0.935, 42),
+            (1.28, 41),
+            (1.43, 43),
+            (1.55, 43),
+            (2.30, 50),
+            (2.63, 50),
+            (2.90, 54),
+            (3.00, 54),
+            (3.20, 56),
+            (3.32, 56),
+            (3.40, 59),
+            (4.00, 63),
+            (4.20, 65),
+        ]
 
-        percent = (rpm - RPM_MIN) / (RPM_MAX - RPM_MIN) * 100
-        percent = max(0.0, min(100.0, percent))
+        # If distance is below minimum measured, extrapolate using first two points
+        if basket_dis <= data_points[0][0]:
+            d1, p1 = data_points[0]
+            d2, p2 = data_points[1]
+            slope = (p2 - p1) / (d2 - d1)
+            percent = p1 + slope * (basket_dis - d1) + offset_val
+            return max(0, min(100, int(round(percent))))
 
-        return int(percent)
+        # If distance is above maximum measured, extrapolate using last two points
+        if basket_dis >= data_points[-1][0]:
+            d1, p1 = data_points[-2]
+            d2, p2 = data_points[-1]
+            slope = (p2 - p1) / (d2 - d1)
+            percent = p2 + slope * (basket_dis - d2) + offset_val
+            return max(0, min(100, int(round(percent))))
+
+        # Linear interpolation between two nearest data points
+        for i in range(len(data_points) - 1):
+            d1, p1 = data_points[i]
+            d2, p2 = data_points[i + 1]
+
+            if d1 <= basket_dis <= d2:
+                # Linear interpolation: p = p1 + (p2 - p1) * (d - d1) / (d2 - d1)
+                percent = p1 + (p2 - p1) * (basket_dis - d1) / (d2 - d1) + offset_val
+                return int(round(percent))
+
+        # Fallback (should never reach here)
+        return 50
 
     def normalize_velocity(self, vx: float, vy: float, max_speed: float) -> Tuple[float, float]:
         """
@@ -821,7 +911,7 @@ class GameLogicController(Node):
         """
         speed = np.linalg.norm([vx, vy])
         if speed > max_speed:
-            scale = max_speed / speed
+            scale = float(max_speed / speed)
             vx *= scale
             vy *= scale
         return vx, vy

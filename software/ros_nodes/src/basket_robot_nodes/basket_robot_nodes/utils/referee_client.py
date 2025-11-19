@@ -53,7 +53,7 @@ class RefereeClient:
             try:
                 self.logger.info(f"Attempting to connect to referee at {self.referee_url}...")
                 async with websockets.connect(self.referee_url) as websocket:
-                    self.websocket = websocket
+                    self.websocket = websocket  # type: ignore
                     self.logger.info("Successfully connected to referee server.")
                     reconnect_delay = self.reconnect_delay  # Reset delay on successful connection
 

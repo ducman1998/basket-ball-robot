@@ -266,7 +266,7 @@ class ImageProcessing:
                     center,
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.65,
-                    (255, 0, 0),
+                    (255, 255, 0),
                     1,
                 )
 
