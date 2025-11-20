@@ -34,7 +34,7 @@ FT_DETECTED_APPROACH_BASKET = 40  # frames
 FT_UNDETECTED_IDLE = 120  # frames
 FT_DETECTED_STABLE_ALIGN_BALL = 10  # frames
 TOTAL_ROT_DEGREE_THRESHOLD = 270.0  # seconds
-ALIGNING_TIMEOUT = 6.0  # seconds
+ALIGNING_TIMEOUT = 4.5  # seconds
 BASKET_DISTANCE_QUEUE_SIZE = 20  # frames for moving average
 
 
@@ -130,7 +130,7 @@ class GameLogicController(Node):
 
         # Referee client state
         self.is_game_started = False  # True when referee sends START, False when STOP
-        self.opponent_basket_color = "n/a"
+        self.opponent_basket_color = "n/a"  # default opponent basket color
 
         # Initialize and start referee client
         self.referee_client = RefereeClient(
@@ -469,8 +469,7 @@ class GameLogicController(Node):
             # Calculate moving average distance
             avg_basket_distance = float(np.mean(self.basket_distance_queue))
 
-            # motor_percent = self.motor_percent_from_basket(avg_basket_distance)
-            motor_percent = 54  # fixed motor percent for consistent throwing
+            motor_percent = self.motor_percent_from_basket(avg_basket_distance)
             offset_angle = self.measure_angle_error(self.image_info_msg.basket.center)
             self.get_logger().info(
                 f"Throwing: offset angle to basket: {offset_angle:.2f} degrees. "
@@ -818,7 +817,7 @@ class GameLogicController(Node):
         return float(angle_deg)
 
     def get_alignment_threshold(
-        self, basket_dis: float, min_v: float = 0.5, max_v: float = 2.5
+        self, basket_dis: float, min_v: float = 0.5, max_v: float = 1.0
     ) -> float:
         """
         Calculate distance-dependent alignment threshold.
