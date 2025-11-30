@@ -143,7 +143,7 @@ def main() -> None:
             out.twist.angular.x = 0.0
             out.twist.angular.y = 0.0
             out.twist.angular.z = ctrl_wz
-            out.thrower_percent = int(thrower_percent)
+            out.thrower_percent = float(thrower_percent)
             pub.publish(out)
 
     except (KeyboardInterrupt, EOFError):

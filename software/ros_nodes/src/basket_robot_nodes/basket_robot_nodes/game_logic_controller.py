@@ -6,10 +6,12 @@ from typing import List, Literal, Optional, Sequence, Tuple, Union
 import modern_robotics as mr
 import numpy as np
 import rclpy
-from basket_robot_nodes.utils.constants import BASE_FRAME_ID, QOS_DEPTH
+from basket_robot_nodes.utils.constants import BASE_FRAME_ID
 from basket_robot_nodes.utils.image_info import GreenBall, ImageInfo
 from basket_robot_nodes.utils.number_utils import FrameStabilityCounter
 from basket_robot_nodes.utils.referee_client import RefereeClient
+from basket_robot_nodes.utils.peripheral_manager import PeripheralManager
+from basket_robot_nodes.utils.state_parameters import StateParameters
 from basket_robot_nodes.utils.ros_utils import (
     float_array_descriptor,
     float_descriptor,
@@ -21,11 +23,11 @@ from basket_robot_nodes.utils.ros_utils import (
 from nav_msgs.msg import Odometry
 from rclpy.clock import Clock
 from rclpy.node import Node
-from rclpy.qos import QoSProfile
 from scipy.spatial.transform import Rotation as R
 from shared_interfaces.msg import TwistStamped  # a custom message with thrower_percent
 from std_msgs.msg import String
 
+IS_DEV = True
 SAMPLING_RATE = 60  # Hz
 FT_DETECTED_SEARCH_BALL = 6  # frames
 FT_UNDETECTED_REACH_BALL = 15  # frames
@@ -67,29 +69,14 @@ class GameLogicController(Node):
         # for checking: log all initialized parameters
         log_initialized_parameters(self)
 
-        # init subscribers and publishers
-        self.odom_sub = self.create_subscription(
-            Odometry, "/odom", self.odom_callback, QoSProfile(depth=QOS_DEPTH)
-        )
-        self.image_info_sub = self.create_subscription(
-            String, "/image/info", self.image_info_callback, QoSProfile(depth=QOS_DEPTH)
-        )
-        self.mainboard_controller_pub = self.create_publisher(
-            TwistStamped, "cmd_vel", QoSProfile(depth=QOS_DEPTH)
-        )
+        # subscriptions to sensors, offering convenient access/control sensors
+        self.periph_manager = PeripheralManager(self)
+
         # game timer to run game logic at 20Hz
         self.game_timer = self.create_timer(1 / SAMPLING_RATE, self.game_logic_loop)
 
         self.cur_state = GameState.INIT
         self.timestamp = time()
-
-        # internal variables for robot control
-        self.odom_msg: Optional[Odometry] = None
-        self.last_odom_time: float = 0.0
-
-        self.image_size: Optional[Tuple[int, int]] = None
-        self.image_info_msg: Optional[ImageInfo] = None
-        self.last_image_info_time: float = 0.0
 
         # state variables
         # INIT: initial state
@@ -125,12 +112,12 @@ class GameLogicController(Node):
         self.fcounter_approach_state = FrameStabilityCounter(FT_DETECTED_APPROACH_BASKET)
         self.fcounter_idle_state = FrameStabilityCounter(FT_UNDETECTED_IDLE)
 
-        # reusable control msg
-        self.control_msg = TwistStamped()
-
         # Referee client state
         self.is_game_started = False  # True when referee sends START, False when STOP
         self.opponent_basket_color = "n/a"  # default opponent basket color
+        if IS_DEV:
+            self.get_logger().warn("Running in DEV mode: Referee signals are simulated.")
+            self.opponent_basket_color = "green"  # for testing
 
         # Initialize and start referee client
         self.referee_client = RefereeClient(
@@ -148,16 +135,6 @@ class GameLogicController(Node):
         self.declare_parameter("referee_ip_address", descriptor=str_descriptor)
         self.declare_parameter("referee_port", descriptor=int_descriptor)
         self.declare_parameter("robot_id", descriptor=str_descriptor)
-        self.declare_parameter("max_rot_speed", descriptor=float_descriptor)
-        self.declare_parameter("max_xy_speed", descriptor=float_descriptor)
-        self.declare_parameter("throwing_xy_speed", descriptor=float_descriptor)
-        self.declare_parameter("search_ball_rot_speed", descriptor=float_descriptor)
-        self.declare_parameter("pid_linear_common", descriptor=float_array_descriptor)
-        self.declare_parameter("pid_angular_common", descriptor=float_array_descriptor)
-        self.declare_parameter("pid_linear_align_basket", descriptor=float_array_descriptor)
-        self.declare_parameter("pid_angular_align_basket", descriptor=float_array_descriptor)
-        self.declare_parameter("pid_linear_throw_ball", descriptor=float_array_descriptor)
-        self.declare_parameter("pid_angular_throw_ball", descriptor=float_array_descriptor)
         self.declare_parameter("log_level", descriptor=str_descriptor)
 
     def _read_node_parameters(self) -> None:
@@ -168,32 +145,6 @@ class GameLogicController(Node):
         )
         self.referee_port = self.get_parameter("referee_port").get_parameter_value().integer_value
         self.robot_id = self.get_parameter("robot_id").get_parameter_value().string_value
-        self.max_rot = self.get_parameter("max_rot_speed").get_parameter_value().double_value
-        self.max_xy = self.get_parameter("max_xy_speed").get_parameter_value().double_value
-        self.throwing_xy_speed = (
-            self.get_parameter("throwing_xy_speed").get_parameter_value().double_value
-        )
-        self.search_rot_speed = (
-            self.get_parameter("search_ball_rot_speed").get_parameter_value().double_value
-        )
-        self.pid_linear_common = (
-            self.get_parameter("pid_linear_common").get_parameter_value().double_array_value
-        )
-        self.pid_angular_common = (
-            self.get_parameter("pid_angular_common").get_parameter_value().double_array_value
-        )
-        self.pid_linear_align_basket = (
-            self.get_parameter("pid_linear_align_basket").get_parameter_value().double_array_value
-        )
-        self.pid_angular_align_basket = (
-            self.get_parameter("pid_angular_align_basket").get_parameter_value().double_array_value
-        )
-        self.pid_linear_throw_ball = (
-            self.get_parameter("pid_linear_throw_ball").get_parameter_value().double_array_value
-        )
-        self.pid_angular_throw_ball = (
-            self.get_parameter("pid_angular_throw_ball").get_parameter_value().double_array_value
-        )
         log_level = self.get_parameter("log_level").get_parameter_value().string_value
 
         # Validate all parameters
@@ -211,26 +162,6 @@ class GameLogicController(Node):
 
         if not self.robot_id or not isinstance(self.robot_id, str):
             raise ValueError("Invalid robot ID.")
-
-        # Validate PID parameters
-        if len(self.pid_linear_common) != 3 or len(self.pid_angular_common) != 3:
-            raise ValueError("PID common parameters must be lists of three floats: [kp, ki, kd].")
-        if len(self.pid_linear_align_basket) != 3 or len(self.pid_angular_align_basket) != 3:
-            raise ValueError("PID align parameters must be lists of three floats: [kp, ki, kd].")
-
-    def odom_callback(self, msg: Odometry) -> None:
-        """Handle incoming odometry messages."""
-        # Process odometry data as needed
-        self.odom_msg = msg
-        self.last_odom_time = time()
-
-    def image_info_callback(self, msg: String) -> None:
-        """Handle incoming image info messages."""
-        # Process image info data as needed
-        self.image_info_msg = ImageInfo.from_json(msg.data)
-        if self.image_size is None and self.image_info_msg.image_size is not None:
-            self.image_size = self.image_info_msg.image_size
-        self.last_image_info_time = time()
 
     def handle_referee_signals(
         self, signal: Literal["start", "stop"], basket: Optional[str]
@@ -253,7 +184,7 @@ class GameLogicController(Node):
         self.print_current_state()
 
         # If game is not active (referee hasn't started or has stopped), don't execute game logic
-        if not self.is_game_started:
+        if not self.is_game_started and not IS_DEV:
             # if we were playing and referee stopped us, ensure robot is stopped
             self.stop_robot()
             self.cur_state = GameState.INIT
@@ -297,11 +228,8 @@ class GameLogicController(Node):
         return None
 
     def handle_search_ball_state(self) -> None:
-        assert self.image_info_msg is not None
-        assert self.odom_msg is not None
-
         # if a ball is detected, transition to REACH_BALL state
-        if self.fcounter_search_state.update(self.is_ball_in_view()):
+        if self.fcounter_search_state.update(self.periph_manager.is_ball_detected()):
             self.transition_to_state(GameState.REACH_BALL)
             return None
 

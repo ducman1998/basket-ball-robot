@@ -1,0 +1,3 @@
+class MAN_STATE:
+    GRASP_BALL = 0
+    THROW_BALL = 1

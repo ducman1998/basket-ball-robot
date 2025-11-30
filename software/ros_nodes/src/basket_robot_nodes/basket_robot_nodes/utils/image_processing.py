@@ -262,13 +262,14 @@ class ImageProcessing:
                     2,
                 )
                 if pos_2d:
-                    text = f"{basket_color}, a={max_area}, p=({pos_2d[0]:.1f}, {pos_2d[1]:.1f})"
+                    dis = np.linalg.norm(np.array(pos_2d))
+                    text = f"{basket_color}, p=({pos_2d[0]:.1f}, {pos_2d[1]:.1f}), d={dis:.1f}"
                 else:
-                    text = f"{basket_color}, a={max_area}, p=(N/A)"
+                    text = f"{basket_color}, p=(N/A), d=(N/A)"
                 cv2.putText(
                     viz_rgb,
                     text,
-                    center,
+                    (self.im_w // 2, center[1]),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.65,
                     (255, 0, 0),
@@ -376,7 +377,7 @@ class ImageProcessing:
         pts_b = pts_b / pts_b[3, :]
         xs_b, ys_b = pts_b[0, :], pts_b[1, :]
         # TODO: consider using median to be more robust to outliers
-        return float(xs_b.mean()), float(np.min(ys_b))
+        return float(xs_b.mean()), float(ys_b.min())
 
     def _pixel_to_robot_coords(
         self, ball_centers: Union[Tuple[float, float], NDArray[np.float32]]
