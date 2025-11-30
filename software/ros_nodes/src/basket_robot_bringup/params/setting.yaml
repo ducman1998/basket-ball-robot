@@ -39,7 +39,7 @@ image_processor_node:
     exposure_time: 100           # in microseconds
     white_balance_auto: false
     enable_depth: True           # enable depth stream
-    publish_viz_image: False
+    publish_viz_image: True
     publish_viz_fps: 1  # Hz
     publish_viz_resize: 0.4  # factor to resize the viz image before publishing
     log_level: 'info'

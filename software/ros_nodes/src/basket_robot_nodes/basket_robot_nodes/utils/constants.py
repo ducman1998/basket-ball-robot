@@ -6,6 +6,8 @@ BASE_FRAME_ID = "base_footprint"
 # buffer depth for QoS profiles
 QOS_DEPTH = 3
 
+REALSENSE_QUEUE_SIZE = 4
+
 # the order of enabled colors for segmentation, the order matters as later colors will override
 # previous ones in the look-up table, helping to reduce false positives
 ENABLED_SEGMENTED_COLORS = ["white", "magenta", "blue", "black", "green", "court"]
@@ -169,6 +171,10 @@ COLOR_REFERENCE_RGB: dict[str, List[List]] = {
         [251, 171, 181],
         [244, 174, 178],
         [254, 175, 189],
+        [254, 199, 207],
+        [254, 202, 210],
+        [253, 196, 203],
+        [254, 193, 205],
     ],
     "black": [
         [18, 22, 17],
@@ -193,5 +199,9 @@ COLOR_REFERENCE_RGB: dict[str, List[List]] = {
         [59, 25, 33],
         [49, 21, 22],
         [57, 23, 31],
+        [56, 28, 46],
+        [51, 27, 37],
+        [43, 29, 37],
+        [51, 32, 41],
     ],
 }

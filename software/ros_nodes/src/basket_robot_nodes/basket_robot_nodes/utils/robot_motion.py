@@ -25,7 +25,7 @@ class IRobotMotion:
         x_speed: float,
         y_speed: float,
         rot_speed: float,
-        thrower_speed_percent: int = 0,
+        thrower_speed_percent: float = 0,
         servo1: int = 0,
         servo2: int = 0,
         read_feedback: bool = False,
@@ -210,7 +210,7 @@ class OmniMotionRobot(IRobotMotion):
         speed1: int,  # range -32768 to 32767 (int16)
         speed2: int,  # range -32768 to 32767 (int16)
         speed3: int,  # range -32768 to 32767 (int16)
-        thrower_speed_percent: int = 0,  # range 0-100 (%)
+        thrower_speed_percent: float = 0,  # range 0-100 (%)
         servo1: int = 1500,  # range 0-65535 (uint16)
         servo2: int = 1500,  # range 0-65535 (uint16)
         disable_failsafe: bool = False,
@@ -311,7 +311,7 @@ class OmniMotionRobot(IRobotMotion):
         x_speed: float,
         y_speed: float,
         rot_speed: float,
-        thrower_speed_percent: int = 0,
+        thrower_speed_percent: float = 0,
         servo1: int = 0,
         servo2: int = 0,
         read_feedback: bool = False,

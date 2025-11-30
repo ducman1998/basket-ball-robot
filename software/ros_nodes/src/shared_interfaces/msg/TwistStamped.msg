@@ -6,4 +6,4 @@ std_msgs/Header header
 geometry_msgs/Twist twist
 
 # Thrower motor duty cycle / percent (0–100)
-uint8 thrower_percent   # 0–100 (%)
+float32 thrower_percent   # 0–100 (%)

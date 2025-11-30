@@ -455,7 +455,7 @@ class GameLogicController(Node):
 
         # move forward a bit to throw the ball into the basket
         if self.image_info_msg.basket is None or self.image_info_msg.basket.position_2d is None:
-            self.move_robot(0.0, self.throwing_xy_speed, 0.0, 60, normalize=False)
+            self.move_robot(0.0, self.throwing_xy_speed, 0.0, 60.0, normalize=False)
             self.get_logger().info(
                 "No basket detected! Throwing ball with default motor percent=60."
             )
@@ -561,7 +561,7 @@ class GameLogicController(Node):
         vx: float,
         vy: float,
         wz: float,
-        thrower_percent: int,
+        thrower_percent: float,
         normalize: bool = False,
         override_max_xy_speed: Optional[float] = None,
     ) -> None:
@@ -590,16 +590,16 @@ class GameLogicController(Node):
         self.control_msg.twist.angular.x = 0.0
         self.control_msg.twist.angular.y = 0.0
         self.control_msg.twist.angular.z = float(wz)
-        self.control_msg.thrower_percent = int(thrower_percent)
+        self.control_msg.thrower_percent = float(thrower_percent)
         self.mainboard_controller_pub.publish(self.control_msg)
 
     def stop_robot(self) -> None:
         """Stop the robot by sending zero velocity commands."""
-        self.move_robot(0.0, 0.0, 0.0, 0)
+        self.move_robot(0.0, 0.0, 0.0, 0.0)
 
     def rotate_robot(self, wz: float) -> None:
         """Rotate the robot at a given angular velocity wz (rad/s)."""
-        self.move_robot(0.0, 0.0, wz, 0)
+        self.move_robot(0.0, 0.0, wz, 0.0)
 
     def get_target_in_robot_frame(
         self, target_pos_o: Optional[Tuple[float, float]]
@@ -842,7 +842,7 @@ class GameLogicController(Node):
         # Clamp to reasonable bounds
         return max(min_v, min(max_v, threshold))
 
-    def motor_percent_from_basket(self, basket_dis: float, offset_val: int = 0) -> int:
+    def motor_percent_from_basket(self, basket_dis: float, offset_val: int = 0) -> float:
         """
         Estimate motor percent needed to throw ball into basket based on distance.
         Inputs:
@@ -853,19 +853,19 @@ class GameLogicController(Node):
         """
         # Experimental data points: (distance in meters, motor percent)
         data_points = [
-            (0.935, 42),
-            (1.28, 41),
-            (1.43, 43),
-            (1.55, 43),
-            (2.30, 50),
-            (2.63, 50),
-            (2.90, 54),
-            (3.00, 54),
-            (3.20, 56),
-            (3.32, 56),
-            (3.40, 59),
-            (4.00, 63),
-            (4.20, 65),
+            (0.935, 42.0),
+            (1.28, 41.0),
+            (1.43, 43.0),
+            (1.55, 43.0),
+            (2.30, 50.0),
+            (2.63, 50.0),
+            (2.90, 54.0),
+            (3.00, 54.0),
+            (3.20, 56.0),
+            (3.32, 56.0),
+            (3.40, 59.0),
+            (4.00, 63.0),
+            (4.20, 65.0),
         ]
 
         # If distance is below minimum measured, extrapolate using first two points
@@ -874,7 +874,7 @@ class GameLogicController(Node):
             d2, p2 = data_points[1]
             slope = (p2 - p1) / (d2 - d1)
             percent = p1 + slope * (basket_dis - d1) + offset_val
-            return max(0, min(100, int(round(percent))))
+            return max(0, min(100, percent))
 
         # If distance is above maximum measured, extrapolate using last two points
         if basket_dis >= data_points[-1][0]:
@@ -882,7 +882,7 @@ class GameLogicController(Node):
             d2, p2 = data_points[-1]
             slope = (p2 - p1) / (d2 - d1)
             percent = p2 + slope * (basket_dis - d2) + offset_val
-            return max(0, min(100, int(round(percent))))
+            return max(0, min(100, percent))
 
         # Linear interpolation between two nearest data points
         for i in range(len(data_points) - 1):
@@ -892,10 +892,10 @@ class GameLogicController(Node):
             if d1 <= basket_dis <= d2:
                 # Linear interpolation: p = p1 + (p2 - p1) * (d - d1) / (d2 - d1)
                 percent = p1 + (p2 - p1) * (basket_dis - d1) / (d2 - d1) + offset_val
-                return int(round(percent))
+                return percent
 
         # Fallback (should never reach here)
-        return 50
+        return 50.0
 
     def normalize_velocity(self, vx: float, vy: float, max_speed: float) -> Tuple[float, float]:
         """

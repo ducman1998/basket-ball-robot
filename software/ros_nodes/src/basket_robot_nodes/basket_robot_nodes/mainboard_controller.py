@@ -135,8 +135,8 @@ class MainboardController(Node):
         vx: float = msg.twist.linear.x
         vy: float = msg.twist.linear.y
         wz: float = msg.twist.angular.z
-        tp = msg.thrower_percent
-        thrower_percent = int(max(0, min(100, tp)))  # clip to [0, 100]
+        tp: float = msg.thrower_percent
+        thrower_percent = max(0, min(100, tp))  # clip to [0, 100]
         self.get_logger().info(
             f"vx: {vx:.2f}, vy: {vy:.2f}, wz: {wz:.2f}, tp: {thrower_percent:.2f}"
         )
