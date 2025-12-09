@@ -31,6 +31,7 @@ def generate_launch_description() -> LaunchDescription:
             name="game_logic_controller_node",
             parameters=[launch_cfg],
             output="screen",
+            prefix="/home/robot/miniconda3/envs/picr/bin/python3",  # Use conda Python
         )
     ]
 

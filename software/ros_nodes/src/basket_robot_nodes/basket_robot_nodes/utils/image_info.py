@@ -80,31 +80,60 @@ class Basket:
         return cls(**data)
 
 
+class Marker:
+    def __init__(
+        self,
+        id: int,
+        position_2d: Tuple[float, float],
+        theta: float,
+    ) -> None:
+        """
+        Inputs:
+            id: marker ID
+            position_2d: 2D position of the marker in robot base footprint frame (mm)
+            theta: orientation of the marker in degrees
+        """
+        self.id = id
+        self.position_2d = position_2d
+        self.theta = theta
+
+    def to_dict(self) -> Dict:
+        return {
+            "id": int(self.id),
+            "position_2d": [float(self.position_2d[0]), float(self.position_2d[1])],
+            "theta": float(self.theta),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> "Marker":
+        return cls(**data)
+
+
 class ImageInfo:
     def __init__(
         self,
         image_size: Tuple[int, int],
         balls: Union[List[GreenBall], Tuple[GreenBall]],
+        markers: List[Marker],
         basket: Optional[Basket] = None,
     ) -> None:
         """
         Inputs:
-            balls: list of detected green balls
-            basket: detected basket (can be None if no basket detected)
-            court_center: 2D position of the court center in robot base footprint frame (mm)
-            court_area: area of the court in image (pixels)
-
-        Note: court_center can be None if the court is not detected.
-              basket can be None if no basket is detected.
+            image_size: size of the image (width, height) in pixels
+            balls: list or tuple of detected GreenBall objects
+            markers: list of detected Marker objects
+            basket: detected Basket object (optional)
         """
         self.image_size = image_size
         self.balls = balls
+        self.markers = markers
         self.basket = basket
 
     def to_dict(self) -> Dict:
         return {
             "image_size": ([int(self.image_size[0]), int(self.image_size[1])]),
             "balls": [ball.to_dict() for ball in self.balls],
+            "markers": [marker.to_dict() for marker in self.markers],
             "basket": self.basket.to_dict() if self.basket else None,
         }
 
@@ -115,9 +144,10 @@ class ImageInfo:
     def from_dict(cls, data: Dict) -> "ImageInfo":
         image_size = tuple(data.get("image_size", (1280, 720)))
         balls = [GreenBall.from_dict(b) for b in data.get("balls", [])]
+        markers = [Marker.from_dict(m) for m in data.get("markers", [])]
         basket_data = data.get("basket", None)
         basket = Basket.from_dict(basket_data) if basket_data else None
-        return cls(image_size=image_size, balls=balls, basket=basket)
+        return cls(image_size=image_size, balls=balls, markers=markers, basket=basket)
 
     @classmethod
     def from_json(cls, json_str: str) -> "ImageInfo":

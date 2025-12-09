@@ -6,7 +6,7 @@ BASE_FRAME_ID = "base_footprint"
 # buffer depth for QoS profiles
 QOS_DEPTH = 3
 
-REALSENSE_QUEUE_SIZE = 4
+REALSENSE_QUEUE_SIZE = 2
 
 # the order of enabled colors for segmentation, the order matters as later colors will override
 # previous ones in the look-up table, helping to reduce false positives

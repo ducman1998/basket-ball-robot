@@ -1,10 +1,10 @@
 from typing import List, Optional, Tuple, Union
 
 import cv2
+import time
 import numpy as np
 from basket_robot_nodes.utils.color_segmention import ColorSegmenter
-from basket_robot_nodes.utils.image_info import Basket, GreenBall
-from cv2.typing import MatLike
+from basket_robot_nodes.utils.image_info import Basket, GreenBall, Marker
 from numpy.typing import NDArray
 
 from .constants import COLOR_REFERENCE_RGB
@@ -15,18 +15,18 @@ CALIB_SCALE = 1.0
 # homography matrix and its inverse obtained from camera calibration
 H = np.array(
     [
-        [-7.91132827e02, 5.58534931e02, 3.48701120e05],
-        [-9.35251977e00, 2.42440144e01, 1.87787741e05],
-        [1.91409035e-02, 8.26195098e-01, 3.51145140e02],
+        [-625.985857, 362.722537, 341273.811],
+        [-12.587899, 0.298031, 163005.627],
+        [-0.05002945, 0.914011, 607.478011],
     ]
 )
 H_INV = np.linalg.inv(H)
 # transformation from world to robot base_footprint frame
 T_BW = np.array(
     [
-        [-9.99445054e-01, 3.11668140e-02, -1.17564753e-02, 1.51709101e02],
-        [3.11689681e-02, 9.99514130e-01, -1.60270640e-18, 2.31365296e02],
-        [-4.45704372e-17, -6.20777250e-16, -1.00000000e00, -5.68434189e-14],
+        [-9.98747463e-01, -4.60865665e-02, -1.94816165e-02, 1.34886895e02],
+        [-4.60953146e-02, 9.98937046e-01, 3.48390069e-18, 4.52773087e02],
+        [-3.29925840e-17, 1.37587664e-16, -1.00000000e00, -1.42108547e-13],
         [0.00000000e00, 0.00000000e00, 0.00000000e00, 1.00000000e00],
     ]
 )
@@ -34,20 +34,18 @@ T_BW_INV = np.linalg.inv(T_BW)
 # transformation from camera to robot base_footprint frame
 T_BC = np.array(
     [
-        [9.99982722e-01, 4.85780235e-03, 3.31007976e-03, 0.00000000e00],
-        [9.22953605e-19, -5.63097781e-01, 8.26390276e-01, -5.00000000e01],
-        [5.87833920e-03, -8.26375998e-01, -5.63088052e-01, 2.08871495e02],
+        [1.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00],
+        [0.00000000e00, -4.02668379e-01, 9.15345933e-01, -75],
+        [1.94816165e-02, -9.15172214e-01, -4.02591958e-01, 2.49391356e02],
         [0.00000000e00, 0.00000000e00, 0.00000000e00, 1.00000000e00],
     ]
 )
 # camera intrinsic matrix, determined from calibration
 K = np.array(
-    [
-        [803.938356905409, 0.0, 645.705518859391],
-        [0.0, 696.727389723765, 503.716447214066],
-        [0.0, 0.0, 1.0],
-    ]
+    [[605.362976923247, 0, 427.370659545530], [0, 589.816167677644, 260.424249730625], [0, 0, 1]]
 )
+DIST_COEFFS = np.array([0.105048424954046, -0.201651710545795, 0.0, 0.0, 0.0], dtype=np.float32)
+MARKER_SIZE = 0.16  # ArUco marker size (160mm = 0.16 meters)
 
 
 class ImageProcessing:
@@ -68,33 +66,44 @@ class ImageProcessing:
         )
         self.im_h, self.im_w = robot_base_mask.shape
 
+        # ArUco marker detection setup
+        # Use ORIGINAL ArUco dictionary (OpenCV 4.6 syntax)
+        self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_ARUCO_ORIGINAL)
+        self.aruco_params = cv2.aruco.DetectorParameters_create()
+
     def process(
         self,
         im_rgb: NDArray[np.uint8],
         depth: Optional[NDArray[np.float32]] = None,
         visualize: bool = False,
-    ) -> Tuple[List[GreenBall], Optional[Basket], Optional[NDArray[np.uint8]]]:
+    ) -> Tuple[List[GreenBall], Optional[Basket], List[Marker], Optional[NDArray[np.uint8]]]:
         """
-        Process the input RGB and depth images to detect green balls and baskets.
+        Process the input RGB (and optional depth) image to detect green balls, baskets, and
+        ArUco markers.
         Inputs:
             im_rgb: input RGB image of shape (H, W, 3) with dtype np.uint8
-            depth: input depth image of shape (H, W) with dtype np.float32
-            visualize: whether to generate a visualization image
+            depth: optional input depth image of shape (H, W) with dtype np.float32
+            visualize: whether to generate visualization image
         Outputs:
             detected_balls: list of detected green balls
             detected_basket: detected basket (can be None if no basket detected)
-            viz: visualization image (can be None if visualize is False)
+            detected_markers: list of detected ArUco markers
+            viz: visualization RGB image (can be None if visualize is False)
         """
         im_h, im_w = im_rgb.shape[:2]
         image_hsv = cv2.cvtColor(im_rgb, cv2.COLOR_RGB2HSV)
+        image_gray = cv2.cvtColor(im_rgb, cv2.COLOR_RGB2GRAY)
 
         # segment all colors (court, green, blue, magenta, white, black)
-        seg_mask = self.image_segmenter.segment_image(image_hsv)
+        seg_mask = self.image_segmenter.segment_image(image_hsv, use_numba=True)
         seg_mask[self.robot_base_mask == 0] = 0  # ignore robot base area
 
         viz: Optional[NDArray[np.uint8]] = None
         if visualize:
             viz = im_rgb
+        # detect ArUco markers
+        detected_markers = self.detect_aruco_markers(image_gray, seg_mask, viz)
+
         # detect green balls
         detected_balls = self.detect_green_balls(
             seg_mask=seg_mask,
@@ -110,7 +119,7 @@ class ImageProcessing:
             viz_rgb=viz if visualize else None,
             min_component_area_ratio=1000 / (im_h * im_w),
         )
-        return detected_balls, detected_basket, viz if visualize else None
+        return detected_balls, detected_basket, detected_markers, viz if visualize else None
 
     def detect_green_balls(
         self,
@@ -139,7 +148,6 @@ class ImageProcessing:
         filled_court_mask = self._get_processed_court_masks(seg_mask, scale=0.1)
         green_mask = cv2.bitwise_and(green_mask, filled_court_mask)  # type: ignore
         # connected component analysis
-
         n_labels, _, stats, centroids = cv2.connectedComponentsWithStats(green_mask, connectivity=8)
 
         balls = []
@@ -156,7 +164,7 @@ class ImageProcessing:
             radii, positions = self._get_ball_radius(np.array(centers, dtype=np.float32))
 
             # Validate and create ball objects
-            for idx, (area, center, r, pos) in enumerate(zip(areas, centers, radii, positions)):
+            for _, (area, center, r, pos) in enumerate(zip(areas, centers, radii, positions)):  # type: ignore
                 if self._is_valid_ball(area, tuple(pos), r, min_area_ratio, min_component_area):
                     balls.append(
                         GreenBall(
@@ -280,6 +288,60 @@ class ImageProcessing:
         else:
             return None
 
+    def detect_aruco_markers(
+        self,
+        im_gray: NDArray[np.uint8],
+        seg_mask: NDArray[np.uint8],
+        viz_rgb: Optional[NDArray[np.uint8]] = None,
+        verbose: bool = False,
+    ) -> List[Marker]:
+        black_idx, white_idx = self.image_segmenter.get_color_indices(["black", "white"])
+        roi_mask = (seg_mask == white_idx) | (seg_mask == black_idx)
+        roi_mask = roi_mask.astype(np.uint8) * 255
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+        roi_mask = cv2.morphologyEx(roi_mask, cv2.MORPH_DILATE, kernel)
+        input_image = cv2.bitwise_and(im_gray, roi_mask)
+        corners, ids, _ = cv2.aruco.detectMarkers(
+            input_image, self.aruco_dict, parameters=self.aruco_params
+        )
+
+        detected_markers: List[Marker] = []
+        if ids is not None:
+            rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(
+                corners, MARKER_SIZE, K, DIST_COEFFS
+            )
+        else:
+            return detected_markers
+
+        for i in range(len(ids[:2])):  # max 2 markers based on current setup
+            if viz_rgb is not None:
+                # Draw detected markers
+                cv2.aruco.drawDetectedMarkers(viz_rgb, corners, ids)
+
+                # Draw axis (OpenCV 4.6 syntax)
+                cv2.drawFrameAxes(viz_rgb, K, DIST_COEFFS, rvecs[i], tvecs[i], 0.05)
+
+            # Get rotation matrix
+            r_cm, _ = cv2.Rodrigues(rvecs[i])  # transformation from marker to camera
+            t_cm = np.eye(4)
+            t_cm[0:3, 0:3] = r_cm
+            t_cm[0:3, 3] = tvecs[i].flatten() * 1000  # convert to mm
+            t_bm = T_BC @ t_cm  # transformation from marker to robot base
+            r_bm = t_bm[0:3, 0:3]
+            t_bm = t_bm[0:2, 3]
+            xvec, yvec = r_bm[:, 0], -r_bm[:, 2]
+            x_theta = np.degrees(np.arctan2(xvec[1], xvec[0]))
+            y_theta = np.degrees(np.arctan2(yvec[1], yvec[0])) - 90
+            avg_theta = (x_theta + y_theta) / 2
+            detected_markers.append(
+                Marker(
+                    id=int(ids[i][0]), position_2d=(float(t_bm[0]), float(t_bm[1])), theta=avg_theta
+                )
+            )
+            if verbose:
+                print(f"Detected marker ID {ids[i][0]} at {t_bm} mm with theta {avg_theta} degrees")
+        return detected_markers
+
     def _is_valid_ball(
         self,
         area: int,
@@ -303,7 +365,7 @@ class ImageProcessing:
 
     def _get_processed_court_masks(
         self, seg_mask: NDArray[np.uint8], scale: float = 0.15
-    ) -> Union[NDArray[np.uint8], MatLike]:
+    ) -> NDArray[np.uint8]:
 
         court_idx = self.image_segmenter.get_color_index("court")
         # Create base masks

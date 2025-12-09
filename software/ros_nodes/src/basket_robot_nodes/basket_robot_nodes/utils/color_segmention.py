@@ -2,8 +2,6 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
-from cv2.typing import MatLike
-from typing import cast
 from numpy.typing import NDArray
 from numba import jit, prange
 
@@ -101,18 +99,27 @@ class ColorSegmenter:
                 ref_lut[np.ix_(h_indices, s_indices, v_indices)] = color_idx
         return ref_lut
 
-    def segment_image(self, hsv_img: Union[NDArray[np.uint8], MatLike]) -> NDArray[np.uint8]:
+    def segment_image(
+        self, hsv_img: NDArray[np.uint8], use_numba: bool = False
+    ) -> NDArray[np.uint8]:
         """
-        Segment the input HSV image based on reference colors.
+        Segment the input HSV image into color indices.
         Inputs:
-            hsv_img: HSV image of shape (H, W, 3) with dtype np.uint8
+            hsv_img: Input HSV image of shape (H, W, 3) with dtype
+            use_numba: Whether to use numba-optimized segmentation
         Outputs:
             segmented_img: Segmented image of shape (H, W) with dtype np.uint8
-
-        Note: If Numba is installed, this function will be JIT-compiled for ~10x speedup.
-        Performance: ~0.5-1ms (with Numba) or ~3-6ms (without Numba) for 1280x720.
         """
-        return segment_image_numba(self.ref_colors_mtx, hsv_img)  # type: ignore[arg-type]
+        if not use_numba:
+            h_channel = hsv_img[:, :, 0]  # no resolution reduction for H channel
+            s_channel = hsv_img[:, :, 1] >> 1  # reduce S channel resolution by half
+            v_channel = hsv_img[:, :, 2] >> 1  # reduce V channel resolution by half
+            segmented_img = np.asanyarray(
+                self.ref_colors_mtx[h_channel, s_channel, v_channel], dtype=np.uint8
+            )
+            return segmented_img
+        else:
+            return segment_image_numba(self.ref_colors_mtx, hsv_img)  # type: ignore[arg-type]
 
     def visualize_segmentation(
         self,
