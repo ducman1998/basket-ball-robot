@@ -16,6 +16,7 @@ from basket_robot_nodes.utils.ros_utils import (
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
 from shared_interfaces.msg import TwistStamped, WheelPositions
+from std_msgs.msg import Bool
 
 
 class MainboardController(Node):
@@ -45,6 +46,9 @@ class MainboardController(Node):
         # Publisher for wheel positions
         self.wheel_pos_pub = self.create_publisher(
             WheelPositions, "wheel_positions", QoSProfile(depth=QOS_DEPTH)
+        )
+        self.sensor_status_pub = self.create_publisher(
+            Bool, "sensors/ir_sensor", QoSProfile(depth=QOS_DEPTH)
         )
         # for checking: log all initialized parameters
         log_initialized_parameters(self)
@@ -136,15 +140,19 @@ class MainboardController(Node):
         vy: float = msg.twist.linear.y
         wz: float = msg.twist.angular.z
         tp: float = msg.thrower_percent
+        servo_speed: int = msg.servo_speed
         thrower_percent = max(0, min(100, tp))  # clip to [0, 100]
+        servo_speed = max(0, min(20000, servo_speed))  # clip to [0, 20000]
         self.get_logger().info(
-            f"vx: {vx:.2f}, vy: {vy:.2f}, wz: {wz:.2f}, tp: {thrower_percent:.2f}"
+            f"vx: {vx:.2f}, vy: {vy:.2f}, wz: {wz:.2f}, "
+            + f"tp: {thrower_percent:.2f}, servo_speed: {servo_speed}"
         )
         feedback: Optional[FeedbackSerial] = self.controller_kin.move(
             x_speed=vx,
             y_speed=vy,
             rot_speed=wz,
             thrower_speed_percent=thrower_percent,
+            servo1=servo_speed,
             read_feedback=True,
         )
 
@@ -161,6 +169,10 @@ class MainboardController(Node):
             wheel_msg.pos2 = feedback.pos2
             wheel_msg.pos3 = feedback.pos3
             self.wheel_pos_pub.publish(wheel_msg)
+
+            sensor_status_msg = Bool()
+            sensor_status_msg.data = feedback.sensors > 0
+            self.sensor_status_pub.publish(sensor_status_msg)
 
         return
 
