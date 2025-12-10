@@ -148,19 +148,13 @@ class PeripheralManager:
         assert self._odom_msg is not None, "Odometry message is not available."
 
         pos = self._odom_msg.pose.pose.position
-        return (pos.x, pos.y)
+        return (pos.x * 1000, pos.y * 1000)  # convert to mm
 
     def get_robot_quat(self) -> Tuple[float, float, float, float]:
         assert self._odom_msg is not None, "Odometry message is not available."
 
         quat = self._odom_msg.pose.pose.orientation
         return (quat.x, quat.y, quat.z, quat.w)
-
-    def get_robot_velocity(self) -> Tuple[float, float]:
-        assert self._odom_msg is not None, "Odometry message is not available."
-
-        vel = self._odom_msg.twist.twist.linear
-        return (vel.x, vel.y)
 
     def get_odom_yaw(self) -> float:
         """Get robot yaw in degrees from odometry."""
@@ -310,8 +304,8 @@ class PeripheralManager:
         vx: float,
         vy: float,
         wz: float,
-        max_xy_speed: float,
-        max_rot_speed: float = 0.0,
+        max_xy_speed: Optional[float] = None,
+        max_rot_speed: Optional[float] = None,
     ) -> None:
         """Send normalized velocity commands to the robot. vx, vy in m/s, wz in rad/s."""
         self.move_robot_adv(
@@ -332,18 +326,19 @@ class PeripheralManager:
         wz: float,
         thrower_percent: float,
         servo_speed: int,
-        max_xy_speed: float,
-        max_rot_speed: float,
         normalize: bool = False,
+        max_xy_speed: Optional[float] = None,
+        max_rot_speed: Optional[float] = None,
     ) -> None:
         """Send velocity commands to the robot. vx, vy in m/s, wz in rad/s."""
-        if normalize:
+        if normalize and max_xy_speed is not None:
             vx, vy = normalize_velocity(vx, vy, max_xy_speed)
-        else:
+        elif max_xy_speed is not None:
             vx = np.clip(vx, -max_xy_speed, max_xy_speed)
             vy = np.clip(vy, -max_xy_speed, max_xy_speed)
 
-        wz = np.clip(wz, -max_rot_speed, max_rot_speed)
+        if max_rot_speed is not None:
+            wz = np.clip(wz, -max_rot_speed, max_rot_speed)
         thrower_percent = np.clip(thrower_percent, 0, 100)
         servo_speed = int(np.clip(servo_speed, 0, 20000))
 

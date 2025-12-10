@@ -25,14 +25,15 @@ class BaseHandler:
         self.start_yaw: Optional[float] = None  # yaw at the start of the handler
         self.previous_yaw: Optional[float] = None  # yaw in the previous control loop
         self.start_pose: Optional[np.ndarray] = None  # size (4x4)
+        self.start_position: Optional[Tuple[float, float]] = None  # size (2,)
         self.cummulative_yaw_change: float = 0.0  # total yaw change since start
         # target cummulative yaw change for turning actions
         self.target_cummulative_yaw_change: Optional[float] = None
         # a list of transformation matrice of target pose, size (4x4)
         # note: sampling multiple target poses to force robot rollow a straight line
-        self.target_poses: Optional[List[np.ndarray]] = None
-        self.num_completed_poses: int = 0
-
+        self.target_pose: Optional[np.ndarray] = None
+        self.offset_x_mm: Optional[float] = None
+        self.offset_y_mm: Optional[float] = None
         # internal variables for discrete turn handling
         self.turn_discrete_new_cycle_start_time: Optional[float] = None
         self.turn_discrete_stop_timestamp: Optional[float] = None
@@ -40,11 +41,7 @@ class BaseHandler:
         self.finished_discrete_turns: int = 0
 
         # pid control variables
-        self.prev_vx_error: float = 0.0
-        self.prev_vy_error: float = 0.0
         self.prev_wz_error: float = 0.0
-        self.cumm_vx_error: float = 0.0
-        self.cumm_vy_error: float = 0.0
         self.cumm_wz_error: float = 0.0
 
         self.timeout: float = 10.0  # maximum allowed time for the handler
@@ -74,22 +71,13 @@ class BaseHandler:
         # set target variables
         self.target_cummulative_yaw_change = angle_deg
         if action == BaseAction.MOVE_XY:
-            # sampling multiple target poses along the path to ensure straight line movement
-            num_samples = max(
-                1,
-                math.ceil(
-                    math.hypot(offset_x_mm, offset_y_mm)
-                    / Parameters.BASA_MOVE_XX_PACE_TRAJECTORY_SAMPLING_MM
-                ),
-            )
-            self.target_poses = []
-            for i in range(1, num_samples + 1):
-                t_offset = np.eye(4)
-                t_offset[0:2, 3] = [
-                    offset_x_mm * i / num_samples,
-                    offset_y_mm * i / num_samples,
-                ]
-                self.target_poses.append(self.start_pose @ t_offset)
+            t_offset = np.eye(4)
+            t_offset[0:2, 3] = [offset_x_mm, offset_y_mm]
+            self.target_pose = self.start_pose @ t_offset
+            self.offset_x_mm = offset_x_mm
+            self.offset_y_mm = offset_y_mm
+
+        self.start_position = self.peripheral_manager.get_robot_odom_position()
 
         # set internal variables for discrete turn handling
         if action == BaseAction.TURN_DISCRETE and angle_deg is not None:
@@ -105,21 +93,19 @@ class BaseHandler:
         self.start_yaw = None
         self.previous_yaw = None
         self.start_pose = None
+        self.start_position = None
         self.cummulative_yaw_change = 0.0
         # reset target variables
         self.target_cummulative_yaw_change = None
-        self.target_poses = None
-        self.num_completed_poses = 0
+        self.target_pose = None
+        self.offset_x_mm = None
+        self.offset_y_mm = None
         # reset internal variables for discrete turn handling
         self.num_discrete_turns = None
         self.finished_discrete_turns = 0
         self.turn_discrete_stop_timestamp = None
         # reset pid's variables
-        self.prev_vx_error: float = 0.0
-        self.prev_vy_error: float = 0.0
         self.prev_wz_error: float = 0.0
-        self.cumm_vx_error: float = 0.0
-        self.cumm_vy_error: float = 0.0
         self.cumm_wz_error: float = 0.0
 
         self.timeout = 10.0
@@ -134,29 +120,31 @@ class BaseHandler:
         assert (
             self.start_time is not None
             and self.start_pose is not None
-            and self.target_poses is not None
+            and self.target_pose is not None
+            and self.start_position is not None
         ), "Handler not initialized."
+        assert self.offset_x_mm is not None and self.offset_y_mm is not None, "Offsets not set."
+
         t_ro = self.peripheral_manager.get_odom_to_robot_transform(include_z=True)
         # handle multiple target poses for better straight line following
 
-        target_pose = self.target_poses[self.num_completed_poses]
-        t_error = t_ro @ target_pose  # target w.r.t. robot frame
+        t_error = t_ro @ self.target_pose  # target w.r.t. robot frame
         if np.linalg.norm(t_error[:2, 3]) <= abs(distance_threshold_mm):
-            self.num_completed_poses += 1
-            if self.num_completed_poses >= len(self.target_poses):
-                return RetCode.SUCCESS
-            else:
-                target_pose = self.target_poses[self.num_completed_poses]
-                t_error = t_ro @ target_pose  # target w.r.t. robot frame
+            return RetCode.SUCCESS
 
-        (vx, vy, wz) = self.compute_control_signals(
-            t_error, Parameters.BASE_PID_LINEAR, Parameters.BASE_PID_ANGULAR
+        distance_moved_mm = np.linalg.norm(
+            np.array(self.peripheral_manager.get_robot_odom_position())
+            - np.array(self.start_position)
         )
+        if distance_moved_mm >= np.linalg.norm([np.array([self.offset_x_mm, self.offset_y_mm])]):
+            return RetCode.SUCCESS
+
+        (vx, vy, wz) = self.compute_control_signals(t_error, Parameters.BASE_PID_ANGULAR)
         if warm_start:
             vx, vy = self.warm_up_linear_speed(vx, vy, ramp_duration)
             wz = self.warm_up_turn_speed(wz, ramp_duration)
-        print(f"Moving with vx: {vx:.2f} m/s, vy: {vy:.2f} m/s")
-        self.peripheral_manager.move_robot_normalized(vx, vy, wz, max_speed, max_speed)
+        print(f"Moving with vx: {vx:.2f} m/s, vy: {vy:.2f} m/s, wz: {wz:.2f} rad/s")
+        self.peripheral_manager.move_robot_normalized(vx, vy, wz, max_xy_speed=max_speed)
 
         if time() - self.start_time >= self.timeout:
             return RetCode.TIMEOUT
@@ -276,10 +264,7 @@ class BaseHandler:
         )
 
     def compute_control_signals(
-        self,
-        x_la_target: np.ndarray,
-        linear_pid: Tuple[float, float, float],
-        angular_pid: Tuple[float, float, float],
+        self, x_la_target: np.ndarray, angular_gains: Tuple[float, float, float]
     ) -> Tuple[float, float, float]:
         """Compute control signals (vx, vy, wz) using PID control.
         Inputs:
@@ -290,37 +275,20 @@ class BaseHandler:
         assert x_la_target.shape == (4, 4), "look-ahead_T_target must be a 4x4 matrix."
 
         # z always 0 for planar movement, no need to convert
-        x_la_target[0, 3] /= 1000.0  # convert mm to m
-        x_la_target[1, 3] /= 1000.0  # convert mm to m
-        xe_log = mr.MatrixLog6(x_la_target)
-        xe_vec = mr.se3ToVec(xe_log)
-        vx_error = xe_vec[3]  # velocity error in x
-        vy_error = xe_vec[4]  # velocity error in y
-        wz_error = xe_vec[2]  # angular velocity error in z
+        r11 = x_la_target[0, 0]
+        r21 = x_la_target[1, 0]
+        wz_error = math.atan2(r21, r11)  # yaw error
 
-        kp_xy, ki_xy, kd_xy = linear_pid
-        kp_rz, ki_rz, kd_rz = angular_pid
+        kp_rz, ki_rz, kd_rz = angular_gains
 
-        vx = (
-            kp_xy * vx_error
-            + kd_xy * (vx_error - self.prev_vx_error) * self.maneuver_rate
-            + ki_xy * self.cumm_vx_error
-        )
-        vy = (
-            kp_xy * vy_error
-            + kd_xy * (vy_error - self.prev_vy_error) * self.maneuver_rate
-            + ki_xy * self.cumm_vy_error
-        )
+        vx = Parameters.BASE_MOVE_XY_MAX_SPEED * math.sin(-wz_error) * 1.5
+        vy = Parameters.BASE_MOVE_XY_MAX_SPEED * math.cos(+wz_error)
         wz = (
             kp_rz * wz_error
             + kd_rz * (wz_error - self.prev_wz_error) * self.maneuver_rate
             + ki_rz * self.cumm_wz_error
         )
 
-        self.prev_vx_error = vx_error
-        self.prev_vy_error = vy_error
         self.prev_wz_error = wz_error
-        self.cumm_vx_error += vx_error / self.maneuver_rate
-        self.cumm_vy_error += vy_error / self.maneuver_rate
         self.cumm_wz_error += wz_error / self.maneuver_rate
         return vx, vy, wz

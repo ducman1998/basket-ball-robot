@@ -11,12 +11,10 @@ class Parameters:
     BASE_CONTINUOUS_TURN_SPEED: Final[float] = 1.25  # rad/s
     BASE_DISCRETE_TURN_SPEED: Final[float] = 5.0  # rad/s
     BASE_DISCRETE_TURN_STOP_DURATION: Final[float] = 0.5  # seconds
-    BASE_MOVE_XY_MAX_SPEED: Final[float] = 4.0  # m/s
-    BASE_MOVE_XY_DIS_THRESHOLD_MM: Final[float] = 40.0  # mm
-    BASA_MOVE_XX_PACE_TRAJECTORY_SAMPLING_MM: Final[float] = 500.0  # mm
+    BASE_MOVE_XY_MAX_SPEED: Final[float] = 2.0  # m/s
+    BASE_MOVE_XY_DIS_THRESHOLD_MM: Final[float] = 2.0  # mm
     # PID parameters: [Kp, Ki, Kd] for forward, sideway, angular movements
-    BASE_PID_LINEAR: Final[list[float]] = [1.5, 0.001, 0.1]
-    BASE_PID_ANGULAR: Final[list[float]] = [2.0, 0.001, 0.1]
+    BASE_PID_ANGULAR: Final[list[float]] = [20.0, 0.0, 0.01]
 
     # 2. parameters for manipulation handlers
     MANI_APPROACH_WARMUP_ENABLED: Final[bool] = True
