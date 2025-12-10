@@ -46,7 +46,7 @@ class GameLogicController(BaseGameLogicController):
     def game_logic_loop(self) -> None:
         """Main game logic loop, called periodically by a timer."""
         start_time = time()
-        self.print_current_state()
+        # self.print_current_state()
 
         # If game is not active (referee hasn't started or has stopped), don't execute game logic
         if not self.is_game_started and not DEV_MODE:
@@ -64,13 +64,16 @@ class GameLogicController(BaseGameLogicController):
                     self.periph_manager.set_target_basket_color(self.opponent_basket_color)
                     self.transition_to(GameState.TAKE_ACTION)
                     self.base_handler.initialize(
-                        BaseAction.MOVE_FORWARD, distance=1000.0, timeout=10.0
+                        BaseAction.MOVE_XY,
+                        offset_x_mm=0,
+                        offset_y_mm=2000,
+                        timeout=30.0,
                     )
 
             case GameState.TAKE_ACTION:
-                ret = self.base_handler.move_robot_forward()
+                ret = self.base_handler.move_robot_xy()
                 if ret == RetCode.SUCCESS:
-                    self.get_logger().info("Successfully moved forward 1 meter.")
+                    self.get_logger().info("Successfully moved.")
                     self.transition_to(GameState.STOP)
                 elif ret == RetCode.TIMEOUT:
                     self.get_logger().warn("Timeout while moving forward.")
@@ -83,7 +86,7 @@ class GameLogicController(BaseGameLogicController):
                 raise RuntimeError("Unknown game state!")
 
         end_time = time()
-        self.get_logger().info(f"Game logic loop took {end_time - start_time:.4f} seconds.")
+        # self.get_logger().info(f"Game logic loop took {end_time - start_time:.4f} seconds.")
 
     # TODO: implement state transition handlers here
     def can_transition_to_move(self) -> bool:
@@ -102,6 +105,18 @@ class GameLogicController(BaseGameLogicController):
         self.pre_state = self.cur_state
         self.cur_state = new_state
         self.get_logger().info(f"Transitioning from {cur_state_name} to {new_state_name}.")
+
+    def print_current_state(self) -> None:
+        """Log the current state and relevant information."""
+        state_name = GameState.get_name(self.cur_state)
+        if not self.referee_client.is_connected():
+            status = "DISCONNECTED"
+        else:
+            status = "STARTED" if self.is_game_started else "INACTIVE"
+        self.get_logger().info(
+            f"Cur State: {state_name} | Ref Status: {status}"
+            + f" | Color: {self.opponent_basket_color}"
+        )
 
 
 def main() -> None:

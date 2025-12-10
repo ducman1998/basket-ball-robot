@@ -4,16 +4,19 @@ from typing import Final
 class Parameters:
     # 1. parameters for odometry-based movement handlers
     BASE_TURN_WARMUP_ENABLED: Final[bool] = True
-    BASE_MOVE_FORWARD_WARMUP_ENABLED: Final[bool] = True
-    BASE_MOVE_SIDEWAY_WARMUP_ENABLED: Final[bool] = True
+    BASE_MOVE_XY_WARMUP_ENABLED: Final[bool] = True
     BASE_WARMUP_RAMP_DURATION: Final[float] = 0.5  # seconds
-    BASE_DISCRETE_WARMUP_RAMP_DURATION: Final[float] = 0.5  # seconds
-    BASE_DISCRETE_TURN_SUB_ANGLE_DEG: Final[float] = 60.0  # degrees
-    BASE_CONTINUOUS_TURN_SPEED: Final[float] = 1.0  # rad/s
-    BASE_DISCRETE_TURN_SPEED: Final[float] = 4.0  # rad/s
-    BASE_DISCRETE_TURN_STOP_DURATION: Final[float] = 1  # seconds
-    BASE_MOVE_SIDEWAY_SPEED: Final[float] = 1.0  # m/s
-    BASE_MOVE_FORWARD_SPEED: Final[float] = 1.0  # m/s
+    BASE_DISCRETE_WARMUP_RAMP_DURATION: Final[float] = 0.25  # seconds
+    BASE_DISCRETE_TURN_SUB_ANGLE_DEG: Final[float] = 30.0  # degrees
+    BASE_CONTINUOUS_TURN_SPEED: Final[float] = 1.25  # rad/s
+    BASE_DISCRETE_TURN_SPEED: Final[float] = 5.0  # rad/s
+    BASE_DISCRETE_TURN_STOP_DURATION: Final[float] = 0.5  # seconds
+    BASE_MOVE_XY_MAX_SPEED: Final[float] = 4.0  # m/s
+    BASE_MOVE_XY_DIS_THRESHOLD_MM: Final[float] = 40.0  # mm
+    BASA_MOVE_XX_PACE_TRAJECTORY_SAMPLING_MM: Final[float] = 500.0  # mm
+    # PID parameters: [Kp, Ki, Kd] for forward, sideway, angular movements
+    BASE_PID_LINEAR: Final[list[float]] = [1.5, 0.001, 0.1]
+    BASE_PID_ANGULAR: Final[list[float]] = [2.0, 0.001, 0.1]
 
     # 2. parameters for manipulation handlers
     MANI_APPROACH_WARMUP_ENABLED: Final[bool] = True

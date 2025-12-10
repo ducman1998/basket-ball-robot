@@ -2,10 +2,9 @@ from enum import IntEnum
 
 
 class BaseAction(IntEnum):
-    MOVE_FORWARD = 0
-    MOVE_SIDEWAY = 1
-    TURN_CONTINUOUS = 2
-    TURN_DISCRETE = 3
+    MOVE_XY = 0
+    TURN_CONTINUOUS = 1
+    TURN_DISCRETE = 2
 
 
 class ManipulationAction(IntEnum):

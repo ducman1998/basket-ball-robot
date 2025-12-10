@@ -10,13 +10,13 @@
     motor_01: [240.0, 150.0] # [beta, alpha] in degrees
     motor_02: [0.0, 270.0]
     motor_03: [120.0, 30.0]
-    wheel_radius: 0.035  # meters
+    wheel_radius: 0.036  # meters
     center_to_wheel_dis: 0.135   # meters  # distance from center to wheel
     gear_ratio: 18.75            # wheel to motor ratio
     encoder_resolution: 64       # ticks per motor shaft revolution
     pid_control_freq: 100         # Hz
-    max_rot_speed: 2.0    # rad/s
-    max_xy_speed: 1.0      # m/s # max linear speed in x and y direction
+    max_rot_speed: 5.0    # rad/s
+    max_xy_speed: 3.0      # m/s # max linear speed in x and y direction
     baudrate: 115200
     polarity: 1  # set to -1 if motors spin in reverse
     serial_timeout: 0.05  # seconds

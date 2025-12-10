@@ -5,7 +5,7 @@ from typing import Deque, List, Optional, Tuple, Union, cast
 
 import numpy as np
 from basket_robot_nodes.utils.constants import QOS_DEPTH
-from basket_robot_nodes.utils.game_utils import normalize_velocity
+from basket_robot_nodes.utils.number_utils import normalize_velocity
 from basket_robot_nodes.utils.image_info import Basket, GreenBall, ImageInfo, Marker
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
@@ -305,6 +305,26 @@ class PeripheralManager:
             normalize=False,
         )
 
+    def move_robot_normalized(
+        self,
+        vx: float,
+        vy: float,
+        wz: float,
+        max_xy_speed: float,
+        max_rot_speed: float = 0.0,
+    ) -> None:
+        """Send normalized velocity commands to the robot. vx, vy in m/s, wz in rad/s."""
+        self.move_robot_adv(
+            vx,
+            vy,
+            wz,
+            thrower_percent=0.0,
+            servo_speed=0,
+            max_xy_speed=max_xy_speed,
+            max_rot_speed=max_rot_speed,
+            normalize=True,
+        )
+
     def move_robot_adv(
         self,
         vx: float,
@@ -376,8 +396,11 @@ class PeripheralManager:
         closest_ball = min(balls, key=lambda b: b.position_2d[0] ** 2 + b.position_2d[1] ** 2)
         return closest_ball
 
-    def get_robot_to_odom_transform(self) -> np.ndarray:
-        """Get the transformation matrix from robot frame to odometry frame (trans in mm)."""
+    def get_robot_to_odom_transform(self, include_z: bool = False) -> np.ndarray:
+        """
+        Get the transformation matrix from robot frame to odometry frame (trans in mm).
+        If include_z is True, returns a 4x4 matrix; else returns a 3x3 matrix.
+        """
         assert self._odom_msg is not None, "Odometry message is not available."
 
         pos = self._odom_msg.pose.pose.position
@@ -389,19 +412,32 @@ class PeripheralManager:
         # Construct transformation matrix
         cos_yaw = math.cos(yaw_rad)
         sin_yaw = math.sin(yaw_rad)
+        if include_z:
+            transform = np.array(
+                [
+                    [cos_yaw, -sin_yaw, 0, pos.x * 1000],
+                    [sin_yaw, cos_yaw, 0, pos.y * 1000],
+                    [0, 0, 1, 0],
+                    [0, 0, 0, 1],
+                ]
+            )
 
-        transform = np.array(
-            [
-                [cos_yaw, -sin_yaw, pos.x * 1000],
-                [sin_yaw, cos_yaw, pos.y * 1000],
-                [0, 0, 1],
-            ]
-        )
+        else:
+            transform = np.array(
+                [
+                    [cos_yaw, -sin_yaw, pos.x * 1000],
+                    [sin_yaw, cos_yaw, pos.y * 1000],
+                    [0, 0, 1],
+                ]
+            )
         return transform
 
-    def get_odom_to_robot_transform(self) -> np.ndarray:
-        """Get the transformation matrix from odometry frame to robot frame (trans in mm)."""
-        robot_to_odom = self.get_robot_to_odom_transform()
+    def get_odom_to_robot_transform(self, include_z: False) -> np.ndarray:
+        """
+        Get the transformation matrix from odometry frame to robot frame (trans in mm).
+        If include_z is True, returns a 4x4 matrix; else returns a 3x3 matrix.
+        """
+        robot_to_odom = self.get_robot_to_odom_transform(include_z)
         odom_to_robot = np.linalg.inv(robot_to_odom)
         return odom_to_robot
 
