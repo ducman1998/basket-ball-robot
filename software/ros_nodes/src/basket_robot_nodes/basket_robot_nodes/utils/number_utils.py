@@ -82,18 +82,14 @@ def warm_up_angular(wz: float, start_time: float, ramp_duration: float = 0.5) ->
     return float(wz)
 
 
-class FrameStabilityCounter:
-    def __init__(self, threshold: int) -> None:
-        self.threshold = threshold
-        self.count = 0
-
-    def update(self, condition: bool) -> bool:
-        """Returns True once condition has been True for `threshold` consecutive frames."""
-        if condition:
-            self.count += 1
-            if self.count >= self.threshold:
-                self.count = 0
-                return True
-        else:
-            self.count = 0
-        return False
+def get_rotation_matrix(theta_rad: float) -> np.ndarray:
+    """
+    Generate a 2D rotation matrix for a given angle in radians.
+    Inputs:
+        theta_rad: rotation angle in radians
+    Returns:
+        2x2 numpy array representing the rotation matrix
+    """
+    cos_theta = np.cos(theta_rad)
+    sin_theta = np.sin(theta_rad)
+    return np.array([[cos_theta, -sin_theta], [sin_theta, cos_theta]])

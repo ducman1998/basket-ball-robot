@@ -1,9 +1,8 @@
 import math
-import numpy as np
-import modern_robotics as mr
 from time import time
-from typing import Optional, Tuple, Union, cast, List
+from typing import Optional, Tuple, Union, cast
 
+import numpy as np
 from basket_robot_nodes.state_handlers.actions import BaseAction
 from basket_robot_nodes.state_handlers.parameters import Parameters
 from basket_robot_nodes.state_handlers.ret_code import RetCode
@@ -21,6 +20,7 @@ class BaseHandler:
     def __init__(self, peripheral_manager: PeripheralManager, maneuver_rate: int = 60) -> None:
         self.peripheral_manager = peripheral_manager
         self.maneuver_rate = maneuver_rate  # control loop rate for manipulation tasks
+        # general state variables
         self.start_time: Optional[float] = None  # time when the handler is initialized
         self.start_yaw: Optional[float] = None  # yaw at the start of the handler
         self.previous_yaw: Optional[float] = None  # yaw in the previous control loop
@@ -32,8 +32,7 @@ class BaseHandler:
         # a list of transformation matrice of target pose, size (4x4)
         # note: sampling multiple target poses to force robot rollow a straight line
         self.target_pose: Optional[np.ndarray] = None
-        self.offset_x_mm: Optional[float] = None
-        self.offset_y_mm: Optional[float] = None
+        self.target_distance_mm: Optional[float] = None  # in mm, for MOVE_XY action
         # internal variables for discrete turn handling
         self.turn_discrete_new_cycle_start_time: Optional[float] = None
         self.turn_discrete_stop_timestamp: Optional[float] = None
@@ -74,8 +73,8 @@ class BaseHandler:
             t_offset = np.eye(4)
             t_offset[0:2, 3] = [offset_x_mm, offset_y_mm]
             self.target_pose = self.start_pose @ t_offset
-            self.offset_x_mm = offset_x_mm
-            self.offset_y_mm = offset_y_mm
+            assert offset_x_mm is not None and offset_y_mm is not None, "Offsets cannot be None."
+            self.target_distance_mm = math.sqrt(offset_x_mm**2 + offset_y_mm**2)
 
         self.start_position = self.peripheral_manager.get_robot_odom_position()
 
@@ -98,15 +97,14 @@ class BaseHandler:
         # reset target variables
         self.target_cummulative_yaw_change = None
         self.target_pose = None
-        self.offset_x_mm = None
-        self.offset_y_mm = None
+        self.target_distance_mm = None
         # reset internal variables for discrete turn handling
         self.num_discrete_turns = None
         self.finished_discrete_turns = 0
         self.turn_discrete_stop_timestamp = None
         # reset pid's variables
-        self.prev_wz_error: float = 0.0
-        self.cumm_wz_error: float = 0.0
+        self.prev_wz_error = 0.0
+        self.cumm_wz_error = 0.0
 
         self.timeout = 10.0
 
@@ -117,13 +115,14 @@ class BaseHandler:
         warm_start: bool = Parameters.BASE_MOVE_XY_WARMUP_ENABLED,
         ramp_duration: float = Parameters.BASE_WARMUP_RAMP_DURATION,
     ) -> RetCode:
+        """Perform xy movement action."""
         assert (
             self.start_time is not None
             and self.start_pose is not None
             and self.target_pose is not None
             and self.start_position is not None
         ), "Handler not initialized."
-        assert self.offset_x_mm is not None and self.offset_y_mm is not None, "Offsets not set."
+        assert self.target_distance_mm is not None, "Target distance not set."
 
         t_ro = self.peripheral_manager.get_odom_to_robot_transform(include_z=True)
         # handle multiple target poses for better straight line following
@@ -136,10 +135,10 @@ class BaseHandler:
             np.array(self.peripheral_manager.get_robot_odom_position())
             - np.array(self.start_position)
         )
-        if distance_moved_mm >= np.linalg.norm([np.array([self.offset_x_mm, self.offset_y_mm])]):
+        if distance_moved_mm >= self.target_distance_mm:
             return RetCode.SUCCESS
 
-        (vx, vy, wz) = self.compute_control_signals(t_error, Parameters.BASE_PID_ANGULAR)
+        (vx, vy, wz) = self.compute_control_signals(t_error)
         if warm_start:
             vx, vy = self.warm_up_linear_speed(vx, vy, ramp_duration)
             wz = self.warm_up_turn_speed(wz, ramp_duration)
@@ -157,6 +156,7 @@ class BaseHandler:
         warm_start: bool = Parameters.BASE_TURN_WARMUP_ENABLED,
         ramp_duration: float = Parameters.BASE_WARMUP_RAMP_DURATION,
     ) -> RetCode:
+        """Perform continuous turning action."""
         assert self.start_time is not None, "Handler not initialized."
         assert (
             self.start_yaw is not None and self.previous_yaw is not None
@@ -189,6 +189,7 @@ class BaseHandler:
         warm_start: bool = Parameters.BASE_TURN_WARMUP_ENABLED,
         ramp_duration: float = Parameters.BASE_DISCRETE_WARMUP_RAMP_DURATION,
     ) -> RetCode:
+        """Perform discrete turning action."""
         assert self.start_time is not None, "Handler not initialized."
         assert (
             self.start_yaw is not None and self.previous_yaw is not None
@@ -243,6 +244,7 @@ class BaseHandler:
     def warm_up_linear_speed(
         self, vx: float, vy: float, ramp_duration: float = 0.5
     ) -> Tuple[float, float]:
+        """Warm up linear speed for xy movement action."""
         assert self.start_time is not None, "Handler not initialized."
         return cast(
             Tuple[float, float],
@@ -250,6 +252,7 @@ class BaseHandler:
         )
 
     def warm_up_turn_speed(self, wz: float, ramp_duration: float = 0.5) -> float:
+        """Warm up turn speed for continuous turning action."""
         assert self.start_time is not None, "Handler not initialized."
         return cast(
             float,
@@ -257,15 +260,14 @@ class BaseHandler:
         )
 
     def warm_up_discrete_turn_speed(self, wz: float, ramp_duration: float = 0.25) -> float:
+        """Warm up turn speed for discrete turning action."""
         assert self.turn_discrete_new_cycle_start_time is not None, "Discrete turn not initialized."
         return cast(
             float,
             warm_up_angular(wz, self.turn_discrete_new_cycle_start_time, ramp_duration),
         )
 
-    def compute_control_signals(
-        self, x_la_target: np.ndarray, angular_gains: Tuple[float, float, float]
-    ) -> Tuple[float, float, float]:
+    def compute_control_signals(self, x_la_target: np.ndarray) -> Tuple[float, float, float]:
         """Compute control signals (vx, vy, wz) using PID control.
         Inputs:
             x_la_target: target pose w.r.t. robot's look-ahead frame (4x4 numpy array)
@@ -279,14 +281,15 @@ class BaseHandler:
         r21 = x_la_target[1, 0]
         wz_error = math.atan2(r21, r11)  # yaw error
 
-        kp_rz, ki_rz, kd_rz = angular_gains
+        kp_wz, ki_wz, kd_wz = Parameters.BASE_PID_ANGULAR
 
-        vx = Parameters.BASE_MOVE_XY_MAX_SPEED * math.sin(-wz_error) * 1.5
+        # TODO: experiment with different vx, vy control strategies
+        vx = Parameters.BASE_MOVE_XY_MAX_SPEED * math.sin(-wz_error) * 1.25
         vy = Parameters.BASE_MOVE_XY_MAX_SPEED * math.cos(+wz_error)
         wz = (
-            kp_rz * wz_error
-            + kd_rz * (wz_error - self.prev_wz_error) * self.maneuver_rate
-            + ki_rz * self.cumm_wz_error
+            kp_wz * wz_error
+            + kd_wz * (wz_error - self.prev_wz_error) * self.maneuver_rate
+            + ki_wz * self.cumm_wz_error
         )
 
         self.prev_wz_error = wz_error

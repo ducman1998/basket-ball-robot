@@ -8,8 +8,9 @@ class BaseAction(IntEnum):
 
 
 class ManipulationAction(IntEnum):
-    APPROACH_BALL = 0
-    APPROACH_BASKET = 1
+    ALIGN_BALL = 0
+    ALIGN_BASKET = 1
     GRAB_BALL = 2
-    ALIGN_BASKET = 3
+    ALIGN_BASKET_WBALL = 3
     THROW_BALL = 4
+    CLEAR_STUCK_BALL = 5

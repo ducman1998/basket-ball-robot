@@ -1,12 +1,12 @@
 import math
 from collections import deque
 from time import time
-from typing import Deque, List, Optional, Tuple, Union, cast
+from typing import Deque, List, Literal, Optional, Tuple, Union, cast
 
 import numpy as np
 from basket_robot_nodes.utils.constants import QOS_DEPTH
-from basket_robot_nodes.utils.number_utils import normalize_velocity
 from basket_robot_nodes.utils.image_info import Basket, GreenBall, ImageInfo, Marker
+from basket_robot_nodes.utils.number_utils import normalize_velocity
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
@@ -62,6 +62,9 @@ class PeripheralManager:
         # internal variables
         self.target_basket_color: Optional[str] = None  # either "magenta" or "blue"
         self.latest_target_basket_pos_odom: Optional[Tuple[float, float]] = None  # in mm
+        self.latest_target_basket_timestamp: float = 0.0
+        self.latest_opponent_basket_pos_odom: Optional[Tuple[float, float]] = None  # in mm
+        self.latest_opponent_basket_timestamp: float = 0.0
 
         node.get_logger().info("PeripheralManager initialized.")
 
@@ -82,10 +85,19 @@ class PeripheralManager:
 
         self.target_basket_color = None
         self.latest_target_basket_pos_odom = None
+        self.latest_target_basket_timestamp = 0.0
+        self.latest_opponent_basket_pos_odom = None
+        self.latest_opponent_basket_timestamp = 0.0
 
     def set_target_basket_color(self, color: str) -> None:
         """Set the target basket color."""
         self.target_basket_color = color
+
+    def get_target_basket_color(self) -> str:
+        """Get the target basket color."""
+        assert self.target_basket_color is not None, "Target basket color is not set."
+
+        return self.target_basket_color
 
     # ==================== Callback Methods ====================
     def _odom_callback(self, msg: Odometry) -> None:
@@ -119,6 +131,12 @@ class PeripheralManager:
                 # store latest target basket position in odom frame
                 pos_robot_mm = image_info.basket.position_2d  # (x, y) in robot frame (mm)
                 self.latest_target_basket_pos_odom = self.robot_to_odom_coords(pos_robot_mm)
+                self.latest_target_basket_timestamp = ts
+
+            else:  # another/opponent's basket
+                pos_robot_mm = image_info.basket.position_2d  # (x, y) in robot frame (mm)
+                self.latest_opponent_basket_pos_odom = self.robot_to_odom_coords(pos_robot_mm)
+                self.latest_opponent_basket_timestamp = ts
 
         self._last_image_info_time = ts
 
@@ -299,6 +317,19 @@ class PeripheralManager:
             normalize=False,
         )
 
+    def move_robot_wthrower(self, vx: float, vy: float, wz: float, thrower_percent: float) -> None:
+        """Send velocity commands to the robot with thrower speed. vx, vy in m/s, wz in rad/s."""
+        self.move_robot_adv(
+            vx,
+            vy,
+            wz,
+            thrower_percent=thrower_percent,
+            servo_speed=0,
+            max_xy_speed=float("inf"),
+            max_rot_speed=float("inf"),
+            normalize=False,
+        )
+
     def move_robot_normalized(
         self,
         vx: float,
@@ -391,6 +422,13 @@ class PeripheralManager:
         closest_ball = min(balls, key=lambda b: b.position_2d[0] ** 2 + b.position_2d[1] ** 2)
         return closest_ball
 
+    def get_closest_ball_position(self) -> Optional[Tuple[float, float]]:
+        """Get the position_2d of the closest detected ball (unit: mm in robot frame)"""
+        closest_ball = self.get_closest_ball()
+        if closest_ball is None:
+            return None
+        return cast(Tuple[float, float], closest_ball.position_2d)
+
     def get_robot_to_odom_transform(self, include_z: bool = False) -> np.ndarray:
         """
         Get the transformation matrix from robot frame to odometry frame (trans in mm).
@@ -427,7 +465,7 @@ class PeripheralManager:
             )
         return transform
 
-    def get_odom_to_robot_transform(self, include_z: False) -> np.ndarray:
+    def get_odom_to_robot_transform(self, include_z: Literal[False]) -> np.ndarray:
         """
         Get the transformation matrix from odometry frame to robot frame (trans in mm).
         If include_z is True, returns a 4x4 matrix; else returns a 3x3 matrix.
@@ -445,25 +483,52 @@ class PeripheralManager:
 
     def odom_to_robot_coords(self, pos_odom_mm: Tuple[float, float]) -> Tuple[float, float]:
         """Convert Odom frame to robot-base frame. Both input & output are in mm"""
-        t_ro = self.get_odom_to_robot_transform()  # translation in mm
+        t_ro = self.get_odom_to_robot_transform(False)  # translation in mm
         pos_robot_mm = t_ro @ np.array([pos_odom_mm[0], pos_odom_mm[1], 1.0])
         return (pos_robot_mm[0], pos_robot_mm[1])
 
-    def get_latest_target_basket_position_odom(self) -> Optional[Tuple[float, float]]:
-        """Get the latest known target basket position in odom frame (in mm)."""
+    def get_stored_target_basket_pos(
+        self, in_robot_frame: bool = False, max_age_s: float = 8.0
+    ) -> Optional[Tuple[float, float]]:
+        """Get the latest stored target basket position.
+        Inputs:
+            in_robot_frame: If True, return position in robot frame; else in odom frame.
+            max_age_s: Maximum age of the stored position to be considered valid.
+        Returns:
+            Tuple of (x, y) position in mm, or None if data is too old.
+        """
         assert (
             self.target_basket_color is not None
         ), "Target basket color is not set. Please call function 'set_target_basket_color' first."
 
-        return self.latest_target_basket_pos_odom
-
-    def get_latest_target_basket_position_robot(self) -> Optional[Tuple[float, float]]:
-        """Get the latest known target basket position in robot frame (in mm)."""
-        assert (
-            self.target_basket_color is not None
-        ), "Target basket color is not set. Please call function 'set_target_basket_color' first."
+        if time() - self.latest_target_basket_timestamp > max_age_s:
+            return None
 
         if self.latest_target_basket_pos_odom is None:
             return None
 
-        return self.odom_to_robot_coords(self.latest_target_basket_pos_odom)
+        if in_robot_frame:
+            return self.odom_to_robot_coords(self.latest_target_basket_pos_odom)
+        else:
+            return self.latest_target_basket_pos_odom
+
+    def get_stored_opponent_basket_pos(
+        self, in_robot_frame: bool = False, max_age_s: float = 8.0
+    ) -> Optional[Tuple[float, float]]:
+        """Get the latest stored opponent basket position.
+        Inputs:
+            in_robot_frame: If True, return position in robot frame; else in odom frame.
+            max_age_s: Maximum age of the stored position to be considered valid.
+        Returns:
+            Tuple of (x, y) position in mm, or None if data is too old.
+        """
+        if time() - self.latest_opponent_basket_timestamp > max_age_s:
+            return None
+
+        if self.latest_opponent_basket_pos_odom is None:
+            return None
+
+        if in_robot_frame:
+            return self.odom_to_robot_coords(self.latest_opponent_basket_pos_odom)
+        else:
+            return self.latest_opponent_basket_pos_odom

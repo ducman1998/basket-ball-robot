@@ -17,31 +17,38 @@ class Parameters:
     BASE_PID_ANGULAR: Final[list[float]] = [20.0, 0.0, 0.01]
 
     # 2. parameters for manipulation handlers
-    MANI_APPROACH_WARMUP_ENABLED: Final[bool] = True
-    MANI_GRAB_WARMUP_ENABLED: Final[bool] = True
-    MANI_ALIGN_WARMUP_ENABLED: Final[bool] = False
+    MANI_ALIGN_WARMUP_ENABLED: Final[bool] = True
     MANI_WARMUP_RAMP_DURATION: Final[float] = 0.5  # seconds
     ## 2.1. Maximum speeds for manipulation tasks
-    MANI_MAX_APPROACH_LINEAR_SPEED: Final[float] = 2  # m/s
-    MANI_MAX_APPROACH_ANGULAR_SPEED: Final[float] = 3.0  # rad/s
-    MANI_MAX_ALIGN_LINEAR_SPEED: Final[float] = 1.5  # m/s
-    MANI_MAX_ALIGN_ANGULAR_SPEED: Final[float] = 2.0  # rad/s
+    MANI_MAX_ALIGN_LINEAR_SPEED: Final[float] = 2.0  # m/s
+    MANI_MAX_ALIGN_ANGULAR_SPEED: Final[float] = 3.0  # rad/s
+    MANI_MAX_ALIGN_WBALL_LINEAR_SPEED: Final[float] = 1.5  # m/s
+    MANI_MAX_ALIGN_WBALL_ANGULAR_SPEED: Final[float] = 2.0  # rad/s
     MANI_MAX_THROW_LINEAR_SPEED: Final[float] = 1.0  # m/s
     MANI_MAX_THROW_ANGULAR_SPEED: Final[float] = 1.0  # rad/s
     ## 2.2. PID parameters for manipulation tasks
-    MANI_PID_LINEAR_APPROACH: Final[list[float]] = [1.5, 0.001, 0.1]  # [Kp, Ki, Kd]
-    MANI_PID_ANGULAR_APPROACH: Final[list[float]] = [2.0, 0.001, 0.1]  # [Kp, Ki, Kd]
-    MANI_PID_LINEAR_ALIGN_BASKET_COARSE: Final[list[float]] = [3.0, 0.000, 0.01]  # [Kp, Ki, Kd]
-    MANI_PID_ANGULAR_ALIGN_BASKET_COARSE: Final[list[float]] = [2.0, 0.000, 0.01]  # [Kp, Ki, Kd]
-    MANI_PID_LINEAR_ALIGN_BASKET_FINE: Final[list[float]] = [1.5, 0.000, 0.01]  # [Kp, Ki, Kd]
-    MANI_PID_ANGULAR_ALIGN_BASKET_FINE: Final[list[float]] = [1.5, 0.000, 0.01]  # [Kp, Ki, Kd]
+    MANI_PID_LINEAR_ALIGN: Final[list[float]] = [1.5, 0.001, 0.1]  # [Kp, Ki, Kd]
+    MANI_PID_ANGULAR_ALIGN: Final[list[float]] = [2.0, 0.001, 0.1]  # [Kp, Ki, Kd]
+    MANI_PID_LINEAR_ALIGN_WBALL_COARSE: Final[list[float]] = [3.0, 0.000, 0.01]  # [Kp, Ki, Kd]
+    MANI_PID_ANGULAR_ALIGN_WBALL_COARSE: Final[list[float]] = [2.0, 0.000, 0.01]  # [Kp, Ki, Kd]
+    MANI_PID_LINEAR_ALIGN_WBALL_FINE: Final[list[float]] = [1.5, 0.000, 0.01]  # [Kp, Ki, Kd]
+    MANI_PID_ANGULAR_ALIGN_WBALL_FINE: Final[list[float]] = [1.5, 0.000, 0.01]  # [Kp, Ki, Kd]
     MANI_PID_LINEAR_THROW_BALL: Final[list[float]] = [0.5, 0.0, 0.05]  # [Kp, Ki, Kd]
     MANI_PID_ANGULAR_THROW_BALL: Final[list[float]] = [1.0, 0.0, 0.1]  # [Kp, Ki, Kd]
+    ## 2.3. Specifict thresholds for aligning with ball
+    MANI_ALIGN_BALL_LOOKAHEAD_DIS_MM: Final[float] = 200.0  # mm
+    MANI_MAX_CONSECUTIVE_FRAMES_NO_BALL: Final[int] = 5
+    MANI_BALL_ALIGN_DIS_THRESHOLD_MM: Final[float] = 20.0  # mm
+    MANI_BALL_ALIGN_ANGLE_THRESHOLD_DEG: Final[float] = 3.0  # degrees
+    ## 2.5. Specific thresholds for aligning basket
+    MANI_MAX_CONSECUTIVE_FRAMES_NO_BASKET: Final[int] = 5
+    MANI_BASKET_ALIGN_ANGLE_THRESHOLD_DEG: Final[float] = 1.0  # degrees
+    MANI_STORED_BASKET_TIMEOUT: Final[float] = 10.0  # seconds
+    MANI_SEARCH_BASKET_ANGULAR_SPEED: Final[float] = 1.0  # rad/s
+    ## 2.4. Specific thresholds for grabbing ball
+    MANI_GRAB_BALL_Y_SPEED: Final[float] = 0.5  # m/s
+    MANI_GRAB_BALL_SERVO_SPEED: Final[int] = 3000  # servo speed for grabbing
+    ## 2.5. Specific thresholds for aligning basket with ball
 
-    # # linear & rotational PID parameters: [Kp, Ki, Kd]
-    # PID_LINEAR_COMMON = [1.5, 0.001, 0.1]
-    # PID_ANGULAR_COMMON = [2.0, 0.001, 0.1]
-    # PID_LINEAR_ALIGN_BASKET = [3.0, 0.000, 0.01]
-    # PID_ANGULAR_ALIGN_BASKET = [2.0, 0.000, 0.01]
-    # PID_LINEAR_THROW_BALL = [0.5, 0.0, 0.05]
-    # PID_ANGULAR_THROW_BALL = [1.0, 0.0, 0.1]
+    ## 2.6. Specific parameters for throwing ball
+    MANI_THROW_BALL_SERVO_SPEED: Final[int] = 4000  # servo speed for throwing
