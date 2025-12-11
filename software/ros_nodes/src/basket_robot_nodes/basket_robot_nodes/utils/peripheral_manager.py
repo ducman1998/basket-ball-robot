@@ -297,7 +297,7 @@ class PeripheralManager:
     # ============== Mainboard Control Methods ================
     def stop_robot(self) -> None:
         """Stop the robot by sending zero velocities."""
-        self.move_robot(0.0, 0.0, 0.0)
+        self.move_robot_adv(0.0, 0.0, 0.0, 0.0, 0)
 
     def move_robot(
         self,

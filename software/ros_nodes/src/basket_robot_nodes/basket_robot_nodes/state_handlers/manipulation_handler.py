@@ -4,6 +4,7 @@ from typing import List, Literal, Optional, Tuple, Union, cast
 
 import modern_robotics as mr
 import numpy as np
+from collections import deque
 from basket_robot_nodes.state_handlers.actions import ManipulationAction
 from basket_robot_nodes.state_handlers.parameters import Parameters
 from basket_robot_nodes.state_handlers.ret_code import RetCode
@@ -27,6 +28,9 @@ class ManpulationHandler:
         # basket alignment variables
         self.basket_color: Optional[str] = None
         self.base_thrower_percent: Optional[float] = None
+        self.is_basket_aligned_queue: deque = deque(
+            maxlen=Parameters.MANI_SEARCH_BASKET_NUM_CONSECUTIVE_VALID_FRAMES
+        )
 
         # internal PID control variables
         self.prev_vx_error: float = 0.0
@@ -39,19 +43,10 @@ class ManpulationHandler:
         self.timeout: float = 10.0  # maximum allowed time for the handler
         # experimental data points for thrower speed calibration (distance in meters, motor percent)
         self.data_points: List[Tuple[float, float]] = [
-            (0.935, 42.0),
-            (1.28, 41.0),
-            (1.43, 43.0),
-            (1.55, 43.0),
-            (2.30, 50.0),
-            (2.63, 50.0),
-            (2.90, 54.0),
-            (3.00, 54.0),
-            (3.20, 56.0),
-            (3.32, 56.0),
-            (3.40, 59.0),
-            (4.00, 63.0),
-            (4.20, 65.0),
+            (1.42, 46.0),
+            (2.10, 55.0),
+            (3.08, 66.0),
+            (4.70, 82.0),
         ]
 
     def initialize(
@@ -62,9 +57,10 @@ class ManpulationHandler:
         timeout: float = 10.0,
     ) -> None:
         """Initialize the handler state."""
-        assert (
-            action == ManipulationAction.ALIGN_BASKET and basket_color is not None
-        ), "Basket color must be provided for ALIGN_BASKET action."
+        if action == ManipulationAction.ALIGN_BASKET:
+            assert (
+                basket_color is not None
+            ), "Basket color must be provided for ALIGN_BASKET action."
 
         self.reset()
         self.start_time = time()
@@ -79,6 +75,7 @@ class ManpulationHandler:
         self.current_action = None
         self.basket_color = None
         self.base_thrower_percent = None
+        self.is_basket_aligned_queue.clear()
         self.timeout = 10.0
         self.prev_vx_error = 0.0
         self.prev_vy_error = 0.0
@@ -104,31 +101,21 @@ class ManpulationHandler:
         Returns:
             RetCode indicating the status of the approach
         """
+        heading_err_rad = -math.atan2(pos_robot_mm[0], pos_robot_mm[1])
         adjusted_pos_robot_mm = (pos_robot_mm[0], pos_robot_mm[1] - la_dis_mm)
         t_error = self.position_to_pose(adjusted_pos_robot_mm)
-        heading_err_rad = np.arctan2(t_error[1, 3], t_error[0, 3])
         r_mtx = get_rotation_matrix(heading_err_rad + np.deg2rad(angle_offset_deg))
         t_error[0:2, 0:2] = r_mtx
         (vx, vy, wz) = self.compute_control_signals(t_error, pid_gains)
         return vx, vy, wz
 
-    def compute_aligment_errors(
-        self,
-        pos_robot_mm: Tuple[float, float],
-        la_dis_mm: float = Parameters.MANI_ALIGN_BALL_LOOKAHEAD_DIS_MM,
-    ) -> Tuple[float, float]:
-        """
-        Compute distance and angle errors for alignment tasks.
-        Inputs:
-            pos_robot_mm: target position in robot frame (x_mm, y_mm)
-            la_dis_mm: look-ahead distance in mm
-        Returns:
-            Distance to target position in mm
-        """
-        adjusted_y = pos_robot_mm[1] - la_dis_mm
-        distance_mm = np.hypot(pos_robot_mm[0], adjusted_y)
-        angle_rad = abs(math.atan2(adjusted_y, pos_robot_mm[0]))
-        return distance_mm, angle_rad
+    def compute_aligment_errors(self, pos_robot_mm: Tuple[float, float]) -> Tuple[float, float]:
+        """Compute positional and angular alignment errors to a target position."""
+        distance_mm = np.hypot(
+            pos_robot_mm[0], pos_robot_mm[1] - Parameters.MANI_ALIGN_BALL_LOOKAHEAD_DIS_MM
+        )
+        angle_rad = abs(math.atan2(pos_robot_mm[0], pos_robot_mm[1]))
+        return distance_mm, np.rad2deg(angle_rad)
 
     def align_to_ball(
         self,
@@ -149,8 +136,9 @@ class ManpulationHandler:
         if self.peripheral_manager.is_ball_detected():
             b_pos_robot_mm = self.peripheral_manager.get_closest_ball_position()
             p_error, o_error = self.compute_aligment_errors(b_pos_robot_mm)
-            if p_error <= Parameters.MANI_BALL_ALIGN_DIS_THRESHOLD_MM and o_error <= np.deg2rad(
-                Parameters.MANI_BALL_ALIGN_ANGLE_THRESHOLD_DEG
+            if (
+                p_error <= Parameters.MANI_BALL_ALIGN_DIS_THRESHOLD_MM
+                and o_error <= Parameters.MANI_BALL_ALIGN_ANGLE_THRESHOLD_DEG
             ):
                 return RetCode.SUCCESS
 
@@ -172,7 +160,7 @@ class ManpulationHandler:
                 vy,
                 wz,
                 max_xy_speed=Parameters.MANI_MAX_ALIGN_LINEAR_SPEED,
-                max_wz_speed=Parameters.MANI_MAX_ALIGN_ANGULAR_SPEED,
+                max_rot_speed=Parameters.MANI_MAX_ALIGN_ANGULAR_SPEED,
             )
         return RetCode.DOING
 
@@ -181,18 +169,27 @@ class ManpulationHandler:
         assert self.start_time is not None, "Handler not initialized."
         assert self.basket_color is not None, "Basket color not set."
 
-        if self.peripheral_manager.is_basket_not_detected_in_nframes(
-            Parameters.MANI_MAX_CONSECUTIVE_FRAMES_NO_BASKET
-        ):
-            return RetCode.FAILED_BASKET_LOST
-
         if time() - self.start_time > self.timeout:
             return RetCode.TIMEOUT
 
-        basket_pos_robot_mm = None
-        if self.peripheral_manager.is_basket_detected():
+        basket_pos_robot_mm: Optional[Tuple[float, float]] = None
+        if (
+            self.peripheral_manager.is_basket_detected()
+            and self.peripheral_manager.get_basket_color() == self.basket_color
+        ):
             basket_pos_robot_mm = self.peripheral_manager.get_basket_position_2d()
-            assert basket_pos_robot_mm is not None, "Basket position should not be None."
+            if basket_pos_robot_mm is not None:
+                o_error_deg = np.rad2deg(math.atan2(basket_pos_robot_mm[0], basket_pos_robot_mm[1]))
+                self.peripheral_manager._node.get_logger().info(
+                    f"Basket alignment O error: {o_error_deg:.2f} deg"
+                )
+                is_aligned = abs(o_error_deg) <= Parameters.MANI_BASKET_ALIGN_ANGLE_THRESHOLD_DEG
+                self.is_basket_aligned_queue.append(is_aligned)
+                if (
+                    self.is_basket_aligned_queue.count(True)
+                    == Parameters.MANI_SEARCH_BASKET_NUM_CONSECUTIVE_VALID_FRAMES
+                ):
+                    return RetCode.SUCCESS
         else:
             # no basket deteted, using stored position to align the robot towards the basket
             if self.peripheral_manager.get_target_basket_color() == self.basket_color:
@@ -206,21 +203,26 @@ class ManpulationHandler:
 
         if basket_pos_robot_mm is not None:
             # control to face the basket
-            heading_err_rad = math.atan2(basket_pos_robot_mm[1], basket_pos_robot_mm[0])
+            heading_err_rad = -math.atan2(basket_pos_robot_mm[0], basket_pos_robot_mm[1])
             wz = self.compute_pid(
                 2,
                 heading_err_rad,
-                Parameters.MANI_PID_ANGULAR_ALIGN,
+                Parameters.MANI_PID_ANGULAR_ALIGN_BASKET,
             )
         else:
             # keep rotating to search for the basket
             wz = Parameters.MANI_SEARCH_BASKET_ANGULAR_SPEED
 
-        if self.base_thrower_percent is not None:
-            # Set a base thrower speed to avoid sudden changes that can cause the ball to get stuck.
-            self.peripheral_manager.move_robot_wthrower(0.0, 0.0, wz, self.base_thrower_percent)
-        else:
-            self.peripheral_manager.move_robot(0.0, 0.0, wz)
+        # Set a base thrower speed to avoid sudden changes that can cause the ball to get stuck.
+        self.peripheral_manager.move_robot_adv(
+            0.0,
+            0.0,
+            wz,
+            thrower_percent=0.0 if self.base_thrower_percent is None else self.base_thrower_percent,
+            servo_speed=0,
+            normalize=True,
+            max_rot_speed=Parameters.MANI_SEARCH_BASKET_MAX_ANGULAR_SPEED,
+        )
 
         return RetCode.DOING
 
@@ -265,7 +267,7 @@ class ManpulationHandler:
         ):
             return RetCode.FAILED_BASKET_LOST
 
-        thrower_percent = 50.0  # default thrower percent
+        thrower_percent = 50  # default thrower percent
         basket_pos_robot_mm = self.peripheral_manager.get_basket_position_2d()
         if basket_pos_robot_mm is not None:
             distance_mm = np.hypot(basket_pos_robot_mm[0], basket_pos_robot_mm[1])
@@ -276,6 +278,9 @@ class ManpulationHandler:
             0.0,
             thrower_percent=thrower_percent,
             servo_speed=Parameters.MANI_THROW_BALL_SERVO_SPEED,
+        )
+        self.peripheral_manager._node.get_logger().info(
+            f"Throwing ball with thrower percent: {thrower_percent:.2f}%"
         )
         return RetCode.DOING
 

@@ -2,7 +2,7 @@ from enum import IntEnum
 
 
 class BaseAction(IntEnum):
-    MOVE_XY = 0
+    MOVE_FORWARD = 0
     TURN_CONTINUOUS = 1
     TURN_DISCRETE = 2
 

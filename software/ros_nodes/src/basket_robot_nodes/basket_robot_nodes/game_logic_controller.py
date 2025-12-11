@@ -2,8 +2,9 @@ from time import time
 from typing import cast
 
 import rclpy
-from basket_robot_nodes.state_handlers.actions import BaseAction
+from basket_robot_nodes.state_handlers.actions import BaseAction, ManipulationAction
 from basket_robot_nodes.state_handlers.base_handler import BaseHandler
+from basket_robot_nodes.state_handlers.manipulation_handler import ManpulationHandler
 from basket_robot_nodes.state_handlers.ret_code import RetCode
 from basket_robot_nodes.utils.base_game_logic import BaseGameLogicController
 from basket_robot_nodes.utils.peripheral_manager import PeripheralManager
@@ -17,8 +18,11 @@ class GameState:
 
     UNDEFINED = -1
     INIT = 0
-    TAKE_ACTION = 1
-    STOP = 2
+    ALIGN_BALL = 1
+    GRAB_BALL = 2
+    ALIGN_BASKET = 3
+    THROW_BALL = 4
+    STOP = 5
 
     @staticmethod
     def get_name(state_value: int) -> str:
@@ -34,7 +38,7 @@ class GameLogicController(BaseGameLogicController):
         # subscriptions to sensors, offering convenient access/control sensors & actuators
         self.periph_manager = PeripheralManager(self)
         self.base_handler = BaseHandler(self.periph_manager)
-        # self.manipulation_handler = ManpulationHandler(self.periph_manager)
+        self.manipulation_handler = ManpulationHandler(self.periph_manager)
 
         self.game_timer = self.create_timer(1 / SAMPLING_RATE, self.game_logic_loop)
 
@@ -62,21 +66,60 @@ class GameLogicController(BaseGameLogicController):
 
                 if self.periph_manager.is_ready():
                     self.periph_manager.set_target_basket_color(self.opponent_basket_color)
-                    self.transition_to(GameState.TAKE_ACTION)
-                    self.base_handler.initialize(
-                        BaseAction.MOVE_XY,
-                        offset_x_mm=0,
-                        offset_y_mm=2000,
-                        timeout=30.0,
+                    self.transition_to(GameState.ALIGN_BALL)
+                    self.manipulation_handler.initialize(
+                        ManipulationAction.ALIGN_BALL, timeout=10.0
                     )
 
-            case GameState.TAKE_ACTION:
-                ret = self.base_handler.move_robot_xy()
+            case GameState.ALIGN_BALL:
+                ret = self.manipulation_handler.align_to_ball()
                 if ret == RetCode.SUCCESS:
                     self.get_logger().info("Successfully moved.")
-                    self.transition_to(GameState.STOP)
+                    self.transition_to(GameState.GRAB_BALL)
+                    self.manipulation_handler.initialize(ManipulationAction.GRAB_BALL, timeout=5.0)
                 elif ret == RetCode.TIMEOUT:
                     self.get_logger().warn("Timeout while moving forward.")
+                    self.transition_to(GameState.STOP)
+                elif ret == RetCode.FAILED_BALL_LOST:
+                    self.get_logger().warn("Failed to move: ball lost.")
+                    self.transition_to(GameState.STOP)
+
+            case GameState.GRAB_BALL:
+                ret = self.manipulation_handler.move_forward_to_grab()
+                if ret == RetCode.SUCCESS:
+                    self.get_logger().info("Successfully grab the ball.")
+                    self.transition_to(GameState.ALIGN_BASKET)
+                    self.manipulation_handler.initialize(
+                        ManipulationAction.ALIGN_BASKET,
+                        basket_color="magenta",
+                        base_thrower_percent=10.0,
+                        timeout=10.0,
+                    )
+
+                elif ret == RetCode.TIMEOUT:
+                    self.get_logger().warn("Timeout while moving forward the ball.")
+                    self.transition_to(GameState.STOP)
+
+            case GameState.ALIGN_BASKET:
+                ret = self.manipulation_handler.align_to_basket()
+                if ret == RetCode.SUCCESS:
+                    self.get_logger().info("Successfully aligned with the basket.")
+                    self.transition_to(GameState.THROW_BALL)
+                    self.manipulation_handler.initialize(ManipulationAction.THROW_BALL, timeout=2.0)
+                elif ret == RetCode.TIMEOUT:
+                    self.get_logger().warn("Timeout while aligning with the basket.")
+                    self.transition_to(GameState.STOP)
+
+            case GameState.THROW_BALL:
+                ret = self.manipulation_handler.throw_ball()
+                if ret == RetCode.SUCCESS:
+                    self.get_logger().info("Successfully threw the ball.")
+                    self.transition_to(GameState.STOP)
+                elif ret == RetCode.TIMEOUT:
+                    self.get_logger().warn("Timeout while throwing the ball.")
+                    self.transition_to(GameState.STOP)
+                elif ret == RetCode.FAILED_BASKET_LOST:
+                    self.get_logger().warn("Failed to throw: basket lost.")
                     self.transition_to(GameState.STOP)
 
             case GameState.STOP:

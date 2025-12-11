@@ -49,18 +49,17 @@ class BaseHandler:
         self,
         action: BaseAction,
         angle_deg: Optional[Union[float, int]] = None,  # in degrees
-        offset_x_mm: Optional[float] = None,  # in mm
         offset_y_mm: Optional[float] = None,  # in mm
         timeout: float = 10.0,  # seconds
     ) -> None:
         """Initialize the handler state."""
         if action == BaseAction.TURN_CONTINUOUS or action == BaseAction.TURN_DISCRETE:
             assert angle_deg is not None, "Angle must be provided for turning actions."
-        if action == BaseAction.MOVE_XY:
+        if action == BaseAction.MOVE_FORWARD:
             assert (
-                offset_x_mm is not None and offset_y_mm is not None
-            ), "Offset x and y must be provided for MOVE_XY action (in mm)."
-            assert angle_deg is None, "Angle should not be provided for MOVE_XY action."
+                offset_y_mm is not None
+            ), "Offset y must be provided for MOVE_FORWARD action (in mm)."
+            assert angle_deg is None, "Angle should not be provided for MOVE_FORWARD action."
 
         self.reset()
         self.start_time = time()
@@ -69,12 +68,13 @@ class BaseHandler:
         self.start_pose = self.peripheral_manager.get_robot_to_odom_transform(include_z=True)
         # set target variables
         self.target_cummulative_yaw_change = angle_deg
-        if action == BaseAction.MOVE_XY:
+        # preserve the code structure for future use of MOVE_XY action
+        if action == BaseAction.MOVE_FORWARD:
             t_offset = np.eye(4)
-            t_offset[0:2, 3] = [offset_x_mm, offset_y_mm]
+            t_offset[0:2, 3] = [0.0, offset_y_mm]
             self.target_pose = self.start_pose @ t_offset
-            assert offset_x_mm is not None and offset_y_mm is not None, "Offsets cannot be None."
-            self.target_distance_mm = math.sqrt(offset_x_mm**2 + offset_y_mm**2)
+            assert offset_y_mm is not None, "Offsets cannot be None."
+            self.target_distance_mm = offset_y_mm
 
         self.start_position = self.peripheral_manager.get_robot_odom_position()
 
@@ -108,14 +108,14 @@ class BaseHandler:
 
         self.timeout = 10.0
 
-    def move_robot_xy(
+    def move_robot_forward(
         self,
-        max_speed: float = Parameters.BASE_MOVE_XY_MAX_SPEED,
-        distance_threshold_mm: float = Parameters.BASE_MOVE_XY_DIS_THRESHOLD_MM,
-        warm_start: bool = Parameters.BASE_MOVE_XY_WARMUP_ENABLED,
+        max_speed: float = Parameters.BASE_MOVE_Y_MAX_SPEED,
+        distance_threshold_mm: float = Parameters.BASE_MOVE_Y_DIS_THRESHOLD_MM,
+        warm_start: bool = Parameters.BASE_MOVE_Y_WARMUP_ENABLED,
         ramp_duration: float = Parameters.BASE_WARMUP_RAMP_DURATION,
     ) -> RetCode:
-        """Perform xy movement action."""
+        """Perform Y-directioin movement action."""
         assert (
             self.start_time is not None
             and self.start_pose is not None
@@ -142,7 +142,7 @@ class BaseHandler:
         if warm_start:
             vx, vy = self.warm_up_linear_speed(vx, vy, ramp_duration)
             wz = self.warm_up_turn_speed(wz, ramp_duration)
-        print(f"Moving with vx: {vx:.2f} m/s, vy: {vy:.2f} m/s, wz: {wz:.2f} rad/s")
+
         self.peripheral_manager.move_robot_normalized(vx, vy, wz, max_xy_speed=max_speed)
 
         if time() - self.start_time >= self.timeout:
@@ -284,8 +284,8 @@ class BaseHandler:
         kp_wz, ki_wz, kd_wz = Parameters.BASE_PID_ANGULAR
 
         # TODO: experiment with different vx, vy control strategies
-        vx = Parameters.BASE_MOVE_XY_MAX_SPEED * math.sin(-wz_error) * 1.25
-        vy = Parameters.BASE_MOVE_XY_MAX_SPEED * math.cos(+wz_error)
+        vx = Parameters.BASE_MOVE_Y_MAX_SPEED * math.sin(-wz_error) * 1.25
+        vy = Parameters.BASE_MOVE_Y_MAX_SPEED * math.cos(+wz_error)
         wz = (
             kp_wz * wz_error
             + kd_wz * (wz_error - self.prev_wz_error) * self.maneuver_rate
