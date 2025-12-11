@@ -1,6 +1,3 @@
-from time import time
-from typing import cast
-
 import rclpy
 from basket_robot_nodes.state_handlers.actions import BaseAction, ManipulationAction
 from basket_robot_nodes.state_handlers.base_handler import BaseHandler
@@ -62,7 +59,7 @@ class GameLogicController(BaseGameLogicController):
         self.cur_state = GameState.INIT
         self.pre_sub_state = SearchSubState.UNDEFINED
         self.cur_sub_state = SearchSubState.TURN_CONTINUOUS
-        self.timestamp = time()
+
         self.get_logger().info(f"Dev mode: {DEV_MODE}")
 
     def game_logic_loop(self) -> None:
@@ -196,12 +193,6 @@ class GameLogicController(BaseGameLogicController):
 
             case _:
                 raise RuntimeError("Unknown game state!")
-
-    # TODO: implement state transition handlers here
-    def can_transition_to_move(self) -> bool:
-        """Check if conditions are met to transition to MOVE state."""
-        # Example condition: peripheral manager is ready and odometry is valid
-        return cast(bool, self.periph_manager.is_ready())
 
     def transition_to(self, new_state: int) -> None:
         """Handle transition to a new state."""
