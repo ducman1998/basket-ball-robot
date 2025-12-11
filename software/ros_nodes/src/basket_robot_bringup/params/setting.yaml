@@ -49,12 +49,4 @@ game_logic_controller_node:
     referee_ip_address: "192.168.3.220"  # IP address of the referee server
     referee_port: 8111                   # Port of the referee server
     robot_id: "1_9-tdi"
-    search_ball_rot_speed: -1.25  # rad/s
-    throwing_xy_speed: 0.4
-    pid_linear_common: [1.5, 0.001, 0.1]   # [kp, ki, kd] for linear velocity control
-    pid_angular_common: [2.0, 0.001, 0.1]  # [kp, ki, kd] for angular velocity control
-    pid_linear_align_basket: [3.0, 0.000, 0.01]   # [kp, ki, kd] for linear velocity control when aligning to basket
-    pid_angular_align_basket: [2.0, 0.000, 0.01]  # [kp, ki, kd] for angular velocity control when aligning to basket
-    pid_linear_throw_ball: [0.5, 0.0, 0.05]  # [kp, ki, kd] for linear velocity control when throwing ball
-    pid_angular_throw_ball: [1.0, 0.0, 0.1]  # [kp, ki, kd] for angular velocity control when throwing ball
     log_level: 'info'
