@@ -164,6 +164,9 @@ class BaseHandler:
         assert self.target_cummulative_yaw_change is not None, "Target angle not set."
         assert self.num_discrete_turns is None, "This is not a continuous turn action."
 
+        if time() - self.start_time >= self.timeout:
+            return RetCode.TIMEOUT
+
         if warm_start:
             wz = self.warm_up_turn_speed(wz, ramp_duration)
 
@@ -177,9 +180,6 @@ class BaseHandler:
 
         if abs(self.cummulative_yaw_change) >= abs(self.target_cummulative_yaw_change):
             return RetCode.SUCCESS
-
-        if time() - self.start_time >= self.timeout:
-            return RetCode.TIMEOUT
 
         return RetCode.DOING
 
@@ -199,6 +199,9 @@ class BaseHandler:
             self.num_discrete_turns is not None
         ), "Number of discrete turns not set. Please initialize with TURN_DISCRETE action."
         assert self.turn_discrete_new_cycle_start_time is not None, "Discrete turn not initialized."
+
+        if time() - self.start_time >= self.timeout:
+            return RetCode.TIMEOUT
 
         if warm_start:
             wz = self.warm_up_discrete_turn_speed(wz, ramp_duration)
@@ -235,9 +238,6 @@ class BaseHandler:
 
         if abs(self.cummulative_yaw_change) >= abs(self.target_cummulative_yaw_change):
             return RetCode.SUCCESS
-
-        if time() - self.start_time >= self.timeout:
-            return RetCode.TIMEOUT
 
         return RetCode.DOING
 

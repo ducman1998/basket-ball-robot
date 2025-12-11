@@ -13,4 +13,5 @@ class ManipulationAction(IntEnum):
     GRAB_BALL = 2
     ALIGN_BASKET_WBALL = 3
     THROW_BALL = 4
-    CLEAR_STUCK_BALL = 5
+    # based on markers to lign the robot to the court center for better accuracy
+    ALIGN_BASKET_ADVANCED = 5

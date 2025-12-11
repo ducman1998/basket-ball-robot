@@ -8,7 +8,7 @@ class Parameters:
     BASE_WARMUP_RAMP_DURATION: Final[float] = 0.5  # seconds
     BASE_DISCRETE_WARMUP_RAMP_DURATION: Final[float] = 0.25  # seconds
     BASE_DISCRETE_TURN_SUB_ANGLE_DEG: Final[float] = 30.0  # degrees
-    BASE_CONTINUOUS_TURN_SPEED: Final[float] = 1.25  # rad/s
+    BASE_CONTINUOUS_TURN_SPEED: Final[float] = 1.5  # rad/s
     BASE_DISCRETE_TURN_SPEED: Final[float] = 5.0  # rad/s
     BASE_DISCRETE_TURN_STOP_DURATION: Final[float] = 0.5  # seconds
     BASE_MOVE_Y_MAX_SPEED: Final[float] = 1.5  # m/s
@@ -30,10 +30,6 @@ class Parameters:
     MANI_PID_LINEAR_ALIGN: Final[list[float]] = [2.0, 0.001, 0.001]  # [Kp, Ki, Kd]
     MANI_PID_ANGULAR_ALIGN: Final[list[float]] = [1.0, 0.0, 0.0]  # [Kp, Ki, Kd]
     MANI_PID_ANGULAR_ALIGN_BASKET: Final[list[float]] = [20.0, 0.01, 0.01]  # [Kp, Ki, Kd]
-    MANI_PID_LINEAR_ALIGN_WBALL_COARSE: Final[list[float]] = [3.0, 0.000, 0.01]  # [Kp, Ki, Kd]
-    MANI_PID_ANGULAR_ALIGN_WBALL_COARSE: Final[list[float]] = [2.0, 0.000, 0.01]  # [Kp, Ki, Kd]
-    MANI_PID_LINEAR_ALIGN_WBALL_FINE: Final[list[float]] = [1.5, 0.000, 0.01]  # [Kp, Ki, Kd]
-    MANI_PID_ANGULAR_ALIGN_WBALL_FINE: Final[list[float]] = [1.5, 0.000, 0.01]  # [Kp, Ki, Kd]
     MANI_PID_LINEAR_THROW_BALL: Final[list[float]] = [0.5, 0.0, 0.05]  # [Kp, Ki, Kd]
     MANI_PID_ANGULAR_THROW_BALL: Final[list[float]] = [1.0, 0.0, 0.1]  # [Kp, Ki, Kd]
     ## 2.3. Specifict thresholds for aligning with ball
@@ -55,3 +51,7 @@ class Parameters:
 
     ## 2.6. Specific parameters for throwing ball
     MANI_THROW_BALL_SERVO_SPEED: Final[int] = 4000  # servo speed for throwing
+
+    # parameters for main state machine
+    # TODO: add more parameters if needed
+    MAIN_TURNING_DEGREE: Final[float] = 340.0  # degrees to turn when searching for ball

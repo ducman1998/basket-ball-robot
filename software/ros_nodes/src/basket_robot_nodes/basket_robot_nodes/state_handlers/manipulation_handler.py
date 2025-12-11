@@ -1,10 +1,10 @@
 import math
+from collections import deque
 from time import time
 from typing import List, Literal, Optional, Tuple, Union, cast
 
 import modern_robotics as mr
 import numpy as np
-from collections import deque
 from basket_robot_nodes.state_handlers.actions import ManipulationAction
 from basket_robot_nodes.state_handlers.parameters import Parameters
 from basket_robot_nodes.state_handlers.ret_code import RetCode
@@ -180,9 +180,6 @@ class ManpulationHandler:
             basket_pos_robot_mm = self.peripheral_manager.get_basket_position_2d()
             if basket_pos_robot_mm is not None:
                 o_error_deg = np.rad2deg(math.atan2(basket_pos_robot_mm[0], basket_pos_robot_mm[1]))
-                self.peripheral_manager._node.get_logger().info(
-                    f"Basket alignment O error: {o_error_deg:.2f} deg"
-                )
                 is_aligned = abs(o_error_deg) <= Parameters.MANI_BASKET_ALIGN_ANGLE_THRESHOLD_DEG
                 self.is_basket_aligned_queue.append(is_aligned)
                 if (
@@ -246,32 +243,41 @@ class ManpulationHandler:
 
         return RetCode.DOING
 
-    def align_basket_with_ball(self) -> RetCode:
-        """Align with the basket for scoring."""
+    def align_to_basket_advanced(self) -> RetCode:
+        """Align the basket with the ball for scoring."""
         # TODO: implement basket alignment with ball, can be similar to align_to_basket(), but
         # more complex logic to consider ball position, marker pose, etc. The robot may need to
         # move to preferred position based on detected markers before aligning the basket.
         assert self.start_time is not None, "Handler not initialized."
-        pass
-        return RetCode.DOING
+        raise NotImplementedError("align_to_basket_advanced() not implemented yet.")
 
     def throw_ball(self) -> RetCode:
-        """Throw the ball into the basket."""
+        """Throw the ball into the basket. Last 0.5s, robot will try to remove possible ball jam."""
         assert self.start_time is not None, "Handler not initialized."
 
         if time() - self.start_time > self.timeout:
             return RetCode.TIMEOUT
+
+        if time() - self.start_time > self.timeout - 0.5:
+            # last 0.5s, try to remove possible stuck ball
+            self.peripheral_manager.move_robot_adv(
+                0.0,
+                0.0,
+                0.0,
+                thrower_percent=100.0,
+                servo_speed=-Parameters.MANI_THROW_BALL_SERVO_SPEED,
+            )
+            return RetCode.DOING
 
         if self.peripheral_manager.is_basket_not_detected_in_nframes(
             Parameters.MANI_MAX_CONSECUTIVE_FRAMES_NO_BASKET
         ):
             return RetCode.FAILED_BASKET_LOST
 
-        thrower_percent = 50  # default thrower percent
-        basket_pos_robot_mm = self.peripheral_manager.get_basket_position_2d()
-        if basket_pos_robot_mm is not None:
-            distance_mm = np.hypot(basket_pos_robot_mm[0], basket_pos_robot_mm[1])
-            thrower_percent = self.get_thrower_percent(distance_mm)
+        thrower_percent = 50.0  # default thrower percent
+        basket_distance_mm = self.peripheral_manager.get_basket_distance()
+        if basket_distance_mm is not None:
+            thrower_percent = self.get_thrower_percent(basket_distance_mm)
         self.peripheral_manager.move_robot_adv(
             0.0,
             0.0,
@@ -281,17 +287,6 @@ class ManpulationHandler:
         )
         self.peripheral_manager._node.get_logger().info(
             f"Throwing ball with thrower percent: {thrower_percent:.2f}%"
-        )
-        return RetCode.DOING
-
-    def clear_stuck_ball(self) -> RetCode:
-        """Clear a stuck ball from the thrower mechanism."""
-        assert self.start_time is not None, "Handler not initialized."
-        if time() - self.start_time > self.timeout:
-            return RetCode.TIMEOUT
-
-        self.peripheral_manager.move_robot_adv(
-            0.0, 0.0, 0.0, thrower_percent=100, servo_speed=Parameters.MANI_GRAB_BALL_SERVO_SPEED
         )
         return RetCode.DOING
 

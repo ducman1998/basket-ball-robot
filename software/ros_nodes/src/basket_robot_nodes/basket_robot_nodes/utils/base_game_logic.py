@@ -24,7 +24,7 @@ class BaseGameLogicController(Node):
         # Referee client state
         self.is_game_started = False  # True when referee sends START, False when STOP
         # default opponent basket color
-        self.opponent_basket_color = "n/a" if not dev_mode else "blue"
+        self.target_basket_color = "n/a" if not dev_mode else "blue"
 
         # Initialize and start referee client
         self.referee_client = RefereeClient(
@@ -73,7 +73,18 @@ class BaseGameLogicController(Node):
             if self.is_game_started:
                 self.get_logger().warn("Received duplicate START signal from referee --> Ignored.")
             else:
-                self.opponent_basket_color = basket if basket is not None else "n/a"
+                self.target_basket_color = basket if basket is not None else "n/a"
                 self.is_game_started = True
         else:
             self.is_game_started = False
+
+    def get_target_basket_color(self) -> str:
+        """Get the opponent basket color."""
+        return self.target_basket_color
+
+    def get_opponent_basket_color(self) -> str:
+        """Get the opponent basket color based on the target basket color."""
+        if self.target_basket_color == "magenta":
+            return "blue"
+        else:  # blue
+            return "magenta"

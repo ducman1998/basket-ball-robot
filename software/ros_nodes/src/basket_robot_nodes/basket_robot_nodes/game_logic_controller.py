@@ -5,6 +5,7 @@ import rclpy
 from basket_robot_nodes.state_handlers.actions import BaseAction, ManipulationAction
 from basket_robot_nodes.state_handlers.base_handler import BaseHandler
 from basket_robot_nodes.state_handlers.manipulation_handler import ManpulationHandler
+from basket_robot_nodes.state_handlers.parameters import Parameters
 from basket_robot_nodes.state_handlers.ret_code import RetCode
 from basket_robot_nodes.utils.base_game_logic import BaseGameLogicController
 from basket_robot_nodes.utils.peripheral_manager import PeripheralManager
@@ -18,11 +19,26 @@ class GameState:
 
     UNDEFINED = -1
     INIT = 0
-    ALIGN_BALL = 1
-    GRAB_BALL = 2
-    ALIGN_BASKET = 3
-    THROW_BALL = 4
-    STOP = 5
+    SEARCH_BALL = 1
+    ALIGN_BALL = 2
+    GRAB_BALL = 3
+    ALIGN_BASKET = 4
+    THROW_BALL = 5
+
+    @staticmethod
+    def get_name(state_value: int) -> str:
+        state2name = {v: k for k, v in vars(GameState).items() if isinstance(v, int)}
+        return state2name.get(state_value, "UNKNOWN")
+
+
+class SearchSubState:
+    """Enum-like class for search ball sub-states."""
+
+    UNDEFINED = -1
+    TURN_CONTINUOUS = 0
+    TURN_DISCRETE = 1
+    ALIGN_BASKET = 2
+    MOVE_FORWARD = 3
 
     @staticmethod
     def get_name(state_value: int) -> str:
@@ -44,13 +60,14 @@ class GameLogicController(BaseGameLogicController):
 
         self.pre_state = GameState.UNDEFINED
         self.cur_state = GameState.INIT
+        self.pre_sub_state = SearchSubState.UNDEFINED
+        self.cur_sub_state = SearchSubState.TURN_CONTINUOUS
         self.timestamp = time()
         self.get_logger().info(f"Dev mode: {DEV_MODE}")
 
     def game_logic_loop(self) -> None:
         """Main game logic loop, called periodically by a timer."""
-        start_time = time()
-        # self.print_current_state()
+        self.print_current_state()
 
         # If game is not active (referee hasn't started or has stopped), don't execute game logic
         if not self.is_game_started and not DEV_MODE:
@@ -65,71 +82,120 @@ class GameLogicController(BaseGameLogicController):
                 self.periph_manager.stop_robot()  # trigger mainboard sends sensor data
 
                 if self.periph_manager.is_ready():
-                    self.periph_manager.set_target_basket_color(self.opponent_basket_color)
+                    self.periph_manager.set_target_basket_color(self.get_target_basket_color())
+                    if self.periph_manager.is_ball_detected():
+                        self.transition_to(GameState.ALIGN_BALL)
+                        self.manipulation_handler.initialize(
+                            ManipulationAction.ALIGN_BALL, timeout=5.0
+                        )
+                    if self.periph_manager.is_balls_not_detected_in_nframes(5):
+                        # NOTE: SEARCH_BALL state mostly uses basic handlers in sub-state machine
+                        self.transition_to(GameState.SEARCH_BALL)
+                        self.base_handler.initialize(
+                            BaseAction.TURN_CONTINUOUS,
+                            angle_deg=Parameters.MAIN_TURNING_DEGREE,
+                            timeout=4.0,
+                        )
+
+            case GameState.SEARCH_BALL:
+                # TODO: implement search ball sub state-machine
+                if self.periph_manager.is_ball_detected():
                     self.transition_to(GameState.ALIGN_BALL)
-                    self.manipulation_handler.initialize(
-                        ManipulationAction.ALIGN_BALL, timeout=10.0
-                    )
+                    self.manipulation_handler.initialize(ManipulationAction.ALIGN_BALL, timeout=5.0)
+                    return  # exit early to avoid executing sub-state logic
+
+                match self.cur_sub_state:
+                    case SearchSubState.TURN_CONTINUOUS:
+                        ret = self.base_handler.turn_robot_cont()
+                        if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
+                            self.sub_transition_to(SearchSubState.TURN_DISCRETE)
+                            self.base_handler.initialize(
+                                BaseAction.TURN_DISCRETE,
+                                angle_deg=Parameters.MAIN_TURNING_DEGREE,
+                                timeout=3.0,
+                            )
+                    case SearchSubState.TURN_DISCRETE:
+                        ret = self.base_handler.turn_robot_disc()
+                        if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
+                            self.sub_transition_to(SearchSubState.ALIGN_BASKET)
+                            self.manipulation_handler.initialize(
+                                ManipulationAction.ALIGN_BASKET,
+                                basket_color=self.get_target_basket_color(),
+                                timeout=4.0,
+                            )
+
+                    case SearchSubState.ALIGN_BASKET:
+                        ret = self.manipulation_handler.align_to_basket()
+                        if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
+                            basket_dis_mm = self.periph_manager.get_basket_distance()
+                            if basket_dis_mm is not None and basket_dis_mm > 2500:
+                                self.sub_transition_to(SearchSubState.MOVE_FORWARD)
+                                self.base_handler.initialize(
+                                    BaseAction.MOVE_FORWARD,
+                                    offset_y_mm=basket_dis_mm - 1000,
+                                    timeout=4.0,
+                                )
+
+                    case SearchSubState.MOVE_FORWARD:
+                        ret = self.base_handler.move_robot_forward()
+                        if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
+                            self.sub_transition_to(SearchSubState.TURN_CONTINUOUS)
+                            self.base_handler.initialize(
+                                BaseAction.TURN_CONTINUOUS,
+                                angle_deg=Parameters.MAIN_TURNING_DEGREE,
+                                timeout=4.0,
+                            )
 
             case GameState.ALIGN_BALL:
                 ret = self.manipulation_handler.align_to_ball()
-                if ret == RetCode.SUCCESS:
-                    self.get_logger().info("Successfully moved.")
+                if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
                     self.transition_to(GameState.GRAB_BALL)
-                    self.manipulation_handler.initialize(ManipulationAction.GRAB_BALL, timeout=5.0)
-                elif ret == RetCode.TIMEOUT:
-                    self.get_logger().warn("Timeout while moving forward.")
-                    self.transition_to(GameState.STOP)
-                elif ret == RetCode.FAILED_BALL_LOST:
-                    self.get_logger().warn("Failed to move: ball lost.")
-                    self.transition_to(GameState.STOP)
+                    self.manipulation_handler.initialize(ManipulationAction.GRAB_BALL, timeout=3.0)
+                if ret == RetCode.FAILED_BALL_LOST:
+                    self.transition_to(GameState.SEARCH_BALL)
+                    self.base_handler.initialize(
+                        BaseAction.TURN_CONTINUOUS,
+                        angle_deg=Parameters.MAIN_TURNING_DEGREE,
+                        timeout=4.0,
+                    )
 
             case GameState.GRAB_BALL:
                 ret = self.manipulation_handler.move_forward_to_grab()
                 if ret == RetCode.SUCCESS:
-                    self.get_logger().info("Successfully grab the ball.")
                     self.transition_to(GameState.ALIGN_BASKET)
                     self.manipulation_handler.initialize(
                         ManipulationAction.ALIGN_BASKET,
-                        basket_color="magenta",
+                        basket_color=self.get_target_basket_color(),
                         base_thrower_percent=10.0,
-                        timeout=10.0,
+                        timeout=5.0,
                     )
-
-                elif ret == RetCode.TIMEOUT:
-                    self.get_logger().warn("Timeout while moving forward the ball.")
-                    self.transition_to(GameState.STOP)
 
             case GameState.ALIGN_BASKET:
                 ret = self.manipulation_handler.align_to_basket()
-                if ret == RetCode.SUCCESS:
-                    self.get_logger().info("Successfully aligned with the basket.")
+                if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
                     self.transition_to(GameState.THROW_BALL)
                     self.manipulation_handler.initialize(ManipulationAction.THROW_BALL, timeout=2.0)
-                elif ret == RetCode.TIMEOUT:
-                    self.get_logger().warn("Timeout while aligning with the basket.")
-                    self.transition_to(GameState.STOP)
 
             case GameState.THROW_BALL:
                 ret = self.manipulation_handler.throw_ball()
-                if ret == RetCode.SUCCESS:
-                    self.get_logger().info("Successfully threw the ball.")
-                    self.transition_to(GameState.STOP)
-                elif ret == RetCode.TIMEOUT:
-                    self.get_logger().warn("Timeout while throwing the ball.")
-                    self.transition_to(GameState.STOP)
-                elif ret == RetCode.FAILED_BASKET_LOST:
-                    self.get_logger().warn("Failed to throw: basket lost.")
-                    self.transition_to(GameState.STOP)
-
-            case GameState.STOP:
-                self.periph_manager.stop_robot()
+                if ret == RetCode.TIMEOUT:
+                    self.transition_to(GameState.SEARCH_BALL)
+                    self.base_handler.initialize(
+                        BaseAction.TURN_CONTINUOUS,
+                        angle_deg=Parameters.MAIN_TURNING_DEGREE,
+                        timeout=4.0,
+                    )
+                if ret == RetCode.FAILED_BASKET_LOST:
+                    self.transition_to(GameState.ALIGN_BASKET)
+                    self.manipulation_handler.initialize(
+                        ManipulationAction.ALIGN_BASKET,
+                        basket_color=self.get_target_basket_color(),
+                        base_thrower_percent=10.0,
+                        timeout=5.0,
+                    )
 
             case _:
                 raise RuntimeError("Unknown game state!")
-
-        end_time = time()
-        # self.get_logger().info(f"Game logic loop took {end_time - start_time:.4f} seconds.")
 
     # TODO: implement state transition handlers here
     def can_transition_to_move(self) -> bool:
@@ -149,16 +215,31 @@ class GameLogicController(BaseGameLogicController):
         self.cur_state = new_state
         self.get_logger().info(f"Transitioning from {cur_state_name} to {new_state_name}.")
 
+    def sub_transition_to(self, new_sub_state: int) -> None:
+        """Handle transition to a new sub-state."""
+        cur_sub_state_name = SearchSubState.get_name(self.cur_sub_state)
+        new_sub_state_name = SearchSubState.get_name(new_sub_state)
+        if new_sub_state == self.cur_sub_state:
+            self.get_logger().info(
+                f"Already in sub-state {cur_sub_state_name}, no transition needed."
+            )
+            return
+
+        self.pre_sub_state = self.cur_sub_state
+        self.cur_sub_state = new_sub_state
+        self.get_logger().info(f"Transitioning from {cur_sub_state_name} to {new_sub_state_name}.")
+
     def print_current_state(self) -> None:
         """Log the current state and relevant information."""
         state_name = GameState.get_name(self.cur_state)
+        sub_state_name = SearchSubState.get_name(self.cur_sub_state)
         if not self.referee_client.is_connected():
             status = "DISCONNECTED"
         else:
             status = "STARTED" if self.is_game_started else "INACTIVE"
         self.get_logger().info(
-            f"Cur State: {state_name} | Ref Status: {status}"
-            + f" | Color: {self.opponent_basket_color}"
+            f"State: {state_name} | SubState: {sub_state_name}| Ref Status: {status}"
+            + f" | Color: {self.get_target_basket_color()}"
         )
 
 

@@ -230,6 +230,12 @@ class PeripheralManager:
         pos_2d = self._image_info_msg.basket.position_2d
         return cast(Optional[Tuple[float, float]], pos_2d)
 
+    def get_basket_distance(self) -> Optional[float]:
+        basket_pos = self.get_basket_position_2d()
+        if basket_pos is None:
+            return None
+        return float(np.linalg.norm(basket_pos))
+
     def get_basket_center_pixel(self) -> Optional[Tuple[int, int]]:
         if self._image_info_msg is None or self._image_info_msg.basket is None:
             return None
