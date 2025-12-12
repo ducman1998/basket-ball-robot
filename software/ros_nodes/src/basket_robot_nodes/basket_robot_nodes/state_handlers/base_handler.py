@@ -61,6 +61,8 @@ class BaseHandler:
             ), "Offset y must be provided for MOVE_FORWARD action (in mm)."
             assert angle_deg is None, "Angle should not be provided for MOVE_FORWARD action."
 
+        assert timeout > 0.0, "Timeout must be positive."
+
         self.reset()
         self.start_time = time()
         self.start_yaw = self.peripheral_manager.get_odom_yaw()

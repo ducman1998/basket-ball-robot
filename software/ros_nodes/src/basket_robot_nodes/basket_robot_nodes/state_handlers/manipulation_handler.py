@@ -72,6 +72,8 @@ class ManpulationHandler:
                 basket_color is not None
             ), "Basket color must be provided for ALIGN_BASKET action."
 
+        assert timeout > 0.0, "Timeout must be positive."
+
         self.reset()
         self.start_time = time()
         self.current_action = action
@@ -375,6 +377,22 @@ class ManpulationHandler:
         )
         self.peripheral_manager._node.get_logger().info(
             f"Throwing ball with thrower percent: {thrower_percent:.2f}%"
+        )
+        return RetCode.DOING
+
+    def clear_stuck_ball(self) -> RetCode:
+        """Clear a stuck ball in the thrower mechanism."""
+        assert self.start_time is not None, "Handler not initialized."
+
+        if time() - self.start_time > self.timeout:
+            return RetCode.TIMEOUT
+
+        self.peripheral_manager.move_robot_adv(
+            0.0,
+            0.0,
+            0.0,
+            thrower_percent=100,
+            servo_speed=Parameters.MANI_THROW_BALL_SERVO_SPEED,
         )
         return RetCode.DOING
 

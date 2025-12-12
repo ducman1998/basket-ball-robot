@@ -23,6 +23,7 @@ class GameState:
     ALIGN_BASKET = 4
     ALIGN_BASKET_ADVANCED = 5
     THROW_BALL = 6
+    CLEAR_STUCK_BALL = 7
 
     @staticmethod
     def get_name(state_value: int) -> str:
@@ -85,7 +86,8 @@ class GameLogicController(BaseGameLogicController):
                     if self.periph_manager.is_ball_detected():
                         self.transition_to(GameState.ALIGN_BALL)
                         self.manipulation_handler.initialize(
-                            ManipulationAction.ALIGN_BALL, timeout=5.0
+                            ManipulationAction.ALIGN_BALL,
+                            timeout=Parameters.MAIN_TIMEOUT_ALIGN_BALL,
                         )
                     if self.periph_manager.is_balls_not_detected_in_nframes(5):
                         # NOTE: SEARCH_BALL state mostly uses basic handlers in sub-state machine
@@ -93,14 +95,23 @@ class GameLogicController(BaseGameLogicController):
                         self.base_handler.initialize(
                             BaseAction.TURN_CONTINUOUS,
                             angle_deg=Parameters.MAIN_TURNING_DEGREE,
-                            timeout=4.0,
+                            timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_CONT,
                         )
 
             case GameState.SEARCH_BALL:
                 # TODO: implement search ball sub state-machine
+                if self.periph_manager.is_ball_grabbed():
+                    self.transition_to(GameState.CLEAR_STUCK_BALL)
+                    self.manipulation_handler.initialize(
+                        ManipulationAction.CLEAR_STUCK_BALL,
+                        timeout=Parameters.MAIN_TIMEOUT_CLEAR_STUCK_BALL,
+                    )
+
                 if self.periph_manager.is_ball_detected():
                     self.transition_to(GameState.ALIGN_BALL)
-                    self.manipulation_handler.initialize(ManipulationAction.ALIGN_BALL, timeout=5.0)
+                    self.manipulation_handler.initialize(
+                        ManipulationAction.ALIGN_BALL, timeout=Parameters.MAIN_TIMEOUT_ALIGN_BALL
+                    )
                     return  # exit early to avoid executing sub-state logic
 
                 match self.cur_sub_state:
@@ -111,7 +122,7 @@ class GameLogicController(BaseGameLogicController):
                             self.base_handler.initialize(
                                 BaseAction.TURN_DISCRETE,
                                 angle_deg=Parameters.MAIN_TURNING_DEGREE,
-                                timeout=3.0,
+                                timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC,
                             )
                     case SearchSubState.TURN_DISCRETE:
                         ret = self.base_handler.turn_robot_disc()
@@ -120,7 +131,7 @@ class GameLogicController(BaseGameLogicController):
                             self.manipulation_handler.initialize(
                                 ManipulationAction.ALIGN_BASKET,
                                 basket_color=self.get_target_basket_color(),
-                                timeout=3.0,
+                                timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET,
                             )
 
                     case SearchSubState.ALIGN_BASKET:
@@ -132,14 +143,14 @@ class GameLogicController(BaseGameLogicController):
                                 self.base_handler.initialize(
                                     BaseAction.MOVE_FORWARD,
                                     offset_y_mm=basket_dis_mm - 1000,
-                                    timeout=3.0,
+                                    timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_MOVE_FW,
                                 )
                             elif basket_dis_mm is not None and basket_dis_mm <= 2500:
                                 self.sub_transition_to(SearchSubState.ALIGN_BASKET)
                                 self.manipulation_handler.initialize(
                                     ManipulationAction.ALIGN_BASKET,
                                     basket_color=self.get_opponent_basket_color(),
-                                    timeout=3.0,
+                                    timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET,
                                 )
 
                     case SearchSubState.MOVE_FORWARD:
@@ -149,20 +160,22 @@ class GameLogicController(BaseGameLogicController):
                             self.base_handler.initialize(
                                 BaseAction.TURN_CONTINUOUS,
                                 angle_deg=Parameters.MAIN_TURNING_DEGREE,
-                                timeout=4.0,
+                                timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_CONT,
                             )
 
             case GameState.ALIGN_BALL:
                 ret = self.manipulation_handler.align_to_ball()
                 if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
                     self.transition_to(GameState.GRAB_BALL)
-                    self.manipulation_handler.initialize(ManipulationAction.GRAB_BALL, timeout=3.0)
+                    self.manipulation_handler.initialize(
+                        ManipulationAction.GRAB_BALL, timeout=Parameters.MAIN_TIMEOUT_GRAB_BALL
+                    )
                 if ret == RetCode.FAILED_BALL_LOST:
                     self.transition_to(GameState.SEARCH_BALL)
                     self.base_handler.initialize(
                         BaseAction.TURN_CONTINUOUS,
                         angle_deg=Parameters.MAIN_TURNING_DEGREE,
-                        timeout=4.0,
+                        timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_CONT,
                     )
 
             case GameState.GRAB_BALL:
@@ -173,41 +186,43 @@ class GameLogicController(BaseGameLogicController):
                         self.manipulation_handler.initialize(
                             ManipulationAction.ALIGN_BASKET,
                             basket_color=self.get_target_basket_color(),
-                            base_thrower_percent=20.0,
-                            timeout=6.0,
+                            base_thrower_percent=Parameters.MAIN_BASE_THROWER_PERCENT,
+                            timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED,
                         )
                     else:
                         self.transition_to(GameState.ALIGN_BASKET)
                         self.manipulation_handler.initialize(
                             ManipulationAction.ALIGN_BASKET,
                             basket_color=self.get_target_basket_color(),
-                            base_thrower_percent=20.0,
-                            timeout=5.0,
+                            base_thrower_percent=Parameters.MAIN_BASE_THROWER_PERCENT,
+                            timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET,
                         )
                 if ret == RetCode.TIMEOUT:
                     self.transition_to(GameState.SEARCH_BALL)
                     self.base_handler.initialize(
                         BaseAction.TURN_CONTINUOUS,
                         angle_deg=Parameters.MAIN_TURNING_DEGREE,
-                        timeout=4.0,
+                        timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_CONT,
                     )
 
             case GameState.ALIGN_BASKET:
                 ret = self.manipulation_handler.align_to_basket()
                 if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
                     self.transition_to(GameState.THROW_BALL)
-                    self.manipulation_handler.initialize(ManipulationAction.THROW_BALL, timeout=2.0)
+                    self.manipulation_handler.initialize(
+                        ManipulationAction.THROW_BALL, timeout=Parameters.MAIN_TIMEOUT_THROW_BALL
+                    )
 
             case GameState.ALIGN_BASKET_ADVANCED:
                 ret = self.manipulation_handler.align_to_basket_advanced()
                 if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
                     self.transition_to(GameState.THROW_BALL)
-                    self.manipulation_handler.initialize(ManipulationAction.THROW_BALL, timeout=2.0)
+                    self.manipulation_handler.initialize(
+                        ManipulationAction.THROW_BALL, timeout=Parameters.MAIN_TIMEOUT_THROW_BALL
+                    )
 
                 if ret == RetCode.TIMEOUT:
-                    self.get_logger().info(
-                        "Advanced basket alignment timed out, switching to normal alignment."
-                    )
+                    self.get_logger().info("Advanced basket alignment timed out!")
 
             case GameState.THROW_BALL:
                 ret = self.manipulation_handler.throw_ball()
@@ -216,15 +231,25 @@ class GameLogicController(BaseGameLogicController):
                     self.base_handler.initialize(
                         BaseAction.TURN_CONTINUOUS,
                         angle_deg=Parameters.MAIN_TURNING_DEGREE,
-                        timeout=4.0,
+                        timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_CONT,
                     )
                 if ret == RetCode.FAILED_BASKET_LOST:
                     self.transition_to(GameState.ALIGN_BASKET)
                     self.manipulation_handler.initialize(
                         ManipulationAction.ALIGN_BASKET,
                         basket_color=self.get_target_basket_color(),
-                        base_thrower_percent=20.0,
-                        timeout=4.0,
+                        base_thrower_percent=Parameters.MAIN_BASE_THROWER_PERCENT,
+                        timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET,
+                    )
+
+            case GameState.CLEAR_STUCK_BALL:
+                ret = self.manipulation_handler.clear_stuck_ball()
+                if ret == RetCode.TIMEOUT:
+                    self.transition_to(GameState.SEARCH_BALL)
+                    self.base_handler.initialize(
+                        BaseAction.TURN_CONTINUOUS,
+                        angle_deg=Parameters.MAIN_TURNING_DEGREE,
+                        timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_CONT,
                     )
 
             case _:

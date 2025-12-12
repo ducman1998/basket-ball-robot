@@ -61,4 +61,14 @@ class Parameters:
     MANI_ALIGN_BASKET_ADV_DIS_ODOM_THRESHOLD_MM: Final[float] = 50.0  # mm
     # parameters for main state machine
     # TODO: add more parameters if needed
-    MAIN_TURNING_DEGREE: Final[float] = 360.0  # degrees to turn when searching for ball
+    MAIN_TURNING_DEGREE: Final[float] = 320.0  # degrees to turn when searching for ball
+    MAIN_BASE_THROWER_PERCENT: Final[float] = 20.0  # base power percent for throwing ball
+    MAIN_TIMEOUT_SEARCH_BALL_TURN_CONT: Final[float] = 3.0  # seconds before re-searching for ball
+    MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC: Final[float] = 2.5  # seconds before re-searching for ball
+    MAIN_TIMEOUT_SEARCH_BALL_MOVE_FW: Final[float] = 2.0  # seconds before re-searching for ball
+    MAIN_TIMEOUT_ALIGN_BALL: Final[float] = 4.0  # seconds before re-searching for ball
+    MAIN_TIMEOUT_GRAB_BALL: Final[float] = 3.0  # seconds before re-searching for ball
+    MAIN_TIMEOUT_ALIGN_BASKET: Final[float] = 3.5  # seconds before re-searching for basket
+    MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED: Final[float] = 5.0  # seconds before re-searching for basket
+    MAIN_TIMEOUT_THROW_BALL: Final[float] = 2.0  # seconds before re-trying to throw ball
+    MAIN_TIMEOUT_CLEAR_STUCK_BALL: Final[float] = 1.5  # seconds to clear stuck ball
