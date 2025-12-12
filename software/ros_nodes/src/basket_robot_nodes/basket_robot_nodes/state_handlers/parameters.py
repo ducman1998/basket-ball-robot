@@ -69,6 +69,10 @@ class Parameters:
     MAIN_TIMEOUT_ALIGN_BALL: Final[float] = 4.0  # seconds before re-searching for ball
     MAIN_TIMEOUT_GRAB_BALL: Final[float] = 3.0  # seconds before re-searching for ball
     MAIN_TIMEOUT_ALIGN_BASKET: Final[float] = 3.5  # seconds before re-searching for basket
-    MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED: Final[float] = 5.0  # seconds before re-searching for basket
+    # seconds before re-searching for basket in advanced alignment mode
+    # marker-based alignment = timeout - refine angle timeout
+    MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_TOTAL: Final[float] = 6.0  # timeout
+    # seconds for removing angle error in advanced basket alignment
+    MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_REFINE_ANGLE: Final[float] = 2.0  # refine angle timeout
     MAIN_TIMEOUT_THROW_BALL: Final[float] = 2.0  # seconds before re-trying to throw ball
     MAIN_TIMEOUT_CLEAR_STUCK_BALL: Final[float] = 1.5  # seconds to clear stuck ball

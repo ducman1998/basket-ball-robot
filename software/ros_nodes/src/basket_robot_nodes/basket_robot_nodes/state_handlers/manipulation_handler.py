@@ -35,9 +35,8 @@ class ManpulationHandler:
 
         # advanced basket alignment variables
         self.is_marker_pose_extracted: bool = False
-        self.t_odom_tp: Optional[
-            np.ndarray
-        ] = None  # transformation from odometry to throwing position
+        # transformation from odometry to desired throwing position
+        self.t_odom_tp: Optional[np.ndarray] = None
 
         # throw the ball
         self.calculated_thrower_percent: Optional[float] = None
@@ -65,12 +64,24 @@ class ManpulationHandler:
         basket_color: Optional[str] = None,
         base_thrower_percent: Optional[float] = None,
         timeout: float = 10.0,
+        timeout_refine_angle: Optional[float] = None,
     ) -> None:
-        """Initialize the handler state."""
-        if action == ManipulationAction.ALIGN_BASKET:
+        """Initialize the handler state.
+        Note that last option only used for ALIGN_BASKET_ADVANCED,
+        ensure enough time for aligning basket angle deviation before throwing.
+        """
+        if action in (ManipulationAction.ALIGN_BASKET, ManipulationAction.ALIGN_BASKET_ADVANCED):
             assert (
                 basket_color is not None
-            ), "Basket color must be provided for ALIGN_BASKET action."
+            ), "Basket color must be provided for ALIGN_BASKET & ALIGN_BASKET_ADVANCED action."
+
+        if action == ManipulationAction.ALIGN_BASKET_ADVANCED:
+            assert (
+                timeout_refine_angle is not None
+            ), "Specify timeout for refining angle error in ALIGN_BASKET_ADVANCED action."
+            assert (
+                timeout - timeout_refine_angle > 0.0
+            ), "Total timeout must be greater than timeout for aligning angle error."
 
         assert timeout > 0.0, "Timeout must be positive."
 
@@ -79,7 +90,8 @@ class ManpulationHandler:
         self.current_action = action
         self.basket_color = basket_color
         self.base_thrower_percent = base_thrower_percent
-        self.timeout = timeout
+        self.timeout = timeout  # total timeout for the manipulation action
+        self.timeout_refine_angle = timeout_refine_angle
 
     def reset(self) -> None:
         """Reset the handler state."""
@@ -92,6 +104,7 @@ class ManpulationHandler:
         self.t_odom_tp = None
         self.calculated_thrower_percent = None
         self.timeout = 10.0
+        self.timeout_refine_angle = None
         self.reset_pid_errors()
 
     def reset_pid_errors(self) -> None:
@@ -252,12 +265,21 @@ class ManpulationHandler:
         # more complex logic to consider ball position, marker pose, etc. The robot may need to
         # move to preferred position based on detected markers before aligning the basket.
         assert self.start_time is not None, "Handler not initialized."
+        assert self.timeout_refine_angle is not None, "Refine angle timeout not set."
         assert self.basket_color is not None, "Basket color not set."
 
-        if time() - self.start_time > self.timeout:
+        elapsed_time = time() - self.start_time
+        if elapsed_time > self.timeout:
             return RetCode.TIMEOUT
 
-        # control robot based on marker pose
+        marker_based_timeout = self.timeout - self.timeout_refine_angle
+        if elapsed_time > marker_based_timeout:
+            self.peripheral_manager._node.get_logger().info(
+                "Marker-based alignment is timeout. Switching to traditional basket alignment."
+            )
+            return self.align_to_basket(disable_timeout=True)  # return either SUCCESS or DOING
+
+        # control robot based on marker poses if detected
         if (
             self.peripheral_manager.is_marker_detected(self.basket_color)
             and not self.is_marker_pose_extracted

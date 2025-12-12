@@ -187,7 +187,8 @@ class GameLogicController(BaseGameLogicController):
                             ManipulationAction.ALIGN_BASKET,
                             basket_color=self.get_target_basket_color(),
                             base_thrower_percent=Parameters.MAIN_BASE_THROWER_PERCENT,
-                            timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED,
+                            timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_TOTAL,
+                            timeout_refine_angle=Parameters.MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_REFINE_ANGLE,
                         )
                     else:
                         self.transition_to(GameState.ALIGN_BASKET)
