@@ -1,14 +1,12 @@
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, cast
 
 import cv2
-import time
 import numpy as np
 from basket_robot_nodes.utils.color_segmention import ColorSegmenter
 from basket_robot_nodes.utils.image_info import Basket, GreenBall, Marker
 from numpy.typing import NDArray
 
 from .constants import COLOR_REFERENCE_RGB
-
 
 # original calibration image sizes (1280x720, used to compute homography)
 CALIB_SCALE = 1.0
@@ -102,7 +100,13 @@ class ImageProcessing:
         if visualize:
             viz = im_rgb
         # detect ArUco markers
+        basket_2d_pos: Optional[Tuple[float, float]] = None
         detected_markers = self.detect_aruco_markers(image_gray, seg_mask, viz)
+        if len(detected_markers) == 2:
+            # average position from two markers
+            x_avg = (detected_markers[0].position_2d[0] + detected_markers[1].position_2d[0]) / 2
+            y_avg = (detected_markers[0].position_2d[1] + detected_markers[1].position_2d[1]) / 2
+            basket_2d_pos = (x_avg, y_avg)
 
         # detect green balls
         detected_balls = self.detect_green_balls(
@@ -118,6 +122,7 @@ class ImageProcessing:
             depth=depth,
             viz_rgb=viz if visualize else None,
             min_component_area_ratio=500 / (im_h * im_w),
+            position_2d_from_markers=basket_2d_pos,
         )
         return detected_balls, detected_basket, detected_markers, viz if visualize else None
 
@@ -146,7 +151,7 @@ class ImageProcessing:
         # top rows are always outside the court area, remove them to reduce false positives
         green_mask[: self.num_ignored_rows, :] = 0
         filled_court_mask = self._get_processed_court_masks(seg_mask, scale=0.1)
-        green_mask = cv2.bitwise_and(green_mask, filled_court_mask)  # type: ignore
+        green_mask = cv2.bitwise_and(green_mask, filled_court_mask)
         # connected component analysis
         n_labels, _, stats, centroids = cv2.connectedComponentsWithStats(green_mask, connectivity=8)
 
@@ -212,6 +217,7 @@ class ImageProcessing:
         depth: Optional[NDArray[np.float32]] = None,
         viz_rgb: Optional[NDArray[np.uint8]] = None,
         min_component_area_ratio: float = 1000 / (1280 * 720),
+        position_2d_from_markers: Optional[Tuple[float, float]] = None,
     ) -> Optional[Basket]:
         """
         Detect baskets from the segmented image mask.
@@ -256,10 +262,10 @@ class ImageProcessing:
         if basket_color and bbox is not None and basket_mask is not None:
             center = (int((bbox[0] + bbox[2]) // 2), int((bbox[1] + bbox[3]) // 2))
             x_start, y_start, x_end, y_end = bbox
-            if depth is not None:
+            if depth is not None and position_2d_from_markers is None:
                 pos_2d = self._calculate_basket_2d_pos_from_depth(depth, basket_mask, bbox)
             else:
-                pos_2d = None
+                pos_2d = position_2d_from_markers
 
             if viz_rgb is not None:
                 cv2.rectangle(
@@ -271,7 +277,12 @@ class ImageProcessing:
                 )
                 if pos_2d:
                     dis = np.linalg.norm(np.array(pos_2d))
-                    text = f"{basket_color}, p=({pos_2d[0]:.1f}, {pos_2d[1]:.1f}), d={dis:.1f}"
+                    if position_2d_from_markers is not None:
+                        text = (
+                            f"{basket_color}, p=({pos_2d[0]:.1f}, {pos_2d[1]:.1f}), d={dis:.1f} [M]"
+                        )
+                    else:
+                        text = f"{basket_color}, p=({pos_2d[0]:.1f}, {pos_2d[1]:.1f}), d={dis:.1f}"
                 else:
                     text = f"{basket_color}, p=(N/A), d=(N/A)"
                 cv2.putText(
@@ -366,7 +377,6 @@ class ImageProcessing:
     def _get_processed_court_masks(
         self, seg_mask: NDArray[np.uint8], scale: float = 0.15
     ) -> NDArray[np.uint8]:
-
         court_idx = self.image_segmenter.get_color_index("court")
         # Create base masks
         court_mask: NDArray[np.uint8] = ((seg_mask == court_idx).astype(np.uint8)) * 255
@@ -549,9 +559,9 @@ class ImageProcessing:
         else:
             # Multiple points case
             # Create edge points: shift each point 20mm to the left in robot coords
-            edge_points = xy_pos_centers.copy()
+            edge_points = xy_pos_centers.copy()  # type: ignore[union-attr]
             edge_points[:, 0] -= 20  # 20mm to the left
-            ball_edges = self._robot_to_pixel_coords(edge_points)
+            ball_edges = cast(NDArray[np.float32], self._robot_to_pixel_coords(edge_points))
 
             # Calculate radii (distance between center and edge)
             radii = np.linalg.norm(ball_centers - ball_edges, axis=1)

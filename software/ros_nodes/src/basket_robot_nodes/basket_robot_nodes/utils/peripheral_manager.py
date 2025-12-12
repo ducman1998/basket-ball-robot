@@ -128,11 +128,13 @@ class PeripheralManager:
             self._image_size = image_info.image_size
 
         # update latest target basket position in odom frame (in mm)
+        # ensure both markers are detected --> only cache reliable positions
         if (
             self.target_basket_color is not None
             and self.is_odom_ready()
             and image_info.basket is not None
             and image_info.basket.position_2d is not None
+            and len(image_info.markers) == 2
         ):
             if image_info.basket.color == self.target_basket_color:
                 # store latest target basket position in odom frame

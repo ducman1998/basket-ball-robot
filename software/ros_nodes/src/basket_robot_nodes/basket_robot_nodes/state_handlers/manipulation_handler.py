@@ -35,9 +35,12 @@ class ManpulationHandler:
 
         # advanced basket alignment variables
         self.is_marker_pose_extracted: bool = False
-        self.t_odom_tp: Optional[np.ndarray] = (
-            None  # transformation from odometry to throwing position
-        )
+        self.t_odom_tp: Optional[
+            np.ndarray
+        ] = None  # transformation from odometry to throwing position
+
+        # throw the ball
+        self.calculated_thrower_percent: Optional[float] = None
 
         # internal PID control variables
         self.prev_vx_error: float = 0.0
@@ -85,6 +88,7 @@ class ManpulationHandler:
         self.is_basket_aligned_queue.clear()
         self.is_marker_pose_extracted = False
         self.t_odom_tp = None
+        self.calculated_thrower_percent = None
         self.timeout = 10.0
         self.reset_pid_errors()
 
@@ -353,10 +357,15 @@ class ManpulationHandler:
         ):
             return RetCode.FAILED_BASKET_LOST
 
-        thrower_percent = 50.0  # default thrower percent
-        basket_distance_mm = self.peripheral_manager.get_basket_distance()
-        if basket_distance_mm is not None:
-            thrower_percent = self.get_thrower_percent(basket_distance_mm, offset=1.0)
+        if self.calculated_thrower_percent is None:
+            thrower_percent = 50.0  # default thrower percent
+            basket_distance_mm = self.peripheral_manager.get_basket_distance()
+            if basket_distance_mm is not None:
+                thrower_percent = self.get_thrower_percent(basket_distance_mm, offset=1.0)
+                self.calculated_thrower_percent = thrower_percent
+        else:
+            thrower_percent = self.calculated_thrower_percent
+
         self.peripheral_manager.move_robot_adv(
             0.0,
             0.0,

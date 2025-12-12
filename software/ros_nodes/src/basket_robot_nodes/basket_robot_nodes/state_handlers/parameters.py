@@ -22,10 +22,6 @@ class Parameters:
     ## 2.1. Maximum speeds for manipulation tasks
     MANI_MAX_ALIGN_LINEAR_SPEED: Final[float] = 1.0  # m/s
     MANI_MAX_ALIGN_ANGULAR_SPEED: Final[float] = 1.0  # rad/s
-    MANI_MAX_ALIGN_WBALL_LINEAR_SPEED: Final[float] = 1.5  # m/s
-    MANI_MAX_ALIGN_WBALL_ANGULAR_SPEED: Final[float] = 2.0  # rad/s
-    MANI_MAX_THROW_LINEAR_SPEED: Final[float] = 1.0  # m/s
-    MANI_MAX_THROW_ANGULAR_SPEED: Final[float] = 1.0  # rad/s
     ## 2.2. PID parameters for manipulation tasks
     MANI_PID_LINEAR_ALIGN: Final[list[float]] = [2.0, 0.001, 0.001]  # [Kp, Ki, Kd]
     MANI_PID_ANGULAR_ALIGN: Final[list[float]] = [1.0, 0.0, 0.0]  # [Kp, Ki, Kd]
@@ -43,29 +39,26 @@ class Parameters:
     MANI_STORED_BASKET_TIMEOUT: Final[float] = 15.0  # seconds
     MANI_SEARCH_BASKET_ANGULAR_SPEED: Final[float] = 1.25  # rad/s
     MANI_SEARCH_BASKET_MAX_ANGULAR_SPEED: Final[float] = 1.25  # rad/s
-    MANI_SEARCH_BASKET_NUM_CONSECUTIVE_VALID_FRAMES: Final[int] = 10
+    MANI_SEARCH_BASKET_NUM_CONSECUTIVE_VALID_FRAMES: Final[int] = 5
     ## 2.4. Specific thresholds for grabbing ball
     MANI_GRAB_BALL_Y_SPEED: Final[float] = 0.2  # m/s
     MANI_GRAB_BALL_SERVO_SPEED: Final[int] = 3000  # servo speed for grabbing
-    ## 2.5. Specific thresholds for aligning basket with ball
-
     ## 2.6. Specific parameters for throwing ball
-    MANI_THROW_BALL_SERVO_SPEED: Final[int] = 4000  # servo speed for throwing
-
+    MANI_THROW_BALL_SERVO_SPEED: Final[int] = 3000  # servo speed for throwing
     ## 2.7. Specific parameters for aligning to basket in advanced mode
     MANI_ALIGN_BASKET_ADV_VALID_DISTS_MM: Final[tuple[float, float]] = (
         1500,
         3000,
     )  # min, max valid distances in mm
-    MANI_ALIGN_BASKET_ADV_PREFERRED_DIST_MM: Final[float] = (
-        2300.0  # preferred distance to basket in mm
-    )
+    MANI_ALIGN_BASKET_ADV_PREFERRED_DIST_MM: Final[
+        float
+    ] = 2300.0  # preferred distance to basket in mm
     # mm offset along x-axis from marker center to basket center
     MANI_ALIGN_BASKET_ADV_MARKER_OFFSET_X_MM = 230
     MANI_ALIGN_BASKET_ADV_MAX_LINEAR_SPEED: Final[float] = 0.75  # m/s
     MANI_ALIGN_BASKET_ADV_MAX_ANGULAR_SPEED: Final[float] = 0.75  # rad/s
-    MANI_ALIGN_BASKET_ADV_DIS_THRESHOLD_MM: Final[float] = 400.0  # mm
-    MANI_ALIGN_BASKET_ADV_DIS_ODOM_THRESHOLD_MM: Final[float] = 100.0  # mm
+    MANI_ALIGN_BASKET_ADV_DIS_THRESHOLD_MM: Final[float] = 300.0  # mm
+    MANI_ALIGN_BASKET_ADV_DIS_ODOM_THRESHOLD_MM: Final[float] = 50.0  # mm
     # parameters for main state machine
     # TODO: add more parameters if needed
     MAIN_TURNING_DEGREE: Final[float] = 360.0  # degrees to turn when searching for ball
