@@ -61,10 +61,9 @@ class Parameters:
     MANI_ALIGN_BASKET_ADV_DIS_ODOM_THRESHOLD_MM: Final[float] = 50.0  # mm
 
     # 3. parameters for main state machine
-    MAIN_TURNING_DEGREE: Final[float] = 320.0  # degrees to turn when searching for ball
+    MAIN_TURNING_DEGREE: Final[float] = 300.0  # degrees to turn when searching for ball
     MAIN_BASE_THROWER_PERCENT: Final[float] = 20.0  # base power percent for throwing ball
-    MAIN_TIMEOUT_SEARCH_BALL_TURN_CONT: Final[float] = 3.0  # seconds before re-searching for ball
-    MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC: Final[float] = 2.5  # seconds before re-searching for ball
+    MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC: Final[float] = 3.0  # seconds before re-searching for ball
     MAIN_TIMEOUT_SEARCH_BALL_MOVE_FW: Final[float] = 2.0  # seconds before re-searching for ball
     MAIN_TIMEOUT_ALIGN_BALL: Final[float] = 4.0  # seconds before re-searching for ball
     MAIN_TIMEOUT_GRAB_BALL: Final[float] = 3.0  # seconds before re-searching for ball

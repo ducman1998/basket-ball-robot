@@ -35,10 +35,9 @@ class SearchSubState:
     """Enum-like class for search ball sub-states."""
 
     UNDEFINED = -1
-    TURN_CONTINUOUS = 0
-    TURN_DISCRETE = 1
-    ALIGN_BASKET = 2
-    MOVE_FORWARD = 3
+    TURN_DISCRETE = 0
+    ALIGN_BASKET = 1
+    MOVE_FORWARD = 2
 
     @staticmethod
     def get_name(state_value: int) -> str:
@@ -61,7 +60,7 @@ class GameLogicController(BaseGameLogicController):
         self.pre_state = GameState.UNDEFINED
         self.cur_state = GameState.INIT
         self.pre_sub_state = SearchSubState.UNDEFINED
-        self.cur_sub_state = SearchSubState.TURN_CONTINUOUS
+        self.cur_sub_state = SearchSubState.TURN_DISCRETE
 
         self.get_logger().info(f"Dev mode: {DEV_MODE}")
 
@@ -93,9 +92,9 @@ class GameLogicController(BaseGameLogicController):
                         # NOTE: SEARCH_BALL state mostly uses basic handlers in sub-state machine
                         self.transition_to(GameState.SEARCH_BALL)
                         self.base_handler.initialize(
-                            BaseAction.TURN_CONTINUOUS,
+                            BaseAction.TURN_DISCRETE,
                             angle_deg=Parameters.MAIN_TURNING_DEGREE,
-                            timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_CONT,
+                            timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC,
                         )
 
             case GameState.SEARCH_BALL:
@@ -115,15 +114,6 @@ class GameLogicController(BaseGameLogicController):
                     return  # exit early to avoid executing sub-state logic
 
                 match self.cur_sub_state:
-                    case SearchSubState.TURN_CONTINUOUS:
-                        ret = self.base_handler.turn_robot_cont()
-                        if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
-                            self.sub_transition_to(SearchSubState.TURN_DISCRETE)
-                            self.base_handler.initialize(
-                                BaseAction.TURN_DISCRETE,
-                                angle_deg=Parameters.MAIN_TURNING_DEGREE,
-                                timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC,
-                            )
                     case SearchSubState.TURN_DISCRETE:
                         ret = self.base_handler.turn_robot_disc()
                         if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
@@ -156,11 +146,11 @@ class GameLogicController(BaseGameLogicController):
                     case SearchSubState.MOVE_FORWARD:
                         ret = self.base_handler.move_robot_forward()
                         if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
-                            self.sub_transition_to(SearchSubState.TURN_CONTINUOUS)
+                            self.sub_transition_to(SearchSubState.TURN_DISCRETE)
                             self.base_handler.initialize(
-                                BaseAction.TURN_CONTINUOUS,
+                                BaseAction.TURN_DISCRETE,
                                 angle_deg=Parameters.MAIN_TURNING_DEGREE,
-                                timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_CONT,
+                                timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC,
                             )
 
             case GameState.ALIGN_BALL:
@@ -173,9 +163,9 @@ class GameLogicController(BaseGameLogicController):
                 if ret == RetCode.FAILED_BALL_LOST:
                     self.transition_to(GameState.SEARCH_BALL)
                     self.base_handler.initialize(
-                        BaseAction.TURN_CONTINUOUS,
+                        BaseAction.TURN_DISCRETE,
                         angle_deg=Parameters.MAIN_TURNING_DEGREE,
-                        timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_CONT,
+                        timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC,
                     )
 
             case GameState.GRAB_BALL:
@@ -201,9 +191,9 @@ class GameLogicController(BaseGameLogicController):
                 if ret == RetCode.TIMEOUT:
                     self.transition_to(GameState.SEARCH_BALL)
                     self.base_handler.initialize(
-                        BaseAction.TURN_CONTINUOUS,
+                        BaseAction.TURN_DISCRETE,
                         angle_deg=Parameters.MAIN_TURNING_DEGREE,
-                        timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_CONT,
+                        timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC,
                     )
 
             case GameState.ALIGN_BASKET:
@@ -230,9 +220,9 @@ class GameLogicController(BaseGameLogicController):
                 if ret == RetCode.TIMEOUT:
                     self.transition_to(GameState.SEARCH_BALL)
                     self.base_handler.initialize(
-                        BaseAction.TURN_CONTINUOUS,
+                        BaseAction.TURN_DISCRETE,
                         angle_deg=Parameters.MAIN_TURNING_DEGREE,
-                        timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_CONT,
+                        timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC,
                     )
                 if ret == RetCode.FAILED_BASKET_LOST:
                     self.transition_to(GameState.ALIGN_BASKET)
@@ -248,11 +238,10 @@ class GameLogicController(BaseGameLogicController):
                 if ret == RetCode.TIMEOUT:
                     self.transition_to(GameState.SEARCH_BALL)
                     self.base_handler.initialize(
-                        BaseAction.TURN_CONTINUOUS,
+                        BaseAction.TURN_DISCRETE,
                         angle_deg=Parameters.MAIN_TURNING_DEGREE,
-                        timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_CONT,
+                        timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC,
                     )
-
             case _:
                 raise RuntimeError("Unknown game state!")
 
@@ -266,7 +255,7 @@ class GameLogicController(BaseGameLogicController):
 
         if new_state == GameState.SEARCH_BALL:
             # reset sub-state machine when entering SEARCH_BALL state
-            self.cur_sub_state = SearchSubState.TURN_CONTINUOUS
+            self.cur_sub_state = SearchSubState.TURN_DISCRETE
             self.pre_sub_state = SearchSubState.UNDEFINED
 
         self.pre_state = self.cur_state
