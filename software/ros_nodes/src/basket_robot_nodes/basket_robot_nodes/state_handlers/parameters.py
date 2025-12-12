@@ -40,7 +40,7 @@ class Parameters:
     MANI_SEARCH_BASKET_ANGULAR_SPEED: Final[float] = 1.25  # rad/s
     MANI_SEARCH_BASKET_MAX_ANGULAR_SPEED: Final[float] = 1.25  # rad/s
     MANI_SEARCH_BASKET_NUM_CONSECUTIVE_VALID_FRAMES: Final[int] = 5
-    ## 2.4. Specific thresholds for grabbing ball
+    ## 2.5. Specific thresholds for grabbing ball
     MANI_GRAB_BALL_Y_SPEED: Final[float] = 0.2  # m/s
     MANI_GRAB_BALL_SERVO_SPEED: Final[int] = 3000  # servo speed for grabbing
     ## 2.6. Specific parameters for throwing ball
@@ -59,8 +59,8 @@ class Parameters:
     MANI_ALIGN_BASKET_ADV_MAX_ANGULAR_SPEED: Final[float] = 0.75  # rad/s
     MANI_ALIGN_BASKET_ADV_DIS_THRESHOLD_MM: Final[float] = 300.0  # mm
     MANI_ALIGN_BASKET_ADV_DIS_ODOM_THRESHOLD_MM: Final[float] = 50.0  # mm
-    # parameters for main state machine
-    # TODO: add more parameters if needed
+
+    # 3. parameters for main state machine
     MAIN_TURNING_DEGREE: Final[float] = 320.0  # degrees to turn when searching for ball
     MAIN_BASE_THROWER_PERCENT: Final[float] = 20.0  # base power percent for throwing ball
     MAIN_TIMEOUT_SEARCH_BALL_TURN_CONT: Final[float] = 3.0  # seconds before re-searching for ball
