@@ -99,6 +99,13 @@ class PeripheralManager:
 
         return self.target_basket_color
 
+    def basket_color_to_marker_ids(self, color: str) -> List[int]:
+        """Convert basket color to corresponding marker IDs."""
+        if color == "magenta":
+            return [11, 12]  # IDs for magenta basket markers
+        else:  # blue
+            return [21, 22]  # IDs for blue basket markers
+
     # ==================== Callback Methods ====================
     def _odom_callback(self, msg: Odometry) -> None:
         """Handle incoming odometry messages."""
@@ -200,10 +207,18 @@ class PeripheralManager:
             return False
         return self._image_info_msg.basket is not None
 
-    def is_marker_detected(self) -> bool:
+    def is_marker_detected(self, basket_color: Optional[str] = None) -> bool:
         if self._image_info_msg is None:
             return False
-        return len(self._image_info_msg.markers) > 0
+        if basket_color is None:
+            return len(self._image_info_msg.markers) > 0
+        else:
+            assert basket_color in ["magenta", "blue"], "Invalid basket color."
+            marker_ids = self.basket_color_to_marker_ids(basket_color)
+            for marker in self._image_info_msg.markers:
+                if marker.id in marker_ids:
+                    return True
+            return False
 
     def get_detected_balls(self) -> Union[List[GreenBall], Tuple[GreenBall, ...]]:
         if self._image_info_msg is None:

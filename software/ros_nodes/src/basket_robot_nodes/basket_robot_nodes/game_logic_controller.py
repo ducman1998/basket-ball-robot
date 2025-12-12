@@ -8,6 +8,7 @@ from basket_robot_nodes.utils.base_game_logic import BaseGameLogicController
 from basket_robot_nodes.utils.peripheral_manager import PeripheralManager
 
 DEV_MODE = True
+ENABLE_ADVANCED_BASKET_ALIGNMENT = False  # enable advanced basket alignment mode
 SAMPLING_RATE = 60  # Hz
 
 
@@ -20,7 +21,8 @@ class GameState:
     ALIGN_BALL = 2
     GRAB_BALL = 3
     ALIGN_BASKET = 4
-    THROW_BALL = 5
+    ALIGN_BASKET_ADVANCED = 5
+    THROW_BALL = 6
 
     @staticmethod
     def get_name(state_value: int) -> str:
@@ -159,7 +161,10 @@ class GameLogicController(BaseGameLogicController):
             case GameState.GRAB_BALL:
                 ret = self.manipulation_handler.move_forward_to_grab()
                 if ret == RetCode.SUCCESS:
-                    self.transition_to(GameState.ALIGN_BASKET)
+                    if ENABLE_ADVANCED_BASKET_ALIGNMENT:
+                        self.transition_to(GameState.ALIGN_BASKET_ADVANCED)
+                    else:
+                        self.transition_to(GameState.ALIGN_BASKET)
                     self.manipulation_handler.initialize(
                         ManipulationAction.ALIGN_BASKET,
                         basket_color=self.get_target_basket_color(),
@@ -169,6 +174,12 @@ class GameLogicController(BaseGameLogicController):
 
             case GameState.ALIGN_BASKET:
                 ret = self.manipulation_handler.align_to_basket()
+                if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
+                    self.transition_to(GameState.THROW_BALL)
+                    self.manipulation_handler.initialize(ManipulationAction.THROW_BALL, timeout=2.0)
+
+            case GameState.ALIGN_BASKET_ADVANCED:
+                ret = self.manipulation_handler.align_to_basket_advanced()
                 if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
                     self.transition_to(GameState.THROW_BALL)
                     self.manipulation_handler.initialize(ManipulationAction.THROW_BALL, timeout=2.0)
@@ -188,7 +199,7 @@ class GameLogicController(BaseGameLogicController):
                         ManipulationAction.ALIGN_BASKET,
                         basket_color=self.get_target_basket_color(),
                         base_thrower_percent=10.0,
-                        timeout=5.0,
+                        timeout=4.0,
                     )
 
             case _:

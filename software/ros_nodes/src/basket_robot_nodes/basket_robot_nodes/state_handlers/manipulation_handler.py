@@ -8,6 +8,7 @@ import numpy as np
 from basket_robot_nodes.state_handlers.actions import ManipulationAction
 from basket_robot_nodes.state_handlers.parameters import Parameters
 from basket_robot_nodes.state_handlers.ret_code import RetCode
+from basket_robot_nodes.utils.image_info import Marker
 from basket_robot_nodes.utils.number_utils import (
     get_rotation_matrix,
     warm_up_angular,
@@ -164,13 +165,14 @@ class ManpulationHandler:
             )
         return RetCode.DOING
 
-    def align_to_basket(self) -> RetCode:
+    def align_to_basket(self, disable_timeout: bool = False) -> RetCode:
         """Align to the basket for scoring, the robot will rotate to face the basket"""
         assert self.start_time is not None, "Handler not initialized."
         assert self.basket_color is not None, "Basket color not set."
 
-        if time() - self.start_time > self.timeout:
-            return RetCode.TIMEOUT
+        if not disable_timeout:
+            if time() - self.start_time > self.timeout:
+                return RetCode.TIMEOUT
 
         basket_pos_robot_mm: Optional[Tuple[float, float]] = None
         if (
@@ -223,6 +225,52 @@ class ManpulationHandler:
 
         return RetCode.DOING
 
+    def align_to_basket_advanced(self) -> RetCode:
+        """Align the basket with the ball for scoring."""
+        # TODO: implement basket alignment with ball, can be similar to align_to_basket(), but
+        # more complex logic to consider ball position, marker pose, etc. The robot may need to
+        # move to preferred position based on detected markers before aligning the basket.
+        assert self.start_time is not None, "Handler not initialized."
+        assert self.basket_color is not None, "Basket color not set."
+
+        if time() - self.start_time > self.timeout:
+            return RetCode.TIMEOUT
+
+        # control robot based on marker pose
+        if self.peripheral_manager.is_marker_detected(self.basket_color):
+            basket_dis_mm = self.peripheral_manager.get_basket_distance()
+            if basket_dis_mm is not None:
+                desired_dis_mm = Parameters.MANI_ALIGN_BASKET_ADV_PREFERRED_DIST_MM
+                if basket_dis_mm < Parameters.MANI_ALIGN_BASKET_ADV_VALID_DISTS_MM[0]:
+                    desired_dis_mm = Parameters.MANI_ALIGN_BASKET_ADV_VALID_DISTS_MM[0]
+                elif basket_dis_mm > Parameters.MANI_ALIGN_BASKET_ADV_VALID_DISTS_MM[1]:
+                    desired_dis_mm = Parameters.MANI_ALIGN_BASKET_ADV_VALID_DISTS_MM[1]
+
+                markers = self.peripheral_manager.get_detected_markers()
+                if markers:
+                    t_error = self.get_expected_transformation_by_marker(markers[0], desired_dis_mm)
+                    if (
+                        np.linalg.norm(t_error[0:2, 3])
+                        > Parameters.MANI_BASKET_ALIGN_ANGLE_THRESHOLD_DEG
+                    ):
+                        (vx, vy, wz) = self.compute_control_signals(
+                            t_error,
+                            (
+                                Parameters.MANI_PID_LINEAR_ALIGN,
+                                Parameters.MANI_PID_ANGULAR_ALIGN,
+                            ),
+                        )
+                        self.peripheral_manager.move_robot_normalized(
+                            vx,
+                            vy,
+                            wz,
+                            max_xy_speed=Parameters.MANI_ALIGN_BASKET_ADV_MAX_LINEAR_SPEED,
+                            max_rot_speed=Parameters.MANI_ALIGN_BASKET_ADV_MAX_ANGULAR_SPEED,
+                        )
+                        return RetCode.DOING
+
+        return self.align_to_basket(disable_timeout=True)  # return either SUCCESS or DOING
+
     def move_forward_to_grab(self) -> RetCode:
         """Move forward to grab the ball."""
         assert self.start_time is not None, "Handler not initialized."
@@ -240,16 +288,7 @@ class ManpulationHandler:
             thrower_percent=0.0,
             servo_speed=Parameters.MANI_GRAB_BALL_SERVO_SPEED,
         )
-
         return RetCode.DOING
-
-    def align_to_basket_advanced(self) -> RetCode:
-        """Align the basket with the ball for scoring."""
-        # TODO: implement basket alignment with ball, can be similar to align_to_basket(), but
-        # more complex logic to consider ball position, marker pose, etc. The robot may need to
-        # move to preferred position based on detected markers before aligning the basket.
-        assert self.start_time is not None, "Handler not initialized."
-        raise NotImplementedError("align_to_basket_advanced() not implemented yet.")
 
     def throw_ball(self) -> RetCode:
         """Throw the ball into the basket. Last 0.5s, robot will try to remove possible ball jam."""
@@ -388,3 +427,20 @@ class ManpulationHandler:
                     percent = percents[i] + ratio * (percents[i + 1] - percents[i])
                     return percent
         return 50.0  # default percent if something goes wrong
+
+    def get_expected_transformation_by_marker(
+        self, marker: Marker, prefered_dist_mm: float
+    ) -> np.ndarray:
+        """Get the expected transformation from robot base to new position based on marker pose."""
+        t_newr_marker = np.eye(4)
+        t_newr_marker[1, 3] = prefered_dist_mm
+        if marker.id % 2 != 0:
+            # left markers
+            t_newr_marker[0, 3] = -Parameters.MANI_ALIGN_BASKET_ADV_MARKER_OFFSET_X_MM
+        else:
+            # right markers
+            t_newr_marker[0, 3] = Parameters.MANI_ALIGN_BASKET_ADV_MARKER_OFFSET_X_MM
+        t_r_marker = np.eye(4)
+        t_r_marker[0:1, 3] = marker.position_2d
+        t_r_marker[:2, :2] = get_rotation_matrix(np.deg2rad(marker.theta))
+        return t_r_marker @ np.linalg.inv(t_newr_marker)

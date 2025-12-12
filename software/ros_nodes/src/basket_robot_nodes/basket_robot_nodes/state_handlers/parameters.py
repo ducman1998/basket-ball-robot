@@ -52,6 +52,19 @@ class Parameters:
     ## 2.6. Specific parameters for throwing ball
     MANI_THROW_BALL_SERVO_SPEED: Final[int] = 4000  # servo speed for throwing
 
+    ## 2.7. Specific parameters for aligning to basket in advanced mode
+    MANI_ALIGN_BASKET_ADV_VALID_DISTS_MM: Final[tuple[float, float]] = (
+        1500,
+        3000,
+    )  # min, max valid distances in mm
+    MANI_ALIGN_BASKET_ADV_PREFERRED_DIST_MM: Final[
+        float
+    ] = 2300.0  # preferred distance to basket in mm
+    # mm offset along x-axis from marker center to basket center
+    MANI_ALIGN_BASKET_ADV_MARKER_OFFSET_X_MM = 230
+    MANI_ALIGN_BASKET_ADV_MAX_LINEAR_SPEED: Final[float] = 1.5  # m/s
+    MANI_ALIGN_BASKET_ADV_MAX_ANGULAR_SPEED: Final[float] = 1.5  # rad/s
+    MANI_ALIGN_BASKET_ADV_DIS_THRESHOLD_MM: Final[float] = 50.0  # mm
     # parameters for main state machine
     # TODO: add more parameters if needed
     MAIN_TURNING_DEGREE: Final[float] = 340.0  # degrees to turn when searching for ball
