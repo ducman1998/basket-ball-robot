@@ -251,7 +251,7 @@ class ManpulationHandler:
                     t_error = self.get_expected_transformation_by_marker(markers[0], desired_dis_mm)
                     if (
                         np.linalg.norm(t_error[0:2, 3])
-                        > Parameters.MANI_BASKET_ALIGN_ANGLE_THRESHOLD_DEG
+                        > Parameters.MANI_ALIGN_BASKET_ADV_DIS_THRESHOLD_MM
                     ):
                         (vx, vy, wz) = self.compute_control_signals(
                             t_error,
