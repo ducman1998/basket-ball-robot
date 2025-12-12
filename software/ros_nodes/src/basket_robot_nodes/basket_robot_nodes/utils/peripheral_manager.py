@@ -236,6 +236,7 @@ class PeripheralManager:
             return []
 
         detected_markers = self._image_info_msg.markers
+        detected_markers = sorted(detected_markers, key=lambda m: m.id)
         return cast(List[Marker], detected_markers)
 
     def get_basket_position_2d(self) -> Optional[Tuple[float, float]]:

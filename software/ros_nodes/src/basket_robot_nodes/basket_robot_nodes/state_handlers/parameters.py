@@ -7,7 +7,7 @@ class Parameters:
     BASE_MOVE_Y_WARMUP_ENABLED: Final[bool] = True
     BASE_WARMUP_RAMP_DURATION: Final[float] = 0.5  # seconds
     BASE_DISCRETE_WARMUP_RAMP_DURATION: Final[float] = 0.25  # seconds
-    BASE_DISCRETE_TURN_SUB_ANGLE_DEG: Final[float] = 30.0  # degrees
+    BASE_DISCRETE_TURN_SUB_ANGLE_DEG: Final[float] = 85.0  # degrees
     BASE_CONTINUOUS_TURN_SPEED: Final[float] = 1.5  # rad/s
     BASE_DISCRETE_TURN_SPEED: Final[float] = 5.0  # rad/s
     BASE_DISCRETE_TURN_STOP_DURATION: Final[float] = 0.5  # seconds
@@ -29,7 +29,7 @@ class Parameters:
     ## 2.2. PID parameters for manipulation tasks
     MANI_PID_LINEAR_ALIGN: Final[list[float]] = [2.0, 0.001, 0.001]  # [Kp, Ki, Kd]
     MANI_PID_ANGULAR_ALIGN: Final[list[float]] = [1.0, 0.0, 0.0]  # [Kp, Ki, Kd]
-    MANI_PID_ANGULAR_ALIGN_BASKET: Final[list[float]] = [20.0, 0.01, 0.01]  # [Kp, Ki, Kd]
+    MANI_PID_ANGULAR_ALIGN_BASKET: Final[list[float]] = [20.0, 0.00, 0.1]  # [Kp, Ki, Kd]
     MANI_PID_LINEAR_THROW_BALL: Final[list[float]] = [0.5, 0.0, 0.05]  # [Kp, Ki, Kd]
     MANI_PID_ANGULAR_THROW_BALL: Final[list[float]] = [1.0, 0.0, 0.1]  # [Kp, Ki, Kd]
     ## 2.3. Specifict thresholds for aligning with ball
@@ -57,14 +57,15 @@ class Parameters:
         1500,
         3000,
     )  # min, max valid distances in mm
-    MANI_ALIGN_BASKET_ADV_PREFERRED_DIST_MM: Final[
-        float
-    ] = 2300.0  # preferred distance to basket in mm
+    MANI_ALIGN_BASKET_ADV_PREFERRED_DIST_MM: Final[float] = (
+        2300.0  # preferred distance to basket in mm
+    )
     # mm offset along x-axis from marker center to basket center
     MANI_ALIGN_BASKET_ADV_MARKER_OFFSET_X_MM = 230
-    MANI_ALIGN_BASKET_ADV_MAX_LINEAR_SPEED: Final[float] = 1.5  # m/s
-    MANI_ALIGN_BASKET_ADV_MAX_ANGULAR_SPEED: Final[float] = 1.5  # rad/s
-    MANI_ALIGN_BASKET_ADV_DIS_THRESHOLD_MM: Final[float] = 50.0  # mm
+    MANI_ALIGN_BASKET_ADV_MAX_LINEAR_SPEED: Final[float] = 0.75  # m/s
+    MANI_ALIGN_BASKET_ADV_MAX_ANGULAR_SPEED: Final[float] = 0.75  # rad/s
+    MANI_ALIGN_BASKET_ADV_DIS_THRESHOLD_MM: Final[float] = 400.0  # mm
+    MANI_ALIGN_BASKET_ADV_DIS_ODOM_THRESHOLD_MM: Final[float] = 100.0  # mm
     # parameters for main state machine
     # TODO: add more parameters if needed
-    MAIN_TURNING_DEGREE: Final[float] = 340.0  # degrees to turn when searching for ball
+    MAIN_TURNING_DEGREE: Final[float] = 360.0  # degrees to turn when searching for ball

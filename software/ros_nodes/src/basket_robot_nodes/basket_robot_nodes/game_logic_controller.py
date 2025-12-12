@@ -8,7 +8,7 @@ from basket_robot_nodes.utils.base_game_logic import BaseGameLogicController
 from basket_robot_nodes.utils.peripheral_manager import PeripheralManager
 
 DEV_MODE = True
-ENABLE_ADVANCED_BASKET_ALIGNMENT = False  # enable advanced basket alignment mode
+ENABLE_ADVANCED_BASKET_ALIGNMENT = True  # enable advanced basket alignment mode
 SAMPLING_RATE = 60  # Hz
 
 
@@ -41,7 +41,7 @@ class SearchSubState:
 
     @staticmethod
     def get_name(state_value: int) -> str:
-        state2name = {v: k for k, v in vars(GameState).items() if isinstance(v, int)}
+        state2name = {v: k for k, v in vars(SearchSubState).items() if isinstance(v, int)}
         return state2name.get(state_value, "UNKNOWN")
 
 
@@ -120,7 +120,7 @@ class GameLogicController(BaseGameLogicController):
                             self.manipulation_handler.initialize(
                                 ManipulationAction.ALIGN_BASKET,
                                 basket_color=self.get_target_basket_color(),
-                                timeout=4.0,
+                                timeout=3.0,
                             )
 
                     case SearchSubState.ALIGN_BASKET:
@@ -132,7 +132,14 @@ class GameLogicController(BaseGameLogicController):
                                 self.base_handler.initialize(
                                     BaseAction.MOVE_FORWARD,
                                     offset_y_mm=basket_dis_mm - 1000,
-                                    timeout=4.0,
+                                    timeout=3.0,
+                                )
+                            elif basket_dis_mm is not None and basket_dis_mm <= 2500:
+                                self.sub_transition_to(SearchSubState.ALIGN_BASKET)
+                                self.manipulation_handler.initialize(
+                                    ManipulationAction.ALIGN_BASKET,
+                                    basket_color=self.get_opponent_basket_color(),
+                                    timeout=3.0,
                                 )
 
                     case SearchSubState.MOVE_FORWARD:
@@ -163,13 +170,26 @@ class GameLogicController(BaseGameLogicController):
                 if ret == RetCode.SUCCESS:
                     if ENABLE_ADVANCED_BASKET_ALIGNMENT:
                         self.transition_to(GameState.ALIGN_BASKET_ADVANCED)
+                        self.manipulation_handler.initialize(
+                            ManipulationAction.ALIGN_BASKET,
+                            basket_color=self.get_target_basket_color(),
+                            base_thrower_percent=20.0,
+                            timeout=6.0,
+                        )
                     else:
                         self.transition_to(GameState.ALIGN_BASKET)
-                    self.manipulation_handler.initialize(
-                        ManipulationAction.ALIGN_BASKET,
-                        basket_color=self.get_target_basket_color(),
-                        base_thrower_percent=10.0,
-                        timeout=5.0,
+                        self.manipulation_handler.initialize(
+                            ManipulationAction.ALIGN_BASKET,
+                            basket_color=self.get_target_basket_color(),
+                            base_thrower_percent=20.0,
+                            timeout=5.0,
+                        )
+                if ret == RetCode.TIMEOUT:
+                    self.transition_to(GameState.SEARCH_BALL)
+                    self.base_handler.initialize(
+                        BaseAction.TURN_CONTINUOUS,
+                        angle_deg=Parameters.MAIN_TURNING_DEGREE,
+                        timeout=4.0,
                     )
 
             case GameState.ALIGN_BASKET:
@@ -183,6 +203,11 @@ class GameLogicController(BaseGameLogicController):
                 if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
                     self.transition_to(GameState.THROW_BALL)
                     self.manipulation_handler.initialize(ManipulationAction.THROW_BALL, timeout=2.0)
+
+                if ret == RetCode.TIMEOUT:
+                    self.get_logger().info(
+                        "Advanced basket alignment timed out, switching to normal alignment."
+                    )
 
             case GameState.THROW_BALL:
                 ret = self.manipulation_handler.throw_ball()
@@ -198,7 +223,7 @@ class GameLogicController(BaseGameLogicController):
                     self.manipulation_handler.initialize(
                         ManipulationAction.ALIGN_BASKET,
                         basket_color=self.get_target_basket_color(),
-                        base_thrower_percent=10.0,
+                        base_thrower_percent=20.0,
                         timeout=4.0,
                     )
 
@@ -212,6 +237,11 @@ class GameLogicController(BaseGameLogicController):
         if new_state == self.cur_state:
             self.get_logger().info(f"Already in state {cur_state_name}, no transition needed.")
             return
+
+        if new_state == GameState.SEARCH_BALL:
+            # reset sub-state machine when entering SEARCH_BALL state
+            self.cur_sub_state = SearchSubState.TURN_CONTINUOUS
+            self.pre_sub_state = SearchSubState.UNDEFINED
 
         self.pre_state = self.cur_state
         self.cur_state = new_state
@@ -240,7 +270,7 @@ class GameLogicController(BaseGameLogicController):
         else:
             status = "STARTED" if self.is_game_started else "INACTIVE"
         self.get_logger().info(
-            f"State: {state_name} | SubState: {sub_state_name}| Ref Status: {status}"
+            f"State: {state_name} | SubState: {sub_state_name} | Ref Status: {status}"
             + f" | Color: {self.get_target_basket_color()}"
         )
 

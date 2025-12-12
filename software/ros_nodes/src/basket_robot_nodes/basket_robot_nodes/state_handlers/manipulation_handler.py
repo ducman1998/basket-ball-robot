@@ -33,6 +33,12 @@ class ManpulationHandler:
             maxlen=Parameters.MANI_SEARCH_BASKET_NUM_CONSECUTIVE_VALID_FRAMES
         )
 
+        # advanced basket alignment variables
+        self.is_marker_pose_extracted: bool = False
+        self.t_odom_tp: Optional[np.ndarray] = (
+            None  # transformation from odometry to throwing position
+        )
+
         # internal PID control variables
         self.prev_vx_error: float = 0.0
         self.prev_vy_error: float = 0.0
@@ -77,7 +83,13 @@ class ManpulationHandler:
         self.basket_color = None
         self.base_thrower_percent = None
         self.is_basket_aligned_queue.clear()
+        self.is_marker_pose_extracted = False
+        self.t_odom_tp = None
         self.timeout = 10.0
+        self.reset_pid_errors()
+
+    def reset_pid_errors(self) -> None:
+        """Reset PID error accumulators."""
         self.prev_vx_error = 0.0
         self.prev_vy_error = 0.0
         self.prev_wz_error = 0.0
@@ -203,6 +215,9 @@ class ManpulationHandler:
         if basket_pos_robot_mm is not None:
             # control to face the basket
             heading_err_rad = -math.atan2(basket_pos_robot_mm[0], basket_pos_robot_mm[1])
+            self.peripheral_manager._node.get_logger().info(
+                f"Error to basket: {np.rad2deg(heading_err_rad):.2f} deg"
+            )
             wz = self.compute_pid(
                 2,
                 heading_err_rad,
@@ -237,7 +252,10 @@ class ManpulationHandler:
             return RetCode.TIMEOUT
 
         # control robot based on marker pose
-        if self.peripheral_manager.is_marker_detected(self.basket_color):
+        if (
+            self.peripheral_manager.is_marker_detected(self.basket_color)
+            and not self.is_marker_pose_extracted
+        ):
             basket_dis_mm = self.peripheral_manager.get_basket_distance()
             if basket_dis_mm is not None:
                 desired_dis_mm = Parameters.MANI_ALIGN_BASKET_ADV_PREFERRED_DIST_MM
@@ -248,27 +266,60 @@ class ManpulationHandler:
 
                 markers = self.peripheral_manager.get_detected_markers()
                 if markers:
-                    t_error = self.get_expected_transformation_by_marker(markers[0], desired_dis_mm)
+                    t_robot_desired_pos = self.get_expected_transformation_by_marker(
+                        markers[0], desired_dis_mm
+                    )
+                    self.t_odom_tp = (
+                        self.peripheral_manager.get_robot_to_odom_transform(True)
+                        @ t_robot_desired_pos
+                    )
                     if (
-                        np.linalg.norm(t_error[0:2, 3])
-                        > Parameters.MANI_ALIGN_BASKET_ADV_DIS_THRESHOLD_MM
+                        np.linalg.norm(t_robot_desired_pos[0:2, 3])
+                        < Parameters.MANI_ALIGN_BASKET_ADV_DIS_THRESHOLD_MM
                     ):
-                        (vx, vy, wz) = self.compute_control_signals(
-                            t_error,
-                            (
-                                Parameters.MANI_PID_LINEAR_ALIGN,
-                                Parameters.MANI_PID_ANGULAR_ALIGN,
-                            ),
-                        )
-                        self.peripheral_manager.move_robot_normalized(
-                            vx,
-                            vy,
-                            wz,
-                            max_xy_speed=Parameters.MANI_ALIGN_BASKET_ADV_MAX_LINEAR_SPEED,
-                            max_rot_speed=Parameters.MANI_ALIGN_BASKET_ADV_MAX_ANGULAR_SPEED,
-                        )
-                        return RetCode.DOING
+                        self.is_marker_pose_extracted = True
+                        self.peripheral_manager._node.get_logger().info("fixed position extracted.")
 
+        if self.t_odom_tp is not None:
+            # TODO: update t_odom_basket frequently to improve accuracy
+            t_error = self.peripheral_manager.get_odom_to_robot_transform(True) @ self.t_odom_tp
+            if (
+                np.linalg.norm(t_error[0:2, 3])
+                > Parameters.MANI_ALIGN_BASKET_ADV_DIS_ODOM_THRESHOLD_MM
+            ):
+                (vx, vy, wz) = self.compute_control_signals(
+                    t_error,
+                    (
+                        Parameters.MANI_PID_LINEAR_ALIGN,
+                        Parameters.MANI_PID_ANGULAR_ALIGN,
+                    ),
+                )
+                self.peripheral_manager.move_robot_adv(
+                    vx,
+                    vy,
+                    wz,
+                    thrower_percent=(
+                        self.base_thrower_percent if self.base_thrower_percent is not None else 0.0
+                    ),
+                    servo_speed=0,
+                    normalize=True,
+                    max_xy_speed=Parameters.MANI_ALIGN_BASKET_ADV_MAX_LINEAR_SPEED,
+                    max_rot_speed=Parameters.MANI_ALIGN_BASKET_ADV_MAX_ANGULAR_SPEED,
+                )
+                self.peripheral_manager._node.get_logger().info(
+                    "Aligning to basket using marker pose on odom frame."
+                )
+                return RetCode.DOING
+            else:
+                self.t_odom_tp = None  # reached desired position
+                self.reset_pid_errors()
+                self.peripheral_manager._node.get_logger().info(
+                    "Turning to traditional basket alignment."
+                )
+
+        self.peripheral_manager._node.get_logger().info(
+            f"Marker based alignment is complete. Timestamp: {time() - self.start_time:.2f}s"
+        )
         return self.align_to_basket(disable_timeout=True)  # return either SUCCESS or DOING
 
     def move_forward_to_grab(self) -> RetCode:
@@ -291,22 +342,11 @@ class ManpulationHandler:
         return RetCode.DOING
 
     def throw_ball(self) -> RetCode:
-        """Throw the ball into the basket. Last 0.5s, robot will try to remove possible ball jam."""
+        """Throw the ball into the basket."""
         assert self.start_time is not None, "Handler not initialized."
 
         if time() - self.start_time > self.timeout:
             return RetCode.TIMEOUT
-
-        if time() - self.start_time > self.timeout - 0.5:
-            # last 0.5s, try to remove possible stuck ball
-            self.peripheral_manager.move_robot_adv(
-                0.0,
-                0.0,
-                0.0,
-                thrower_percent=100.0,
-                servo_speed=-Parameters.MANI_THROW_BALL_SERVO_SPEED,
-            )
-            return RetCode.DOING
 
         if self.peripheral_manager.is_basket_not_detected_in_nframes(
             Parameters.MANI_MAX_CONSECUTIVE_FRAMES_NO_BASKET
@@ -316,7 +356,7 @@ class ManpulationHandler:
         thrower_percent = 50.0  # default thrower percent
         basket_distance_mm = self.peripheral_manager.get_basket_distance()
         if basket_distance_mm is not None:
-            thrower_percent = self.get_thrower_percent(basket_distance_mm)
+            thrower_percent = self.get_thrower_percent(basket_distance_mm, offset=1.0)
         self.peripheral_manager.move_robot_adv(
             0.0,
             0.0,
@@ -409,23 +449,23 @@ class ManpulationHandler:
             warm_up_angular(wz, self.start_time, ramp_duration),
         )
 
-    def get_thrower_percent(self, dis_to_basket_mm: float) -> float:
+    def get_thrower_percent(self, dis_to_basket_mm: float, offset: float = 0.0) -> float:
         """Get the thrower speed percentage based on distance to basket."""
         # Experimental data points: (distance in meters, motor percent)
         distances_m = [dp[0] for dp in self.data_points]
         percents = [dp[1] for dp in self.data_points]
         dis_m = dis_to_basket_mm / 1000.0
         if dis_m <= distances_m[0]:
-            return percents[0]
+            return percents[0] + offset
         elif dis_m >= distances_m[-1]:
-            return percents[-1]
+            return percents[-1] + offset
         else:
             for i in range(len(distances_m) - 1):
                 if distances_m[i] <= dis_m <= distances_m[i + 1]:
                     # linear interpolation
                     ratio = (dis_m - distances_m[i]) / (distances_m[i + 1] - distances_m[i])
                     percent = percents[i] + ratio * (percents[i + 1] - percents[i])
-                    return percent
+                    return percent + offset
         return 50.0  # default percent if something goes wrong
 
     def get_expected_transformation_by_marker(
@@ -441,6 +481,9 @@ class ManpulationHandler:
             # right markers
             t_newr_marker[0, 3] = Parameters.MANI_ALIGN_BASKET_ADV_MARKER_OFFSET_X_MM
         t_r_marker = np.eye(4)
-        t_r_marker[0:1, 3] = marker.position_2d
+        t_r_marker[0:2, 3] = marker.position_2d
+        self.peripheral_manager._node.get_logger().info(
+            f"Marker ID {marker.id} position_2d: {marker.position_2d}, theta: {marker.theta}"
+        )
         t_r_marker[:2, :2] = get_rotation_matrix(np.deg2rad(marker.theta))
         return t_r_marker @ np.linalg.inv(t_newr_marker)
