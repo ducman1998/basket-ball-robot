@@ -306,7 +306,7 @@ class ManpulationHandler:
         ):
             basket_dis_mm = self.peripheral_manager.get_basket_distance()
             if basket_dis_mm is not None:
-                desired_dis_mm = Parameters.MANI_ALIGN_BASKET_ADV_PREFERRED_DIST_MM
+                desired_dis_mm = basket_dis_mm
                 if basket_dis_mm < Parameters.MANI_ALIGN_BASKET_ADV_VALID_DISTS_MM[0]:
                     desired_dis_mm = Parameters.MANI_ALIGN_BASKET_ADV_VALID_DISTS_MM[0]
                 elif basket_dis_mm > Parameters.MANI_ALIGN_BASKET_ADV_VALID_DISTS_MM[1]:
