@@ -294,8 +294,8 @@ class ManpulationHandler:
 
                 markers = self.peripheral_manager.get_detected_markers()
                 if markers:
-                    t_robot_desired_pos = self.get_expected_transformation_by_marker(
-                        markers[0], desired_dis_mm
+                    t_robot_desired_pos = self.get_expected_transformation_by_markers(
+                        markers, desired_dis_mm
                     )
                     self.t_odom_tp = (
                         self.peripheral_manager.get_robot_to_odom_transform(True)
@@ -517,22 +517,35 @@ class ManpulationHandler:
                     return percent + offset
         return 50.0  # default percent if something goes wrong
 
-    def get_expected_transformation_by_marker(
-        self, marker: Marker, prefered_dist_mm: float
+    def get_expected_transformation_by_markers(
+        self, markers: List[Marker], prefered_dist_mm: float
     ) -> np.ndarray:
         """Get the expected transformation from robot base to new position based on marker pose."""
-        t_newr_marker = np.eye(4)
-        t_newr_marker[1, 3] = prefered_dist_mm
-        if marker.id % 2 != 0:
-            # left markers
-            t_newr_marker[0, 3] = -Parameters.MANI_ALIGN_BASKET_ADV_MARKER_OFFSET_X_MM
+        assert len(markers) in (1, 2), "Number of markers must be 1 or 2."
+        if len(markers) == 1:
+            marker = markers[0]
+            t_newr_marker = np.eye(4)
+            t_newr_marker[1, 3] = prefered_dist_mm
+            if marker.id % 2 != 0:
+                # left markers
+                t_newr_marker[0, 3] = -Parameters.MANI_ALIGN_BASKET_ADV_MARKER_OFFSET_X_MM
+            else:
+                # right markers
+                t_newr_marker[0, 3] = Parameters.MANI_ALIGN_BASKET_ADV_MARKER_OFFSET_X_MM
+            t_r_marker = np.eye(4)
+            t_r_marker[0:2, 3] = marker.position_2d
+            self.peripheral_manager._node.get_logger().info(
+                f"Marker ID {marker.id} position_2d: {marker.position_2d}, theta: {marker.theta}"
+            )
+            t_r_marker[:2, :2] = get_rotation_matrix(np.deg2rad(marker.theta))
+            return t_r_marker @ np.linalg.inv(t_newr_marker)
         else:
-            # right markers
-            t_newr_marker[0, 3] = Parameters.MANI_ALIGN_BASKET_ADV_MARKER_OFFSET_X_MM
-        t_r_marker = np.eye(4)
-        t_r_marker[0:2, 3] = marker.position_2d
-        self.peripheral_manager._node.get_logger().info(
-            f"Marker ID {marker.id} position_2d: {marker.position_2d}, theta: {marker.theta}"
-        )
-        t_r_marker[:2, :2] = get_rotation_matrix(np.deg2rad(marker.theta))
-        return t_r_marker @ np.linalg.inv(t_newr_marker)
+            # average the transformations from multiple markers
+            t_newr_basket = np.eye(4)
+            t_newr_basket[1, 3] = prefered_dist_mm
+            t_r_basket = np.eye(4)
+            t_r_basket[0:2, 3] = np.mean([marker.position_2d for marker in markers], axis=0)
+            t_r_basket[:2, :2] = get_rotation_matrix(
+                np.deg2rad(np.mean([marker.theta for marker in markers]))
+            )
+            return t_r_basket @ np.linalg.inv(t_newr_basket)
