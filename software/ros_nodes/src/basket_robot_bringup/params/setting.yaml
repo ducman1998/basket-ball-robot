@@ -41,12 +41,14 @@ image_processor_node:
     enable_depth: True           # enable depth stream
     publish_viz_image: True
     publish_viz_fps: 1  # Hz
-    publish_viz_resize: 0.5  # factor to resize the viz image before publishing
+    publish_viz_resize: 0.5  # factor to resizSe the viz image before publishing
     log_level: 'info'
 
 game_logic_controller_node:
   ros__parameters:
-    referee_ip_address: "192.168.3.220"  # IP address of the referee server
-    referee_port: 8111                   # Port of the referee server
+    # referee_ip_address: "192.168.3.220"  # IP address of the referee server
+    # referee_port: 8111                   # Port of the referee server
+    referee_ip_address: "localhost"
+    referee_port: 8222
     robot_id: "1_9-tdi"
     log_level: 'info'

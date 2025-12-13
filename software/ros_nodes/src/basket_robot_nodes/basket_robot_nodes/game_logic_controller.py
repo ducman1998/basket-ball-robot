@@ -7,7 +7,7 @@ from basket_robot_nodes.state_handlers.ret_code import RetCode
 from basket_robot_nodes.utils.base_game_logic import BaseGameLogicController
 from basket_robot_nodes.utils.peripheral_manager import PeripheralManager
 
-DEV_MODE = True
+DEV_MODE = False
 ENABLE_ADVANCED_BASKET_ALIGNMENT = True  # enable advanced basket alignment mode
 SAMPLING_RATE = 60  # Hz
 
@@ -71,7 +71,7 @@ class GameLogicController(BaseGameLogicController):
         # If game is not active (referee hasn't started or has stopped), don't execute game logic
         if not self.is_game_started and not DEV_MODE:
             # if we were playing and referee stopped us, ensure robot is stopped
-            self.stop_robot()
+            self.periph_manager.stop_robot()
             self.cur_state = GameState.INIT
             self.periph_manager.reset()
             return

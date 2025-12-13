@@ -4,12 +4,15 @@ import cv2
 import numpy as np
 from basket_robot_nodes.utils.color_segmention import ColorSegmenter
 from basket_robot_nodes.utils.image_info import Basket, GreenBall, Marker
+from basket_robot_nodes.utils.number_utils import get_rotation_matrix
 from numpy.typing import NDArray
 
 from .constants import COLOR_REFERENCE_RGB
 
 # original calibration image sizes (1280x720, used to compute homography)
 CALIB_SCALE = 1.0
+MARKER_OFFSET_X_MM = 230
+BASKET_RADIUS_MM = 80
 # homography matrix and its inverse obtained from camera calibration
 H = np.array(
     [
@@ -104,9 +107,23 @@ class ImageProcessing:
         detected_markers = self.detect_aruco_markers(image_gray, seg_mask, viz)
         if len(detected_markers) == 2:
             # average position from two markers
-            x_avg = (detected_markers[0].position_2d[0] + detected_markers[1].position_2d[0]) / 2
-            y_avg = (detected_markers[0].position_2d[1] + detected_markers[1].position_2d[1]) / 2
-            basket_2d_pos = (x_avg, y_avg)
+            basket_2d_posisions = []
+            for marker in detected_markers:
+                t_r_marker = np.eye(3)
+                t_r_marker[:2, :2] = get_rotation_matrix(np.deg2rad(marker.theta))
+                t_r_marker[:2, 2] = marker.position_2d
+                t_marker_basket = np.eye(3)
+                # something magical here, idk, the basket has to be offset to left side 80mm
+                # based on experimental tuning
+                if marker.id % 2 == 0:  # right side marker
+                    t_marker_basket[0, 2] = -(MARKER_OFFSET_X_MM + BASKET_RADIUS_MM)
+                else:
+                    t_marker_basket[0, 2] = MARKER_OFFSET_X_MM - BASKET_RADIUS_MM
+                t_marker_basket[1, 2] = -BASKET_RADIUS_MM
+                t_r_basket = t_r_marker @ t_marker_basket
+                basket_2d_posisions.append(t_r_basket[:2, 2])
+
+            basket_2d_pos = np.mean(basket_2d_posisions, axis=0).tolist()
 
         # detect green balls
         detected_balls = self.detect_green_balls(

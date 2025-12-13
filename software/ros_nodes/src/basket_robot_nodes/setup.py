@@ -31,6 +31,7 @@ setup(
             "start_image_processor = basket_robot_nodes.image_processor:main",
             # robot finds a ball and goes to it
             "start_game_logic_controller = basket_robot_nodes.game_logic_controller:main",
+            "start_calibrate_thrower_speed = basket_robot_nodes.calibrate_thrower_speed:main",
         ],
     },
 )

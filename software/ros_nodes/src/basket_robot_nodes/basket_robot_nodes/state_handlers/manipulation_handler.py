@@ -52,10 +52,22 @@ class ManpulationHandler:
         self.timeout: float = 10.0  # maximum allowed time for the handler
         # experimental data points for thrower speed calibration (distance in meters, motor percent)
         self.data_points: List[Tuple[float, float]] = [
-            (1.42, 46.0),
-            (2.10, 55.0),
-            (3.08, 66.0),
-            (4.70, 82.0),
+            [951.49555, 35.0],
+            [1272.1591, 36.0],
+            [1389.2283, 36.0],
+            [1710.9884, 38.0],
+            [1989.9243, 40.0],
+            [2161.6967, 42.0],
+            [2452.0746, 48.0],
+            [2747.0418, 52.0],
+            [2817.9733, 53.5],
+            [3093.4637, 55.5],
+            [3416.1690, 58.0],
+            [3727.3968, 63.0],
+            [4106.6989, 67.0],
+            [4372.6255, 72.0],
+            [4812.1808, 75.0],
+            [5053.9016, 76.0],
         ]
 
     def initialize(
@@ -231,12 +243,20 @@ class ManpulationHandler:
                     True, Parameters.MANI_STORED_BASKET_TIMEOUT
                 )
 
+        vy = 0.0
         if basket_pos_robot_mm is not None:
             # control to face the basket
             heading_err_rad = -math.atan2(basket_pos_robot_mm[0], basket_pos_robot_mm[1])
             self.peripheral_manager._node.get_logger().info(
                 f"Error to basket: {np.rad2deg(heading_err_rad):.2f} deg"
             )
+            if abs(heading_err_rad) < np.deg2rad(
+                Parameters.MAIN_BASKET_ALIGN_FINE_GRAINED_THRESHOLD_DEG
+            ):
+                # fine-grained alignment with slight forward movement
+                # ti improve accuracy when aligning to basket
+                vy = Parameters.MAIN_BASKET_ALIGN_Y_SPEED
+
             wz = self.compute_pid(
                 2,
                 heading_err_rad,
@@ -249,7 +269,7 @@ class ManpulationHandler:
         # Set a base thrower speed to avoid sudden changes that can cause the ball to get stuck.
         self.peripheral_manager.move_robot_adv(
             0.0,
-            0.0,
+            vy,
             wz,
             thrower_percent=0.0 if self.base_thrower_percent is None else self.base_thrower_percent,
             servo_speed=0,
@@ -390,16 +410,17 @@ class ManpulationHandler:
         else:
             thrower_percent = self.calculated_thrower_percent
 
+        servo_speed = Parameters.MANI_THROW_BALL_SERVO_SPEED
+        if time() - self.start_time < 0.5:
+            servo_speed = 0  # avoid sudden movement at the start
         self.peripheral_manager.move_robot_adv(
             0.0,
             0.0,
             0.0,
             thrower_percent=thrower_percent,
-            servo_speed=Parameters.MANI_THROW_BALL_SERVO_SPEED,
+            servo_speed=servo_speed,
         )
-        self.peripheral_manager._node.get_logger().info(
-            f"Throwing ball with thrower percent: {thrower_percent:.2f}%"
-        )
+        self.peripheral_manager._node.get_logger().info(f"Thrower percent: {thrower_percent:.2f}%")
         return RetCode.DOING
 
     def clear_stuck_ball(self) -> RetCode:
@@ -503,16 +524,17 @@ class ManpulationHandler:
         # Experimental data points: (distance in meters, motor percent)
         distances_m = [dp[0] for dp in self.data_points]
         percents = [dp[1] for dp in self.data_points]
-        dis_m = dis_to_basket_mm / 1000.0
-        if dis_m <= distances_m[0]:
+        if dis_to_basket_mm <= distances_m[0]:
             return percents[0] + offset
-        elif dis_m >= distances_m[-1]:
+        elif dis_to_basket_mm >= distances_m[-1]:
             return percents[-1] + offset
         else:
             for i in range(len(distances_m) - 1):
-                if distances_m[i] <= dis_m <= distances_m[i + 1]:
+                if distances_m[i] <= dis_to_basket_mm <= distances_m[i + 1]:
                     # linear interpolation
-                    ratio = (dis_m - distances_m[i]) / (distances_m[i + 1] - distances_m[i])
+                    ratio = (dis_to_basket_mm - distances_m[i]) / (
+                        distances_m[i + 1] - distances_m[i]
+                    )
                     percent = percents[i] + ratio * (percents[i + 1] - percents[i])
                     return percent + offset
         return 50.0  # default percent if something goes wrong
