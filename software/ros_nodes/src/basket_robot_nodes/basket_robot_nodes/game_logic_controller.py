@@ -233,67 +233,76 @@ class GameLogicController(BaseGameLogicController):
             self.get_logger().info(f"Already in state {cur_state_name}, no transition needed.")
             return
 
-        if new_state == GameState.SEARCH_BALL:
-            self.base_handler.initialize(
-                BaseAction.TURN_DISCRETE,
-                angle_deg=Parameters.MAIN_TURNING_DEGREE,
-                timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC,
-            )
-        elif new_state == GameState.ALIGN_BALL:
-            self.manipulation_handler.initialize(
-                ManipulationAction.ALIGN_BALL,
-                timeout=Parameters.MAIN_TIMEOUT_ALIGN_BALL,
-            )
-        elif new_state == GameState.GRAB_BALL:
-            self.manipulation_handler.initialize(
-                ManipulationAction.GRAB_BALL, timeout=Parameters.MAIN_TIMEOUT_GRAB_BALL
-            )
-        elif new_state == GameState.ALIGN_BASKET:
-            self.manipulation_handler.initialize(
-                ManipulationAction.ALIGN_BASKET,
-                basket_color=self.get_target_basket_color(),
-                base_thrower_percent=Parameters.MAIN_BASE_THROWER_PERCENT,
-                timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET,
-            )
-        elif new_state == GameState.ALIGN_BASKET_ADVANCED:
-            self.manipulation_handler.initialize(
-                ManipulationAction.ALIGN_BASKET,
-                basket_color=self.get_target_basket_color(),
-                base_thrower_percent=Parameters.MAIN_BASE_THROWER_PERCENT,
-                timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_TOTAL,
-                timeout_refine_angle=Parameters.MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_REFINE_ANGLE,
-            )
-        elif new_state == GameState.THROW_BALL:
-            self.manipulation_handler.initialize(
-                ManipulationAction.THROW_BALL, timeout=Parameters.MAIN_TIMEOUT_THROW_BALL
-            )
-        elif new_state == GameState.CLEAR_STUCK_BALL:
-            self.manipulation_handler.initialize(
-                ManipulationAction.CLEAR_STUCK_BALL,
-                timeout=Parameters.MAIN_TIMEOUT_CLEAR_STUCK_BALL,
-            )
-        elif new_state == GameState.TURN_TO_CANDIDATE_BALL:
-            assert "heading_error_deg" in kwargs, (
-                "heading_error_deg is required for TURN_TO_CANDIDATE_BALL state."
-            )
+        match new_state:
+            case GameState.SEARCH_BALL:
+                self.base_handler.initialize(
+                    BaseAction.TURN_DISCRETE,
+                    angle_deg=Parameters.MAIN_TURNING_DEGREE,
+                    timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC,
+                )
+                
+            case GameState.ALIGN_BALL:
+                self.manipulation_handler.initialize(
+                    ManipulationAction.ALIGN_BALL,
+                    timeout=Parameters.MAIN_TIMEOUT_ALIGN_BALL,
+                )
+                
+            case GameState.GRAB_BALL:
+                self.manipulation_handler.initialize(
+                    ManipulationAction.GRAB_BALL, timeout=Parameters.MAIN_TIMEOUT_GRAB_BALL
+                )
+                
+            case GameState.ALIGN_BASKET:
+                self.manipulation_handler.initialize(
+                    ManipulationAction.ALIGN_BASKET,
+                    basket_color=self.get_target_basket_color(),
+                    base_thrower_percent=Parameters.MAIN_BASE_THROWER_PERCENT,
+                    timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET,
+                )
+                
+            case GameState.ALIGN_BASKET_ADVANCED:
+                self.manipulation_handler.initialize(
+                    ManipulationAction.ALIGN_BASKET,
+                    basket_color=self.get_target_basket_color(),
+                    base_thrower_percent=Parameters.MAIN_BASE_THROWER_PERCENT,
+                    timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_TOTAL,
+                    timeout_refine_angle=Parameters.MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_REFINE_ANGLE,
+                )
+                
+            case GameState.THROW_BALL:
+                self.manipulation_handler.initialize(
+                    ManipulationAction.THROW_BALL, timeout=Parameters.MAIN_TIMEOUT_THROW_BALL
+                )
+                
+            case GameState.CLEAR_STUCK_BALL:
+                self.manipulation_handler.initialize(
+                    ManipulationAction.CLEAR_STUCK_BALL,
+                    timeout=Parameters.MAIN_TIMEOUT_CLEAR_STUCK_BALL,
+                )
+                
+            case GameState.TURN_TO_CANDIDATE_BALL:
+                assert "heading_error_deg" in kwargs, (
+                    "heading_error_deg is required for TURN_TO_CANDIDATE_BALL state."
+                )
 
-            heading_error_deg = kwargs["heading_error_deg"]
-            self.base_handler.initialize(
-                BaseAction.TURN_CONTINUOUS,
-                angle_deg=heading_error_deg,
-                timeout=Parameters.MAIN_TIMEOUT_TURN_TO_CANDIDATE_BALL,
-            )
-        elif new_state == GameState.TURN_AROUND_BASKET:
-            assert "turning_basket_direction" in kwargs, (
-                "turning_basket_direction is required for TURN_AROUND_BASKET state."
-            )
+                heading_error_deg = kwargs["heading_error_deg"]
+                self.base_handler.initialize(
+                    BaseAction.TURN_CONTINUOUS,
+                    angle_deg=heading_error_deg,
+                    timeout=Parameters.MAIN_TIMEOUT_TURN_TO_CANDIDATE_BALL,
+                )
+                
+            case GameState.TURN_AROUND_BASKET:
+                assert "turning_basket_direction" in kwargs, (
+                    "turning_basket_direction is required for TURN_AROUND_BASKET state."
+                )
 
-            turning_basket_direction = kwargs["turning_basket_direction"]
-            self.manipulation_handler.initialize(
-                ManipulationAction.TURN_AROUND_BASKET,
-                turning_basket_direction=turning_basket_direction,
-                timeout=Parameters.MAIN_TIMEOUT_TURN_AROUND_BASKET,
-            )
+                turning_basket_direction = kwargs["turning_basket_direction"]
+                self.manipulation_handler.initialize(
+                    ManipulationAction.TURN_AROUND_BASKET,
+                    turning_basket_direction=turning_basket_direction,
+                    timeout=Parameters.MAIN_TIMEOUT_TURN_AROUND_BASKET,
+                )
 
         if new_state == GameState.SEARCH_BALL:
             # reset sub-state machine when entering SEARCH_BALL state
@@ -309,34 +318,35 @@ class GameLogicController(BaseGameLogicController):
         cur_sub_state_name = SearchSubState.get_name(self.cur_sub_state)
         new_sub_state_name = SearchSubState.get_name(new_sub_state)
 
-        if new_sub_state == SearchSubState.TURN_DISCRETE:
-            self.base_handler.initialize(
-                BaseAction.TURN_DISCRETE,
-                angle_deg=Parameters.MAIN_TURNING_DEGREE,
-                timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC,
-            )
-        elif new_sub_state == SearchSubState.ALIGN_BASKET:
-            if "is_opponent_basket" in kwargs and kwargs["is_opponent_basket"]:
-                basket_color = self.get_opponent_basket_color()
-            else:
-                basket_color = self.get_target_basket_color()
+        match new_sub_state:
+            case SearchSubState.TURN_DISCRETE:
+                self.base_handler.initialize(
+                    BaseAction.TURN_DISCRETE,
+                    angle_deg=Parameters.MAIN_TURNING_DEGREE,
+                    timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC,
+                )
+            case SearchSubState.ALIGN_BASKET:
+                if "is_opponent_basket" in kwargs and kwargs["is_opponent_basket"]:
+                    basket_color = self.get_opponent_basket_color()
+                else:
+                    basket_color = self.get_target_basket_color()
 
-            self.manipulation_handler.initialize(
-                ManipulationAction.ALIGN_BASKET,
-                basket_color=basket_color,
-                timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET,
-            )
-        elif new_sub_state == SearchSubState.MOVE_FORWARD:
-            assert "basket_dis_mm" in kwargs, (
-                "basket_dis_mm is required for MOVE_FORWARD sub-state."
-            )
+                self.manipulation_handler.initialize(
+                    ManipulationAction.ALIGN_BASKET,
+                    basket_color=basket_color,
+                    timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET,
+                )
+            case SearchSubState.MOVE_FORWARD:
+                assert "basket_dis_mm" in kwargs, (
+                    "basket_dis_mm is required for MOVE_FORWARD sub-state."
+                )
 
-            basket_dis_mm = kwargs["basket_dis_mm"]
-            self.base_handler.initialize(
-                BaseAction.MOVE_FORWARD,
-                offset_y_mm=basket_dis_mm - 1000,
-                timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_MOVE_FW,
-            )
+                basket_dis_mm = kwargs["basket_dis_mm"]
+                self.base_handler.initialize(
+                    BaseAction.MOVE_FORWARD,
+                    offset_y_mm=basket_dis_mm - 1000,
+                    timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_MOVE_FW,
+                )
 
         self.pre_sub_state = self.cur_sub_state
         self.cur_sub_state = new_sub_state

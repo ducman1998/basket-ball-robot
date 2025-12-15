@@ -74,6 +74,7 @@ class MainboardController(Node):
         node.declare_parameter("cmd_fmt", descriptor=str_descriptor)
         node.declare_parameter("fbk_fmt", descriptor=str_descriptor)
         node.declare_parameter("delimiter", descriptor=int_descriptor)
+        node.declare_parameter("max_servo_speed", descriptor=int_descriptor)
         node.declare_parameter("log_level", descriptor=str_descriptor)
 
     @staticmethod
@@ -97,6 +98,7 @@ class MainboardController(Node):
         cmd_fmt = node.get_parameter("cmd_fmt").get_parameter_value().string_value
         fbk_fmt = node.get_parameter("fbk_fmt").get_parameter_value().string_value
         delimieter = node.get_parameter("delimiter").get_parameter_value().integer_value
+        max_rot_speed = node.get_parameter("max_servo_speed").get_parameter_value().integer_value
         log_level = node.get_parameter("log_level").get_parameter_value().string_value
 
         # read and set logging level
@@ -114,6 +116,7 @@ class MainboardController(Node):
             pid_control_freq=pid_freq,
             max_rot_speed=max_rot_speed,
             max_xy_speed=max_xy_speed,
+            max_servo_speed=max_rot_speed,
             hwid=hwid,
             cmd_fmt=cmd_fmt,
             fbk_fmt=fbk_fmt,
@@ -142,7 +145,6 @@ class MainboardController(Node):
         tp: float = msg.thrower_percent
         servo_speed: int = msg.servo_speed
         thrower_percent = max(0, min(100, tp))  # clip to [0, 100]
-        servo_speed = max(0, min(20000, servo_speed))  # clip to [0, 20000]
         self.get_logger().info(
             f"vx: {vx:.2f}, vy: {vy:.2f}, wz: {wz:.2f}, "
             + f"tp: {thrower_percent:.2f}, servo_speed: {servo_speed}"

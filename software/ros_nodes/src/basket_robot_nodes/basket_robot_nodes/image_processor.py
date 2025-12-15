@@ -101,7 +101,6 @@ class ImageProcessor(Node):
         t1 = time()
         # Use timeout to allow frame buffering by RealSense (non-blocking with 1ms timeout)
         frames = self.pipeline.wait_for_frames(timeout_ms=1000)
-        t11 = time()
 
         # Get color and depth frames without alignment
         color_frame_rgb = frames.get_color_frame()  # in bgr8 format
@@ -109,7 +108,6 @@ class ImageProcessor(Node):
         if self.enable_depth:
             depth_frame = frames.get_depth_frame()  # HxW (16 bits) - raw, unaligned
 
-        t12 = time()
         if not color_frame_rgb or (self.enable_depth and depth_frame is None):
             self.get_logger().error("No color or depth frame available.")
             return None
@@ -157,7 +155,7 @@ class ImageProcessor(Node):
 
         if is_visualized:
             self.get_logger().info(
-                f"Timings (s): read={t11-t1:.3f}+{t12-t11:.3f}+ {t2-t12:.3f}, detect={t3-t2:.3f}, "
+                f"Timings (s): read={t2-t1}, detect={t3-t2:.3f}, "
                 + f"pub_info={t4-t3:.3f}, detected={len(detected_balls)} balls, viz_pub={t5-t4:.3f}"
             )
 

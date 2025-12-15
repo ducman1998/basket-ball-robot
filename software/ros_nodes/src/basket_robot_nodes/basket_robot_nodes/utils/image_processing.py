@@ -13,6 +13,7 @@ from .constants import COLOR_REFERENCE_RGB
 CALIB_SCALE = 1.0
 MARKER_OFFSET_X_MM = 230
 BASKET_RADIUS_MM = 80
+VALID_MARKER_IDS = [11, 12, 21, 22]
 # homography matrix and its inverse obtained from camera calibration
 H = np.array(
     [
@@ -56,6 +57,7 @@ class ImageProcessing:
         num_ignored_rows: int = 20,
         depth_scale: float = 0.001,
         ball_morth_kernel_size: int = 3,
+        marker_morth_kernel_size: int = 7
     ) -> None:
         self.image_segmenter = ColorSegmenter(COLOR_REFERENCE_RGB)
         self.robot_base_mask = robot_base_mask
@@ -71,6 +73,9 @@ class ImageProcessing:
         # Use ORIGINAL ArUco dictionary (OpenCV 4.6 syntax)
         self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_ARUCO_ORIGINAL)
         self.aruco_params = cv2.aruco.DetectorParameters_create()
+        self.marker_kernel = cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE, (marker_morth_kernel_size, marker_morth_kernel_size)
+        )
 
     def process(
         self,
@@ -320,14 +325,12 @@ class ImageProcessing:
         self,
         im_gray: NDArray[np.uint8],
         seg_mask: NDArray[np.uint8],
-        viz_rgb: Optional[NDArray[np.uint8]] = None,
-        verbose: bool = False,
+        viz_rgb: Optional[NDArray[np.uint8]] = None
     ) -> List[Marker]:
         black_idx, white_idx = self.image_segmenter.get_color_indices(["black", "white"])
         roi_mask = (seg_mask == white_idx) | (seg_mask == black_idx)
         roi_mask = roi_mask.astype(np.uint8) * 255
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
-        roi_mask = cv2.morphologyEx(roi_mask, cv2.MORPH_DILATE, kernel)
+        roi_mask = cv2.morphologyEx(roi_mask, cv2.MORPH_DILATE, self.marker_kernel)
         input_image = cv2.bitwise_and(im_gray, roi_mask)
         corners, ids, _ = cv2.aruco.detectMarkers(
             input_image, self.aruco_dict, parameters=self.aruco_params
@@ -341,7 +344,9 @@ class ImageProcessing:
         else:
             return detected_markers
 
-        for i in range(len(ids[:2])):  # max 2 markers based on current setup
+        for i in range(len(ids)):
+            if int(ids[i][0]) not in VALID_MARKER_IDS:
+                continue
             if viz_rgb is not None:
                 # Draw detected markers
                 cv2.aruco.drawDetectedMarkers(viz_rgb, corners, ids)
@@ -364,8 +369,6 @@ class ImageProcessing:
                     id=int(ids[i][0]), position_2d=(float(t_bm[0]), float(t_bm[1])), theta=theta
                 )
             )
-            if verbose:
-                print(f"Detected marker ID {ids[i][0]} at {t_bm} mm with theta {theta} degrees")
         return detected_markers
 
     def _is_valid_ball(

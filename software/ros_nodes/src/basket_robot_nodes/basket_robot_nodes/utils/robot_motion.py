@@ -68,6 +68,7 @@ class OmniMotionRobot(IRobotMotion):
         pid_control_freq: int,  # PID control frequency in Hz
         max_rot_speed: float,  # rad/s
         max_xy_speed: float,  # m/s
+        max_servo_speed: int,
         # serial settings
         hwid: str,
         cmd_fmt: str,
@@ -80,6 +81,7 @@ class OmniMotionRobot(IRobotMotion):
     ) -> None:
         self.max_rot_speed = max_rot_speed
         self.max_xy_speed = max_xy_speed
+        self.max_servo_speed = max_servo_speed
         # reference: https://hades.mech.northwestern.edu/images/7/7f/MR.pdf
         # ==> Chapter 13. Wheeled Mobile Robots
         # wheel 1: beta = 180+60=240 deg, alpha = 150 deg
@@ -211,8 +213,8 @@ class OmniMotionRobot(IRobotMotion):
         speed2: int,  # range -32768 to 32767 (int16)
         speed3: int,  # range -32768 to 32767 (int16)
         thrower_speed_percent: float = 0,  # range 0-100 (%)
-        servo1: int = 1500,  # range 0-65535 (uint16)
-        servo2: int = 1500,  # range 0-65535 (uint16)
+        servo1: int = 0,  # range 0-65535 (uint16)
+        servo2: int = 0,  # range 0-65535 (uint16)
         disable_failsafe: bool = False,
     ) -> None:
         """Pack and send one command frame."""
@@ -228,6 +230,8 @@ class OmniMotionRobot(IRobotMotion):
             thrower_speed_percent / 100 * (2047 - 48)
         )  # scale 0-100% to 0-65535
         thrower_speed = clip_uint16(thrower_speed)
+        sv1 = min(self.max_servo_speed, max(0, servo1))
+        sv2 = min(self.max_servo_speed, max(0, servo2))
         sv1 = clip_uint16(servo1)
         sv2 = clip_uint16(servo2)
         df = 1 if disable_failsafe else 0  # exactly 1 disables, else enables

@@ -58,9 +58,6 @@ class BaseGameLogicController(Node):
         if not self.referee_ip_address or not isinstance(self.referee_port, int):
             raise ValueError("Invalid referee IP address or port number.")
 
-        if not self.robot_id or not isinstance(self.robot_id, str):
-            raise ValueError("Invalid robot ID.")
-
         # Set logging level
         self.get_logger().set_level(parse_log_level(log_level))
         self.get_logger().info(f"Set node {self.get_name()} log level to {log_level}.")

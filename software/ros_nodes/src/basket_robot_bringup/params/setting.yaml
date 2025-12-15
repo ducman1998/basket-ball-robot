@@ -17,6 +17,7 @@
     pid_control_freq: 100         # Hz
     max_rot_speed: 8.0    # rad/s
     max_xy_speed: 3.0      # m/s # max linear speed in x and y direction
+    max_servo_speed: 20000  # max speed command to send to mainboard
     baudrate: 115200
     polarity: 1  # set to -1 if motors spin in reverse
     serial_timeout: 0.05  # seconds

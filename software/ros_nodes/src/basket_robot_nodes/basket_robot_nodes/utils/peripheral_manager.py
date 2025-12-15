@@ -416,8 +416,6 @@ class PeripheralManager:
 
         if max_rot_speed is not None:
             wz = np.clip(wz, -max_rot_speed, max_rot_speed)
-        thrower_percent = np.clip(thrower_percent, 0, 100)
-        servo_speed = int(np.clip(servo_speed, 0, 20000))
 
         self.publish_velocity_command(vx, vy, wz, thrower_percent, servo_speed)
 
