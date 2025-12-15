@@ -50,7 +50,7 @@ class ManpulationHandler:
         self.cumm_wz_error: float = 0.0
 
         self.timeout: float = 10.0  # maximum allowed time for the handler
-        # experimental data points for thrower speed calibration (distance in meters, motor percent)
+        # experimental data points for thrower speed calibration (distance in milimeters, motor percent)
         self.data_points: List[List[float]] = [
             [1057.2576, 35.33],
             [1188.9271, 35.78],
