@@ -14,10 +14,10 @@ from rclpy.qos import QoSProfile
 from shared_interfaces.msg import TwistStamped  # a custom message with thrower_percent
 from std_msgs.msg import Bool, String
 
-BALL_MANAGER_DEFAULT_NUM_STORED_BALLS = 6
-BALL_MANAGER_DEFAULT_DIST_THRESHOLD_MM = 100.0
+BALL_MANAGER_DEFAULT_NUM_STORED_BALLS = 10
+BALL_MANAGER_DEFAULT_DIST_THRESHOLD_MM = 200.0
 BALL_MANAGER_DEFAULT_ALIVE_TIME_S = 15.0
-BASKET_TO_ROBOT_MIN_DIST_MM = 240  # min distance to avoid collision with basket
+BASKET_TO_ROBOT_MIN_DIST_MM = 280  # min distance to avoid collision with basket
 
 
 class PeripheralManager:
@@ -599,21 +599,31 @@ class PeripheralManager:
             Tuple of (is_blocked: bool, side: +1 for left, -1 for right)"""
         basket = self.get_detected_basket()
         if basket is None or basket.position_2d is None:
+            self._node.get_logger().info("Basket not detected or position unknown. Not blocking.")
             return False, 0  # no rotation needed
 
         closest_ball = self.get_closest_ball()
         if closest_ball is None:
+            self._node.get_logger().info("No balls detected. Not blocking.")
             return False, 0  # no rotation needed
 
         # calculate closest distance from basket to the line between robot and ball
         ball_pos = np.array(closest_ball.position_2d)
         basket_pos = np.array(basket.position_2d)
+        if np.linalg.norm(ball_pos) < np.linalg.norm(basket_pos):
+            self._node.get_logger().info("Ball is closer than basket. Not blocking.")
+            return False, 0  # ball is closer than basket, no blocking
+
         robot_pos = np.array([0.0, 0.0])  # robot is at origin in its own frame
         robot_to_ball = ball_pos - robot_pos
         robot_to_basket = basket_pos - robot_pos
         distance = np.abs(np.cross(robot_to_ball, robot_to_basket)) / np.linalg.norm(robot_to_ball)
 
         if distance < BASKET_TO_ROBOT_MIN_DIST_MM:
+            self._node.get_logger().info(
+                f"Ball is blocked by basket. Direction needed. {-1 if ball_pos[0] < basket_pos[0] else 1}"
+            )
             return True, -1 if ball_pos[0] < basket_pos[0] else 1
         else:
+            self._node.get_logger().info("Ball is not blocked by basket.")
             return False, 0  # no rotation needed

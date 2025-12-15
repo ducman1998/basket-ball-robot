@@ -1,6 +1,7 @@
 from typing import Union
 
 import rclpy
+import sys
 from basket_robot_nodes.state_handlers.actions import BaseAction, ManipulationAction
 from basket_robot_nodes.state_handlers.base_handler import BaseHandler
 from basket_robot_nodes.state_handlers.manipulation_handler import ManpulationHandler
@@ -173,6 +174,8 @@ class GameLogicController(BaseGameLogicController):
             case GameState.THROW_BALL:
                 ret = self.manipulation_handler.throw_ball()
                 if ret == RetCode.TIMEOUT:
+                    self.periph_manager.stop_robot()
+                    sys.exit(0)  # exit program on throw timeout for safety
                     heading_error_deg = self.periph_manager.get_turning_angle_to_candidate_ball()
                     if heading_error_deg is None:  # no candidate ball
                         self.transition_to(GameState.SEARCH_BALL)
@@ -211,7 +214,16 @@ class GameLogicController(BaseGameLogicController):
                     if self.periph_manager.is_ball_detected():
                         self.transition_to(GameState.ALIGN_BALL)
                     else:
-                        self.transition_to(GameState.SEARCH_BALL)
+                        heading_error_deg = (
+                            self.periph_manager.get_turning_angle_to_candidate_ball()
+                        )
+                        if heading_error_deg is None:  # no candidate ball
+                            self.transition_to(GameState.SEARCH_BALL)
+                        else:
+                            self.transition_to(
+                                GameState.TURN_TO_CANDIDATE_BALL,
+                                heading_error_deg=heading_error_deg,
+                            )
 
             case _:
                 raise RuntimeError("Unknown game state!")
@@ -299,11 +311,6 @@ class GameLogicController(BaseGameLogicController):
         """Handle transition to a new sub-state."""
         cur_sub_state_name = SearchSubState.get_name(self.cur_sub_state)
         new_sub_state_name = SearchSubState.get_name(new_sub_state)
-        if new_sub_state == self.cur_sub_state:
-            self.get_logger().info(
-                f"Already in sub-state {cur_sub_state_name}, no transition needed."
-            )
-            return
 
         if new_sub_state == SearchSubState.TURN_DISCRETE:
             self.base_handler.initialize(

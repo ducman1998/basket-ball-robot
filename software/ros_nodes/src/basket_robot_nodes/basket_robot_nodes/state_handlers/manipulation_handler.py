@@ -246,9 +246,15 @@ class ManpulationHandler:
                 basket_pos_robot_mm = self.peripheral_manager.get_stored_target_basket_pos(
                     True, Parameters.MANI_STORED_BASKET_TIMEOUT
                 )
+                self.peripheral_manager._node.get_logger().info(
+                    "Using stored target basket position for alignment."
+                )
             else:
                 basket_pos_robot_mm = self.peripheral_manager.get_stored_opponent_basket_pos(
                     True, Parameters.MANI_STORED_BASKET_TIMEOUT
+                )
+                self.peripheral_manager._node.get_logger().info(
+                    "Using stored target basket position for alignment."
                 )
 
         vy = 0.0
@@ -409,15 +415,18 @@ class ManpulationHandler:
         ):
             return RetCode.FAILED_BASKET_LOST
 
+        basket_distance_mm = self.peripheral_manager.get_basket_distance()
         if self.calculated_thrower_percent is None:
             thrower_percent = 50.0  # default thrower percent
             basket_distance_mm = self.peripheral_manager.get_basket_distance()
             if basket_distance_mm is not None:
-                thrower_percent = self.get_thrower_percent(basket_distance_mm, offset=1.0)
+                thrower_percent = self.get_thrower_percent(basket_distance_mm, offset=0.0)
                 self.calculated_thrower_percent = thrower_percent
         else:
             thrower_percent = self.calculated_thrower_percent
-
+        self.peripheral_manager._node.get_logger().info(
+            f"Basket distance: {basket_distance_mm} mm, Calculated thrower percent: {thrower_percent:.2f}%"
+        )
         servo_speed = Parameters.MANI_THROW_BALL_SERVO_SPEED
         if time() - self.start_time < 0.5:
             servo_speed = 0  # avoid sudden movement at the start
@@ -453,24 +462,26 @@ class ManpulationHandler:
         assert self.turning_basket_direction is not None, "Turning direction not set."
 
         if time() - self.start_time > self.timeout:
+            self.peripheral_manager._node.get_logger().info("Turn around basket timeout.")
             return RetCode.TIMEOUT
 
         basket_pos_robot_mm: Optional[Tuple[float, float]] = None
         if self.peripheral_manager.is_basket_detected():
             basket_pos_robot_mm = self.peripheral_manager.get_basket_position_2d()
 
-        if self.peripheral_manager.is_ball_blocked_by_basket()[0]:
-            return RetCode.SUCCESS
-
         if basket_pos_robot_mm is not None:
+            la_dis_mm = min(
+                Parameters.MANI_TURN_AROUND_BASKET_DISTANCE_MM,
+                np.hypot(basket_pos_robot_mm[0], basket_pos_robot_mm[1]),
+            )
             (vx, vy, wz) = self.compute_control_lookahead_woffset(
                 basket_pos_robot_mm,
                 (
                     Parameters.MANI_PID_LINEAR_ALIGN,
                     Parameters.MANI_PID_ANGULAR_ALIGN,
                 ),
-                la_dis_mm=np.hypot(basket_pos_robot_mm[0], basket_pos_robot_mm[1]),
-                angle_offset_deg=90 * self.turning_basket_direction,
+                la_dis_mm=la_dis_mm,
+                angle_offset_deg=60 * self.turning_basket_direction,
             )
             self.peripheral_manager.move_robot_adv(
                 vx,

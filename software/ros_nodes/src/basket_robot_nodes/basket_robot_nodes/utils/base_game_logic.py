@@ -24,7 +24,7 @@ class BaseGameLogicController(Node):
         # Referee client state
         self.is_game_started = False  # True when referee sends START, False when STOP
         # default opponent basket color
-        self.target_basket_color = "n/a" if not dev_mode else "blue"
+        self.target_basket_color = "n/a" if not dev_mode else "magenta"
 
         # Initialize and start referee client
         self.referee_client = RefereeClient(

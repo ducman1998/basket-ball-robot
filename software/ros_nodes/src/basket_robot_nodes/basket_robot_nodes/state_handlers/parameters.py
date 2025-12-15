@@ -36,7 +36,7 @@ class Parameters:
     ## 2.5. Specific thresholds for aligning basket
     MANI_MAX_CONSECUTIVE_FRAMES_NO_BASKET: Final[int] = 5
     MANI_BASKET_ALIGN_ANGLE_THRESHOLD_DEG: Final[float] = 0.5  # degrees
-    MANI_STORED_BASKET_TIMEOUT: Final[float] = 15.0  # seconds
+    MANI_STORED_BASKET_TIMEOUT: Final[float] = 10.0  # seconds
     MANI_SEARCH_BASKET_ANGULAR_SPEED: Final[float] = 2.5  # rad/s
     MANI_SEARCH_BASKET_MAX_ANGULAR_SPEED: Final[float] = 2.5  # rad/s
     MANI_SEARCH_BASKET_NUM_CONSECUTIVE_VALID_FRAMES: Final[int] = 5
@@ -64,7 +64,9 @@ class Parameters:
     MANI_ALIGN_BASKET_ADV_DIS_ODOM_THRESHOLD_MM: Final[float] = 50.0  # mm
     # 2.8. Specific parameters for turning around basket
     MANI_TURN_AROUND_BASKET_MAX_LINEAR_SPEED: Final[float] = 1.5  # m/s
-    MANI_TURN_AROUND_BASKET_MAX_ANGULAR_SPEED: Final[float] = 1.5  # rad/s
+    MANI_TURN_AROUND_BASKET_MAX_ANGULAR_SPEED: Final[float] = 1.0  # rad/s
+    # mm away from basket when turning around
+    MANI_TURN_AROUND_BASKET_DISTANCE_MM: Final[float] = 800.0
 
     # 3. parameters for main state machine
     MAIN_TURNING_DEGREE: Final[float] = 300.0  # degrees to turn when searching for ball
