@@ -16,3 +16,4 @@ class ManipulationAction(IntEnum):
     # based on markers to lign the robot to the court center for better accuracy
     ALIGN_BASKET_ADVANCED = 5
     CLEAR_STUCK_BALL = 6
+    TURN_AROUND_BASKET = 7

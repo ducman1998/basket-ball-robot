@@ -358,16 +358,14 @@ class ImageProcessing:
             r_bm = t_bm[0:3, 0:3]
             t_bm = t_bm[0:2, 3]
             xvec, yvec = r_bm[:, 0], -r_bm[:, 2]
-            x_theta = np.degrees(np.arctan2(xvec[1], xvec[0]))
-            y_theta = np.degrees(np.arctan2(yvec[1], yvec[0])) - 90
-            avg_theta = (x_theta + y_theta) / 2
+            theta = np.degrees(np.arctan2(xvec[1], xvec[0]))
             detected_markers.append(
                 Marker(
-                    id=int(ids[i][0]), position_2d=(float(t_bm[0]), float(t_bm[1])), theta=avg_theta
+                    id=int(ids[i][0]), position_2d=(float(t_bm[0]), float(t_bm[1])), theta=theta
                 )
             )
             if verbose:
-                print(f"Detected marker ID {ids[i][0]} at {t_bm} mm with theta {avg_theta} degrees")
+                print(f"Detected marker ID {ids[i][0]} at {t_bm} mm with theta {theta} degrees")
         return detected_markers
 
     def _is_valid_ball(
