@@ -51,7 +51,7 @@ class ManpulationHandler:
 
         self.timeout: float = 10.0  # maximum allowed time for the handler
         # experimental data points for thrower speed calibration (distance in meters, motor percent)
-        self.data_points: List[Tuple[float, float]] = [
+        self.data_points: List[List[float]] = [
             [951.49555, 35.0],
             [1272.1591, 36.0],
             [1389.2283, 36.0],
@@ -75,6 +75,7 @@ class ManpulationHandler:
         action: ManipulationAction,
         basket_color: Optional[str] = None,
         base_thrower_percent: Optional[float] = None,
+        turning_basket_direction: Optional[float] = None,
         timeout: float = 10.0,
         timeout_refine_angle: Optional[float] = None,
     ) -> None:
@@ -95,6 +96,11 @@ class ManpulationHandler:
                 timeout - timeout_refine_angle > 0.0
             ), "Total timeout must be greater than timeout for aligning angle error."
 
+        if action == ManipulationAction.TURN_AROUND_BASKET:
+            assert (
+                turning_basket_direction is not None
+            ), "Turning direction must be provided for TURN_AROUND_BASKET action."
+
         assert timeout > 0.0, "Timeout must be positive."
 
         self.reset()
@@ -102,6 +108,7 @@ class ManpulationHandler:
         self.current_action = action
         self.basket_color = basket_color
         self.base_thrower_percent = base_thrower_percent
+        self.turning_basket_direction = turning_basket_direction
         self.timeout = timeout  # total timeout for the manipulation action
         self.timeout_refine_angle = timeout_refine_angle
 
@@ -115,6 +122,7 @@ class ManpulationHandler:
         self.is_marker_pose_extracted = False
         self.t_odom_tp = None
         self.calculated_thrower_percent = None
+        self.turning_basket_direction = None
         self.timeout = 10.0
         self.timeout_refine_angle = None
         self.reset_pid_errors()
@@ -437,6 +445,43 @@ class ManpulationHandler:
             thrower_percent=100,
             servo_speed=Parameters.MANI_THROW_BALL_SERVO_SPEED,
         )
+        return RetCode.DOING
+
+    def turn_around_basket(self) -> RetCode:
+        """Turn around the basket by a specified degree."""
+        assert self.start_time is not None, "Handler not initialized."
+        assert self.turning_basket_direction is not None, "Turning direction not set."
+
+        if time() - self.start_time > self.timeout:
+            return RetCode.TIMEOUT
+
+        basket_pos_robot_mm: Optional[Tuple[float, float]] = None
+        if self.peripheral_manager.is_basket_detected():
+            basket_pos_robot_mm = self.peripheral_manager.get_basket_position_2d()
+
+        if self.peripheral_manager.is_ball_blocked_by_basket()[0]:
+            return RetCode.SUCCESS
+
+        if basket_pos_robot_mm is not None:
+            (vx, vy, wz) = self.compute_control_lookahead_woffset(
+                basket_pos_robot_mm,
+                (
+                    Parameters.MANI_PID_LINEAR_ALIGN,
+                    Parameters.MANI_PID_ANGULAR_ALIGN,
+                ),
+                la_dis_mm=np.hypot(basket_pos_robot_mm[0], basket_pos_robot_mm[1]),
+                angle_offset_deg=90 * self.turning_basket_direction,
+            )
+            self.peripheral_manager.move_robot_adv(
+                vx,
+                vy,
+                wz,
+                thrower_percent=0.0,
+                servo_speed=0,
+                normalize=True,
+                max_xy_speed=Parameters.MANI_TURN_AROUND_BASKET_MAX_LINEAR_SPEED,
+                max_rot_speed=Parameters.MANI_TURN_AROUND_BASKET_MAX_ANGULAR_SPEED,
+            )
         return RetCode.DOING
 
     def position_to_pose(self, pos_robot_mm: Tuple[float, float]) -> np.ndarray:

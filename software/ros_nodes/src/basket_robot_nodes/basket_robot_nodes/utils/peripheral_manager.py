@@ -4,6 +4,7 @@ from time import time
 from typing import Deque, List, Literal, Optional, Tuple, Union, cast
 
 import numpy as np
+from basket_robot_nodes.utils.ball_manager import BallManager
 from basket_robot_nodes.utils.constants import QOS_DEPTH
 from basket_robot_nodes.utils.image_info import Basket, GreenBall, ImageInfo, Marker
 from basket_robot_nodes.utils.number_utils import normalize_velocity
@@ -12,6 +13,11 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile
 from shared_interfaces.msg import TwistStamped  # a custom message with thrower_percent
 from std_msgs.msg import Bool, String
+
+BALL_MANAGER_DEFAULT_NUM_STORED_BALLS = 6
+BALL_MANAGER_DEFAULT_DIST_THRESHOLD_MM = 100.0
+BALL_MANAGER_DEFAULT_ALIVE_TIME_S = 15.0
+BASKET_TO_ROBOT_MIN_DIST_MM = 240  # min distance to avoid collision with basket
 
 
 class PeripheralManager:
@@ -65,6 +71,13 @@ class PeripheralManager:
         self.latest_target_basket_timestamp: float = 0.0
         self.latest_opponent_basket_pos_odom: Optional[Tuple[float, float]] = None  # in mm
         self.latest_opponent_basket_timestamp: float = 0.0
+
+        # ball manager instance
+        self.ball_manager = BallManager(
+            num_stored_balls=BALL_MANAGER_DEFAULT_NUM_STORED_BALLS,
+            dist_threshold_mm=BALL_MANAGER_DEFAULT_DIST_THRESHOLD_MM,
+            alive_time_s=BALL_MANAGER_DEFAULT_ALIVE_TIME_S,
+        )
 
         node.get_logger().info("PeripheralManager initialized.")
 
@@ -146,6 +159,15 @@ class PeripheralManager:
                 pos_robot_mm = image_info.basket.position_2d  # (x, y) in robot frame (mm)
                 self.latest_opponent_basket_pos_odom = self.robot_to_odom_coords(pos_robot_mm)
                 self.latest_opponent_basket_timestamp = ts
+
+        # store detected balls in ball manager
+        if self.is_odom_ready():
+            detected_ball_positions: List[Tuple[float, float]] = []
+            for ball in image_info.balls:
+                pos_robot_mm = ball.position_2d  # (x, y) in robot frame (mm)
+                pos_odom_mm = self.robot_to_odom_coords(pos_robot_mm)
+                detected_ball_positions.append(pos_odom_mm)
+            self.ball_manager.update_balls(detected_ball_positions)
 
         self._last_image_info_time = ts
 
@@ -556,3 +578,42 @@ class PeripheralManager:
             return self.odom_to_robot_coords(self.latest_opponent_basket_pos_odom)
         else:
             return self.latest_opponent_basket_pos_odom
+
+    def get_turning_angle_to_candidate_ball(self) -> Optional[float]:
+        """Get the turning angle (in degrees) to the closest stored ball. The ball
+        might not be currently visible or can be thrown by opponent's robot.
+        Inputs:
+            in_robot_frame: If True, compute angle in robot frame; else in odom frame.
+            max_age_s: Maximum age of the stored balls to be considered valid.
+        Returns:
+            Turning angle in degrees, or None if no valid stored balls.
+        """
+        robot_pos_odom = self.get_robot_odom_position()
+        t_r_odom = self.get_odom_to_robot_transform(False)
+        rot_angle_deg = self.ball_manager.get_rotation_angle_to_candidate(robot_pos_odom, t_r_odom)
+        return cast(Optional[float], rot_angle_deg)
+
+    def is_ball_blocked_by_basket(self) -> Tuple[bool, Literal[-1, 0, 1]]:
+        """Determine if the closest ball is blocked by the basket.
+        Returns:
+            Tuple of (is_blocked: bool, side: +1 for left, -1 for right)"""
+        basket = self.get_detected_basket()
+        if basket is None or basket.position_2d is None:
+            return False, 0  # no rotation needed
+
+        closest_ball = self.get_closest_ball()
+        if closest_ball is None:
+            return False, 0  # no rotation needed
+
+        # calculate closest distance from basket to the line between robot and ball
+        ball_pos = np.array(closest_ball.position_2d)
+        basket_pos = np.array(basket.position_2d)
+        robot_pos = np.array([0.0, 0.0])  # robot is at origin in its own frame
+        robot_to_ball = ball_pos - robot_pos
+        robot_to_basket = basket_pos - robot_pos
+        distance = np.abs(np.cross(robot_to_ball, robot_to_basket)) / np.linalg.norm(robot_to_ball)
+
+        if distance < BASKET_TO_ROBOT_MIN_DIST_MM:
+            return True, -1 if ball_pos[0] < basket_pos[0] else 1
+        else:
+            return False, 0  # no rotation needed
