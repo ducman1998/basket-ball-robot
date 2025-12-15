@@ -138,7 +138,7 @@ class ImageProcessing:
             seg_mask=seg_mask,
             depth=depth,
             viz_rgb=viz if visualize else None,
-            min_component_area_ratio=500 / (im_h * im_w),
+            min_component_area_ratio=650 / (im_h * im_w),
             position_2d_from_markers=basket_2d_pos,
         )
         return detected_balls, detected_basket, detected_markers, viz if visualize else None
