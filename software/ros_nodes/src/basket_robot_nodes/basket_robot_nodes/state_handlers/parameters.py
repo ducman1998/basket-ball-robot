@@ -20,8 +20,8 @@ class Parameters:
     MANI_ALIGN_WARMUP_ENABLED: Final[bool] = True
     MANI_WARMUP_RAMP_DURATION: Final[float] = 0.25  # seconds
     ## 2.1. Maximum speeds for manipulation tasks
-    MANI_MAX_ALIGN_LINEAR_SPEED: Final[float] = 1.5  # m/s
-    MANI_MAX_ALIGN_ANGULAR_SPEED: Final[float] = 1.5  # rad/s
+    MANI_MAX_ALIGN_LINEAR_SPEED: Final[float] = 1.0  # m/s
+    MANI_MAX_ALIGN_ANGULAR_SPEED: Final[float] = 1.0  # rad/s
     ## 2.2. PID parameters for manipulation tasks
     MANI_PID_LINEAR_ALIGN: Final[list[float]] = [2.0, 0.001, 0.001]  # [Kp, Ki, Kd]
     MANI_PID_ANGULAR_ALIGN: Final[list[float]] = [1.0, 0.0, 0.0]  # [Kp, Ki, Kd]
@@ -42,7 +42,7 @@ class Parameters:
     MANI_SEARCH_BASKET_NUM_CONSECUTIVE_VALID_FRAMES: Final[int] = 5
     # slight forward movement when throwing to help accuracy
     MAIN_BASKET_ALIGN_FINE_GRAINED_THRESHOLD_DEG: Final[float] = 5.0  # degrees
-    MAIN_BASKET_ALIGN_Y_SPEED: Final[float] = 0.0  # m/s
+    MAIN_BASKET_ALIGN_Y_SPEED: Final[float] = 0.05  # m/s
     ## 2.5. Specific thresholds for grabbing ball
     MANI_GRAB_BALL_Y_SPEED: Final[float] = 0.2  # m/s
     MANI_GRAB_BALL_SERVO_SPEED: Final[int] = 3000  # servo speed for grabbing
@@ -58,10 +58,10 @@ class Parameters:
     # ] = 2300.0  # preferred distance to basket in mm
     # mm offset along x-axis from marker center to basket center
     MANI_ALIGN_BASKET_ADV_MARKER_OFFSET_X_MM = 230
-    MANI_ALIGN_BASKET_ADV_MAX_LINEAR_SPEED: Final[float] = 1.5  # m/s
-    MANI_ALIGN_BASKET_ADV_MAX_ANGULAR_SPEED: Final[float] = 1.5  # rad/s
-    MANI_ALIGN_BASKET_ADV_DIS_THRESHOLD_MM: Final[float] = 600.0  # mm
-    MANI_ALIGN_BASKET_ADV_DIS_ODOM_THRESHOLD_MM: Final[float] = 150.0  # mm
+    MANI_ALIGN_BASKET_ADV_MAX_LINEAR_SPEED: Final[float] = 1.0  # m/s
+    MANI_ALIGN_BASKET_ADV_MAX_ANGULAR_SPEED: Final[float] = 1.0  # rad/s
+    MANI_ALIGN_BASKET_ADV_DIS_THRESHOLD_MM: Final[float] = 200.0  # mm
+    MANI_ALIGN_BASKET_ADV_DIS_ODOM_THRESHOLD_MM: Final[float] = 50.0  # mm
     # 2.8. Specific parameters for turning around basket
     MANI_TURN_AROUND_BASKET_MAX_LINEAR_SPEED: Final[float] = 1.5  # m/s
     MANI_TURN_AROUND_BASKET_MAX_ANGULAR_SPEED: Final[float] = 1.5  # rad/s
@@ -76,9 +76,9 @@ class Parameters:
     MAIN_TIMEOUT_ALIGN_BASKET: Final[float] = 3.0  # seconds before re-searching for basket
     # seconds before re-searching for basket in advanced alignment mode
     # marker-based alignment = timeout - refine angle timeout
-    MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_TOTAL: Final[float] = 5.0  # timeout
+    MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_TOTAL: Final[float] = 7.0  # timeout
     # seconds for removing angle error in advanced basket alignment
-    MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_REFINE_ANGLE: Final[float] = 1.5  # refine angle timeout
+    MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_REFINE_ANGLE: Final[float] = 2.0  # refine angle timeout
     MAIN_TIMEOUT_THROW_BALL: Final[float] = 2.0  # seconds before re-trying to throw ball
     MAIN_TIMEOUT_CLEAR_STUCK_BALL: Final[float] = 1.5  # seconds to clear stuck ball
     MAIN_TURNING_ANGULAR_SPEED_TO_CANDIDATE_BALL: Final[float] = 4.0  # rad/s

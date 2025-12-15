@@ -9,7 +9,7 @@ from basket_robot_nodes.state_handlers.ret_code import RetCode
 from basket_robot_nodes.utils.base_game_logic import BaseGameLogicController
 from basket_robot_nodes.utils.peripheral_manager import PeripheralManager
 
-DEV_MODE = False
+DEV_MODE = True
 ENABLE_ADVANCED_BASKET_ALIGNMENT = True  # enable advanced basket alignment mode
 SAMPLING_RATE = 60  # Hz
 
