@@ -53,9 +53,9 @@ class Parameters:
         1500,
         3000,
     )  # min, max valid distances in mm
-    MANI_ALIGN_BASKET_ADV_PREFERRED_DIST_MM: Final[
-        float
-    ] = 2300.0  # preferred distance to basket in mm
+    # MANI_ALIGN_BASKET_ADV_PREFERRED_DIST_MM: Final[
+    #     float
+    # ] = 2300.0  # preferred distance to basket in mm
     # mm offset along x-axis from marker center to basket center
     MANI_ALIGN_BASKET_ADV_MARKER_OFFSET_X_MM = 230
     MANI_ALIGN_BASKET_ADV_MAX_LINEAR_SPEED: Final[float] = 1.5  # m/s
