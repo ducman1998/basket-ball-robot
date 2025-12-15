@@ -1,7 +1,6 @@
 from typing import Union
 
 import rclpy
-import sys
 from basket_robot_nodes.state_handlers.actions import BaseAction, ManipulationAction
 from basket_robot_nodes.state_handlers.base_handler import BaseHandler
 from basket_robot_nodes.state_handlers.manipulation_handler import ManpulationHandler
@@ -174,8 +173,6 @@ class GameLogicController(BaseGameLogicController):
             case GameState.THROW_BALL:
                 ret = self.manipulation_handler.throw_ball()
                 if ret == RetCode.TIMEOUT:
-                    self.periph_manager.stop_robot()
-                    sys.exit(0)  # exit program on throw timeout for safety
                     heading_error_deg = self.periph_manager.get_turning_angle_to_candidate_ball()
                     if heading_error_deg is None:  # no candidate ball
                         self.transition_to(GameState.SEARCH_BALL)
@@ -276,9 +273,9 @@ class GameLogicController(BaseGameLogicController):
                 timeout=Parameters.MAIN_TIMEOUT_CLEAR_STUCK_BALL,
             )
         elif new_state == GameState.TURN_TO_CANDIDATE_BALL:
-            assert (
-                "heading_error_deg" in kwargs
-            ), "heading_error_deg is required for TURN_TO_CANDIDATE_BALL state."
+            assert "heading_error_deg" in kwargs, (
+                "heading_error_deg is required for TURN_TO_CANDIDATE_BALL state."
+            )
 
             heading_error_deg = kwargs["heading_error_deg"]
             self.base_handler.initialize(
@@ -287,9 +284,9 @@ class GameLogicController(BaseGameLogicController):
                 timeout=Parameters.MAIN_TIMEOUT_TURN_TO_CANDIDATE_BALL,
             )
         elif new_state == GameState.TURN_AROUND_BASKET:
-            assert (
-                "turning_basket_direction" in kwargs
-            ), "turning_basket_direction is required for TURN_AROUND_BASKET state."
+            assert "turning_basket_direction" in kwargs, (
+                "turning_basket_direction is required for TURN_AROUND_BASKET state."
+            )
 
             turning_basket_direction = kwargs["turning_basket_direction"]
             self.manipulation_handler.initialize(
@@ -330,9 +327,9 @@ class GameLogicController(BaseGameLogicController):
                 timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET,
             )
         elif new_sub_state == SearchSubState.MOVE_FORWARD:
-            assert (
-                "basket_dis_mm" in kwargs
-            ), "basket_dis_mm is required for MOVE_FORWARD sub-state."
+            assert "basket_dis_mm" in kwargs, (
+                "basket_dis_mm is required for MOVE_FORWARD sub-state."
+            )
 
             basket_dis_mm = kwargs["basket_dis_mm"]
             self.base_handler.initialize(
