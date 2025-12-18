@@ -82,7 +82,10 @@ class Basket:
 
 class ImageInfo:
     def __init__(
-        self, balls: Union[List[GreenBall], Tuple[GreenBall]], basket: Optional[Basket] = None
+        self,
+        image_size: Tuple[int, int],
+        balls: Union[List[GreenBall], Tuple[GreenBall]],
+        basket: Optional[Basket] = None,
     ) -> None:
         """
         Inputs:
@@ -94,11 +97,13 @@ class ImageInfo:
         Note: court_center can be None if the court is not detected.
               basket can be None if no basket is detected.
         """
+        self.image_size = image_size
         self.balls = balls
         self.basket = basket
 
     def to_dict(self) -> Dict:
         return {
+            "image_size": ([int(self.image_size[0]), int(self.image_size[1])]),
             "balls": [ball.to_dict() for ball in self.balls],
             "basket": self.basket.to_dict() if self.basket else None,
         }
@@ -108,10 +113,11 @@ class ImageInfo:
 
     @classmethod
     def from_dict(cls, data: Dict) -> "ImageInfo":
+        image_size = tuple(data.get("image_size", (1280, 720)))
         balls = [GreenBall.from_dict(b) for b in data.get("balls", [])]
         basket_data = data.get("basket", None)
         basket = Basket.from_dict(basket_data) if basket_data else None
-        return cls(balls=balls, basket=basket)
+        return cls(image_size=image_size, balls=balls, basket=basket)
 
     @classmethod
     def from_json(cls, json_str: str) -> "ImageInfo":

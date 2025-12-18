@@ -20,7 +20,7 @@ def generate_launch_description() -> LaunchDescription:
 
     # Set custom logger format
     set_logger_format = SetEnvironmentVariable(
-        name="RCUTILS_CONSOLE_OUTPUT_FORMAT", value="[{severity}] {name}: {message}"
+        name="RCUTILS_CONSOLE_OUTPUT_FORMAT", value="[{severity}]: {message}"
     )
 
     # Define your nodes
