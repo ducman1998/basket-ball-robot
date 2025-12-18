@@ -25,7 +25,7 @@ class Parameters:
     ## 2.2. PID parameters for manipulation tasks
     MANI_PID_LINEAR_ALIGN: Final[list[float]] = [2.0, 0.001, 0.001]  # [Kp, Ki, Kd]
     MANI_PID_ANGULAR_ALIGN: Final[list[float]] = [1.0, 0.0, 0.0]  # [Kp, Ki, Kd]
-    MANI_PID_ANGULAR_ALIGN_BASKET: Final[list[float]] = [20.0, 0.0, 0.1]  # [Kp, Ki, Kd]
+    MANI_PID_ANGULAR_ALIGN_BASKET: Final[list[float]] = [15.0, 0.0, 0.1]  # [Kp, Ki, Kd]
     MANI_PID_LINEAR_THROW_BALL: Final[list[float]] = [0.5, 0.0, 0.05]  # [Kp, Ki, Kd]
     MANI_PID_ANGULAR_THROW_BALL: Final[list[float]] = [1.0, 0.0, 0.1]  # [Kp, Ki, Kd]
     ## 2.3. Specifict thresholds for aligning with ball
@@ -36,7 +36,7 @@ class Parameters:
     ## 2.5. Specific thresholds for aligning basket
     MANI_MAX_CONSECUTIVE_FRAMES_NO_BASKET: Final[int] = 5
     MANI_BASKET_ALIGN_ANGLE_THRESHOLD_DEG: Final[float] = 0.5  # degrees
-    MANI_STORED_BASKET_TIMEOUT: Final[float] = 10.0  # seconds
+    MANI_STORED_BASKET_TIMEOUT: Final[float] = 15.0  # seconds
     MANI_SEARCH_BASKET_ANGULAR_SPEED: Final[float] = 2.5  # rad/s
     MANI_SEARCH_BASKET_MAX_ANGULAR_SPEED: Final[float] = 2.5  # rad/s
     MANI_SEARCH_BASKET_NUM_CONSECUTIVE_VALID_FRAMES: Final[int] = 5
@@ -51,8 +51,8 @@ class Parameters:
     MAIN_THROW_BALL_OFFSET_PERCENT: Final[float] = 0.0  # percent added to base thrower power
     ## 2.7. Specific parameters for aligning to basket in advanced mode
     MANI_ALIGN_BASKET_ADV_VALID_DISTS_MM: Final[tuple[float, float]] = (
-        1500,
-        3000,
+        2000,
+        2300,
     )  # min, max valid distances in mm
     # MANI_ALIGN_BASKET_ADV_PREFERRED_DIST_MM: Final[
     #     float
@@ -79,7 +79,7 @@ class Parameters:
     MAIN_TIMEOUT_ALIGN_BASKET: Final[float] = 3.0  # seconds before re-searching for basket
     # seconds before re-searching for basket in advanced alignment mode
     # marker-based alignment = timeout - refine angle timeout
-    MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_TOTAL: Final[float] = 5.5  # timeout
+    MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_TOTAL: Final[float] = 5.0  # timeout
     # seconds for removing angle error in advanced basket alignment
     MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_REFINE_ANGLE: Final[float] = 2.0  # refine angle timeout
     MAIN_TIMEOUT_THROW_BALL: Final[float] = 2.0  # seconds before re-trying to throw ball

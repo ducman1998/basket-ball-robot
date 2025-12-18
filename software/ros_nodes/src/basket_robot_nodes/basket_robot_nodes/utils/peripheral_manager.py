@@ -509,7 +509,7 @@ class PeripheralManager:
             )
         return transform
 
-    def get_odom_to_robot_transform(self, include_z: Literal[False]) -> np.ndarray:
+    def get_odom_to_robot_transform(self, include_z: Literal[True, False]) -> np.ndarray:
         """
         Get the transformation matrix from odometry frame to robot frame (trans in mm).
         If include_z is True, returns a 4x4 matrix; else returns a 3x3 matrix.

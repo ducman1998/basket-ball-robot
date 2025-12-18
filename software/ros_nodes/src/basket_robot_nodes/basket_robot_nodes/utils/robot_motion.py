@@ -232,8 +232,8 @@ class OmniMotionRobot(IRobotMotion):
         thrower_speed = clip_uint16(thrower_speed)
         sv1 = min(self.max_servo_speed, max(0, servo1))
         sv2 = min(self.max_servo_speed, max(0, servo2))
-        sv1 = clip_uint16(servo1)
-        sv2 = clip_uint16(servo2)
+        sv1 = clip_uint16(sv1)
+        sv2 = clip_uint16(sv2)
         df = 1 if disable_failsafe else 0  # exactly 1 disables, else enables
 
         frame = struct.pack(self.cmd_fmt, s1, s2, s3, thrower_speed, sv1, sv2, df, self.delimiter)

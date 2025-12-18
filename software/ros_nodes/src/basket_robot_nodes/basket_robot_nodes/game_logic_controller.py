@@ -240,18 +240,18 @@ class GameLogicController(BaseGameLogicController):
                     angle_deg=Parameters.MAIN_TURNING_DEGREE,
                     timeout=Parameters.MAIN_TIMEOUT_SEARCH_BALL_TURN_DISC,
                 )
-                
+
             case GameState.ALIGN_BALL:
                 self.manipulation_handler.initialize(
                     ManipulationAction.ALIGN_BALL,
                     timeout=Parameters.MAIN_TIMEOUT_ALIGN_BALL,
                 )
-                
+
             case GameState.GRAB_BALL:
                 self.manipulation_handler.initialize(
                     ManipulationAction.GRAB_BALL, timeout=Parameters.MAIN_TIMEOUT_GRAB_BALL
                 )
-                
+
             case GameState.ALIGN_BASKET:
                 self.manipulation_handler.initialize(
                     ManipulationAction.ALIGN_BASKET,
@@ -259,7 +259,7 @@ class GameLogicController(BaseGameLogicController):
                     base_thrower_percent=Parameters.MAIN_BASE_THROWER_PERCENT,
                     timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET,
                 )
-                
+
             case GameState.ALIGN_BASKET_ADVANCED:
                 self.manipulation_handler.initialize(
                     ManipulationAction.ALIGN_BASKET,
@@ -268,22 +268,22 @@ class GameLogicController(BaseGameLogicController):
                     timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_TOTAL,
                     timeout_refine_angle=Parameters.MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_REFINE_ANGLE,
                 )
-                
+
             case GameState.THROW_BALL:
                 self.manipulation_handler.initialize(
                     ManipulationAction.THROW_BALL, timeout=Parameters.MAIN_TIMEOUT_THROW_BALL
                 )
-                
+
             case GameState.CLEAR_STUCK_BALL:
                 self.manipulation_handler.initialize(
                     ManipulationAction.CLEAR_STUCK_BALL,
                     timeout=Parameters.MAIN_TIMEOUT_CLEAR_STUCK_BALL,
                 )
-                
+
             case GameState.TURN_TO_CANDIDATE_BALL:
-                assert "heading_error_deg" in kwargs, (
-                    "heading_error_deg is required for TURN_TO_CANDIDATE_BALL state."
-                )
+                assert (
+                    "heading_error_deg" in kwargs
+                ), "heading_error_deg is required for TURN_TO_CANDIDATE_BALL state."
 
                 heading_error_deg = kwargs["heading_error_deg"]
                 self.base_handler.initialize(
@@ -291,11 +291,11 @@ class GameLogicController(BaseGameLogicController):
                     angle_deg=heading_error_deg,
                     timeout=Parameters.MAIN_TIMEOUT_TURN_TO_CANDIDATE_BALL,
                 )
-                
+
             case GameState.TURN_AROUND_BASKET:
-                assert "turning_basket_direction" in kwargs, (
-                    "turning_basket_direction is required for TURN_AROUND_BASKET state."
-                )
+                assert (
+                    "turning_basket_direction" in kwargs
+                ), "turning_basket_direction is required for TURN_AROUND_BASKET state."
 
                 turning_basket_direction = kwargs["turning_basket_direction"]
                 self.manipulation_handler.initialize(
@@ -337,9 +337,9 @@ class GameLogicController(BaseGameLogicController):
                     timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET,
                 )
             case SearchSubState.MOVE_FORWARD:
-                assert "basket_dis_mm" in kwargs, (
-                    "basket_dis_mm is required for MOVE_FORWARD sub-state."
-                )
+                assert (
+                    "basket_dis_mm" in kwargs
+                ), "basket_dis_mm is required for MOVE_FORWARD sub-state."
 
                 basket_dis_mm = kwargs["basket_dis_mm"]
                 self.base_handler.initialize(

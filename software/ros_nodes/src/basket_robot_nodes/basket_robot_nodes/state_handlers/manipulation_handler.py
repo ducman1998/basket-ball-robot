@@ -60,11 +60,12 @@ class ManpulationHandler:
             [1958.7389, 47.0],
             [2190.7874, 50.4],
             [2227.8252, 51.3],
-            [2452.0746, 48.0],
-            [2747.0418, 52.0],
-            [2817.9733, 53.5],
-            [3093.4637, 55.5],
-            [3416.1690, 58.0],
+            [2318.0370, 54.5],
+            [2532.2770, 54.8],
+            [2699.9690, 57.5],
+            [2817.9733, 58.5],
+            [3093.4637, 60.5],
+            [3416.1690, 61.8],
             [3727.3968, 63.0],
             [4106.6989, 67.0],
             [4372.6255, 72.0],
@@ -424,12 +425,17 @@ class ManpulationHandler:
                 thrower_percent = self.get_thrower_percent(
                     basket_distance_mm, offset=Parameters.MAIN_THROW_BALL_OFFSET_PERCENT
                 )
+                # thrower_percent = self.get_thrower_percent(basket_distance_mm, offset=8.0)
                 self.calculated_thrower_percent = thrower_percent
                 self.peripheral_manager._node.get_logger().info(
                     f"Basket distance: {basket_distance_mm} mm, Calculated thrower percent: {thrower_percent:.2f}%"
                 )
         else:
             thrower_percent = self.calculated_thrower_percent
+        # basket_distance_mm = self.peripheral_manager.get_basket_distance()
+        # self.peripheral_manager._node.get_logger().info(
+        #     f"Basket distance: {basket_distance_mm} mm, Calculated thrower percent: {thrower_percent:.2f}%"
+        # )
         servo_speed = Parameters.MANI_THROW_BALL_SERVO_SPEED
         if time() - self.start_time < 0.5:
             servo_speed = 0  # avoid sudden movement at the start
@@ -580,18 +586,18 @@ class ManpulationHandler:
     def get_thrower_percent(self, dis_to_basket_mm: float, offset: float = 0.0) -> float:
         """Get the thrower speed percentage based on distance to basket."""
         # Experimental data points: (distance in meters, motor percent)
-        distances_m = [dp[0] for dp in self.data_points]
+        distances_mm = [dp[0] for dp in self.data_points]
         percents = [dp[1] for dp in self.data_points]
-        if dis_to_basket_mm <= distances_m[0]:
+        if dis_to_basket_mm <= distances_mm[0]:
             return percents[0] + offset
-        elif dis_to_basket_mm >= distances_m[-1]:
+        elif dis_to_basket_mm >= distances_mm[-1]:
             return percents[-1] + offset
         else:
-            for i in range(len(distances_m) - 1):
-                if distances_m[i] <= dis_to_basket_mm <= distances_m[i + 1]:
+            for i in range(len(distances_mm) - 1):
+                if distances_mm[i] <= dis_to_basket_mm <= distances_mm[i + 1]:
                     # linear interpolation
-                    ratio = (dis_to_basket_mm - distances_m[i]) / (
-                        distances_m[i + 1] - distances_m[i]
+                    ratio = (dis_to_basket_mm - distances_mm[i]) / (
+                        distances_mm[i + 1] - distances_mm[i]
                     )
                     percent = percents[i] + ratio * (percents[i + 1] - percents[i])
                     return percent + offset
