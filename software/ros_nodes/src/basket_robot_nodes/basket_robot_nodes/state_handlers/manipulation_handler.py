@@ -52,32 +52,24 @@ class ManpulationHandler:
         self.timeout: float = 10.0  # maximum allowed time for the handler
         # experimental data points for thrower speed calibration (distance in meters, motor percent)
         self.data_points: List[List[float]] = [
-            [1057.2576, 35.33],
-            [1188.9271, 35.78],
-            [1310.1344, 37.00],
-            [1444.2779, 37.32],
-            [1532.6276, 38.02],
-            [1622.2073, 42.58],
-            [1714.2448, 43.04],
-            [1817.9590, 45.94],
-            [1943.1401, 44.61],
-            [2028.3751, 47.53],
-            [2133.6933, 47.98],
-            [2198.6447, 49.59],
-            [2246.0665, 50.73],
-            [2312.2667, 49.94],
-            [2357.3275, 51.07],
-            [2509.0498, 54.77],
-            [2691.1098, 56.33],
-            [2881.7542, 58.58],
-            [3114.4499, 59.50],
-            [3275.1323, 60.64],
-            [3393.2343, 62.34],
-            [3581.3950, 65.34],
-            [3856.3396, 68.30],
-            [3997.1760, 70.66],
-            [4173.2872, 71.47],
-            [4480.8506, 72.71],
+            [1250.4078, 41.4],
+            [1410.0333, 42.3],
+            [1654.3705, 43.7],
+            [1865.2299, 46.0],
+            [1908.2617, 46.5],
+            [1958.7389, 47.0],
+            [2190.7874, 50.4],
+            [2227.8252, 51.3],
+            [2452.0746, 48.0],
+            [2747.0418, 52.0],
+            [2817.9733, 53.5],
+            [3093.4637, 55.5],
+            [3416.1690, 58.0],
+            [3727.3968, 63.0],
+            [4106.6989, 67.0],
+            [4372.6255, 72.0],
+            [4812.1808, 75.0],
+            [5053.9016, 76.0],
         ]
 
     def initialize(
@@ -94,22 +86,22 @@ class ManpulationHandler:
         ensure enough time for aligning basket angle deviation before throwing.
         """
         if action in (ManipulationAction.ALIGN_BASKET, ManipulationAction.ALIGN_BASKET_ADVANCED):
-            assert basket_color is not None, (
-                "Basket color must be provided for ALIGN_BASKET & ALIGN_BASKET_ADVANCED action."
-            )
+            assert (
+                basket_color is not None
+            ), "Basket color must be provided for ALIGN_BASKET & ALIGN_BASKET_ADVANCED action."
 
         if action == ManipulationAction.ALIGN_BASKET_ADVANCED:
-            assert timeout_refine_angle is not None, (
-                "Specify timeout for refining angle error in ALIGN_BASKET_ADVANCED action."
-            )
-            assert timeout - timeout_refine_angle > 0.0, (
-                "Total timeout must be greater than timeout for aligning angle error."
-            )
+            assert (
+                timeout_refine_angle is not None
+            ), "Specify timeout for refining angle error in ALIGN_BASKET_ADVANCED action."
+            assert (
+                timeout - timeout_refine_angle > 0.0
+            ), "Total timeout must be greater than timeout for aligning angle error."
 
         if action == ManipulationAction.TURN_AROUND_BASKET:
-            assert turning_basket_direction is not None, (
-                "Turning direction must be provided for TURN_AROUND_BASKET action."
-            )
+            assert (
+                turning_basket_direction is not None
+            ), "Turning direction must be provided for TURN_AROUND_BASKET action."
 
         assert timeout > 0.0, "Timeout must be positive."
 
@@ -429,7 +421,9 @@ class ManpulationHandler:
             thrower_percent = 50.0  # default thrower percent
             basket_distance_mm = self.peripheral_manager.get_basket_distance()
             if basket_distance_mm is not None:
-                thrower_percent = self.get_thrower_percent(basket_distance_mm, offset=0.0)
+                thrower_percent = self.get_thrower_percent(
+                    basket_distance_mm, offset=Parameters.MAIN_THROW_BALL_OFFSET_PERCENT
+                )
                 self.calculated_thrower_percent = thrower_percent
                 self.peripheral_manager._node.get_logger().info(
                     f"Basket distance: {basket_distance_mm} mm, Calculated thrower percent: {thrower_percent:.2f}%"
@@ -437,7 +431,7 @@ class ManpulationHandler:
         else:
             thrower_percent = self.calculated_thrower_percent
         servo_speed = Parameters.MANI_THROW_BALL_SERVO_SPEED
-        if time() - self.start_time < 0.3:
+        if time() - self.start_time < 0.5:
             servo_speed = 0  # avoid sudden movement at the start
         self.peripheral_manager.move_robot_adv(
             0.0,
@@ -446,7 +440,6 @@ class ManpulationHandler:
             thrower_percent=thrower_percent,
             servo_speed=servo_speed,
         )
-        self.peripheral_manager._node.get_logger().info(f"Thrower percent: {thrower_percent:.2f}%")
         return RetCode.DOING
 
     def clear_stuck_ball(self) -> RetCode:
@@ -642,7 +635,5 @@ class ManpulationHandler:
                     avg_theta = markers[0].theta
             else:
                 avg_theta = np.mean([marker.theta for marker in markers])
-            t_r_basket[:2, :2] = get_rotation_matrix(
-                np.deg2rad(np.clip(avg_theta, -85, 85))
-            )
+            t_r_basket[:2, :2] = get_rotation_matrix(np.deg2rad(np.clip(avg_theta, -85, 85)))
             return t_r_basket @ np.linalg.inv(t_newr_basket)

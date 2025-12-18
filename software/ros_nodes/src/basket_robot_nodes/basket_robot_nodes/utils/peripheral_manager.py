@@ -15,8 +15,8 @@ from shared_interfaces.msg import TwistStamped  # a custom message with thrower_
 from std_msgs.msg import Bool, String
 
 BALL_MANAGER_DEFAULT_NUM_STORED_BALLS = 10
-BALL_MANAGER_DEFAULT_DIST_THRESHOLD_MM = 200.0
-BALL_MANAGER_DEFAULT_ALIVE_TIME_S = 15.0
+BALL_MANAGER_DEFAULT_DIST_THRESHOLD_MM = 300.0
+BALL_MANAGER_DEFAULT_ALIVE_TIME_S = 20.0
 BASKET_TO_ROBOT_MIN_DIST_MM = 280  # min distance to avoid collision with basket
 
 
