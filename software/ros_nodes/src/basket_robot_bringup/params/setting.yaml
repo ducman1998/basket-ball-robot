@@ -15,7 +15,7 @@
     gear_ratio: 18.75            # wheel to motor ratio
     encoder_resolution: 64       # ticks per motor shaft revolution
     pid_control_freq: 100         # Hz
-    max_rot_speed: 8.0    # rad/s
+    max_rot_speed: 10.0    # rad/s
     max_xy_speed: 3.0      # m/s # max linear speed in x and y direction
     max_servo_speed: 20000  # max speed command to send to mainboard
     baudrate: 115200
@@ -40,7 +40,7 @@ image_processor_node:
     exposure_time: 100           # in microseconds
     white_balance_auto: false
     enable_depth: True           # enable depth stream
-    publish_viz_image: False
+    publish_viz_image: True
     publish_viz_fps: 1  # Hz
     publish_viz_resize: 0.5  # factor to resizSe the viz image before publishing
     log_level: 'info'

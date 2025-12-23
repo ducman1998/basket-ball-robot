@@ -52,25 +52,25 @@ class ManpulationHandler:
         self.timeout: float = 10.0  # maximum allowed time for the handler
         # experimental data points for thrower speed calibration (distance in meters, motor percent)
         self.data_points: List[List[float]] = [
-            [1250.4078, 41.4],
-            [1410.0333, 42.3],
-            [1654.3705, 43.7],
-            [1865.2299, 46.0],
-            [1908.2617, 46.5],
-            [1958.7389, 47.0],
-            [2190.7874, 50.4],
-            [2227.8252, 51.3],
-            [2318.0370, 54.5],
-            [2532.2770, 54.8],
-            [2699.9690, 57.5],
-            [2817.9733, 58.5],
-            [3093.4637, 60.5],
-            [3416.1690, 61.8],
-            [3727.3968, 63.0],
-            [4106.6989, 67.0],
-            [4372.6255, 72.0],
-            [4812.1808, 75.0],
-            [5053.9016, 76.0],
+            [915.04280, 38.4],
+            [1056.3885, 38.4],
+            [1201.5012, 38.4],
+            [1416.3561, 42.0],
+            [1594.0935, 42.4],
+            [1736.3128, 44.5],
+            [2006.8452, 48.0],
+            [2198.6088, 52.0],
+            [2327.1852, 53.5],
+            [2492.5570, 55.0],
+            [2554.5691, 56.0],
+            [2685.6638, 56.7],
+            [2709.2794, 57.5],
+            [2812.3806, 58.0],
+            [2999.7702, 59.0],
+            [3176.3561, 61.0],
+            [3445.6351, 63.0],
+            [3867.9993, 67.0],
+            [4244.7687, 70.1],
         ]
 
     def initialize(
@@ -114,6 +114,7 @@ class ManpulationHandler:
         self.turning_basket_direction = turning_basket_direction
         self.timeout = timeout  # total timeout for the manipulation action
         self.timeout_refine_angle = timeout_refine_angle
+        self.align_basket_turning_direction: Optional[Literal[-1, 1]] = None
 
     def reset(self) -> None:
         """Reset the handler state."""
@@ -128,6 +129,7 @@ class ManpulationHandler:
         self.turning_basket_direction = None
         self.timeout = 10.0
         self.timeout_refine_angle = None
+        self.align_basket_turning_direction = None
         self.reset_pid_errors()
 
     def reset_pid_errors(self) -> None:
@@ -190,6 +192,10 @@ class ManpulationHandler:
 
         if self.peripheral_manager.is_ball_detected():
             b_pos_robot_mm = self.peripheral_manager.get_closest_ball_position()
+            if b_pos_robot_mm is None:
+                # exceptional case -- should not happen due to is_ball_detected() check
+                return RetCode.DOING
+
             p_error, o_error = self.compute_aligment_errors(b_pos_robot_mm)
             if (
                 p_error <= Parameters.MANI_BALL_ALIGN_DIS_THRESHOLD_MM
@@ -210,6 +216,9 @@ class ManpulationHandler:
                 vx, vy = self.warm_up_linear_speed(vx, vy, ramp_duration)
                 wz = self.warm_up_turn_speed(wz, ramp_duration)
 
+            self.peripheral_manager._node.get_logger().info(
+                f"Speed commands: vx={vx:.2f}, vy={vy:.2f}, wz={wz:.2f}"
+            )
             self.peripheral_manager.move_robot_normalized(
                 vx,
                 vy,
@@ -243,22 +252,26 @@ class ManpulationHandler:
                     == Parameters.MANI_SEARCH_BASKET_NUM_CONSECUTIVE_VALID_FRAMES
                 ):
                     return RetCode.SUCCESS
-        else:
+        elif self.align_basket_turning_direction is None:
             # no basket deteted, using stored position to align the robot towards the basket
+            basket_pos_robot_mm_temp: Optional[Tuple[float, float]] = None
             if self.peripheral_manager.get_target_basket_color() == self.basket_color:
-                basket_pos_robot_mm = self.peripheral_manager.get_stored_target_basket_pos(
+                basket_pos_robot_mm_temp = self.peripheral_manager.get_stored_target_basket_pos(
                     True, Parameters.MANI_STORED_BASKET_TIMEOUT
                 )
                 self.peripheral_manager._node.get_logger().info(
                     "Using stored target basket position for alignment."
                 )
             else:
-                basket_pos_robot_mm = self.peripheral_manager.get_stored_opponent_basket_pos(
+                basket_pos_robot_mm_temp = self.peripheral_manager.get_stored_opponent_basket_pos(
                     True, Parameters.MANI_STORED_BASKET_TIMEOUT
                 )
                 self.peripheral_manager._node.get_logger().info(
                     "Using stored target basket position for alignment."
                 )
+            if basket_pos_robot_mm_temp is not None:
+                x, y = basket_pos_robot_mm_temp
+                self.align_basket_turning_direction = np.sign(np.arctan2(y, x))
 
         vy = 0.0
         if basket_pos_robot_mm is not None:
@@ -281,7 +294,12 @@ class ManpulationHandler:
             )
         else:
             # keep rotating to search for the basket
-            wz = Parameters.MANI_SEARCH_BASKET_ANGULAR_SPEED
+            if self.align_basket_turning_direction is None:
+                self.align_basket_turning_direction = 1  # default direction
+            wz = (
+                abs(Parameters.MANI_SEARCH_BASKET_ANGULAR_SPEED)
+                * self.align_basket_turning_direction
+            )
 
         # Set a base thrower speed to avoid sudden changes that can cause the ball to get stuck.
         self.peripheral_manager.move_robot_adv(
@@ -355,8 +373,8 @@ class ManpulationHandler:
                 (vx, vy, wz) = self.compute_control_signals(
                     t_error,
                     (
-                        Parameters.MANI_PID_LINEAR_ALIGN,
-                        Parameters.MANI_PID_ANGULAR_ALIGN,
+                        Parameters.MANI_PID_LINEAR_ALIGN_BASKET_ADV,
+                        Parameters.MANI_PID_ANGULAR_ALIGN_BASKET_ADV,
                     ),
                 )
                 self.peripheral_manager.move_robot_adv(
@@ -420,22 +438,24 @@ class ManpulationHandler:
 
         if self.calculated_thrower_percent is None:
             thrower_percent = 50.0  # default thrower percent
-            basket_distance_mm = self.peripheral_manager.get_basket_distance()
+            basket_distance_mm = self.peripheral_manager.get_basket_distance(
+                avg_mode=True, num_samples=5
+            )
             if basket_distance_mm is not None:
-                thrower_percent = self.get_thrower_percent(
-                    basket_distance_mm, offset=Parameters.MAIN_THROW_BALL_OFFSET_PERCENT
-                )
+                thrower_percent = self.get_thrower_percent(basket_distance_mm, offset=0.0)
                 # thrower_percent = self.get_thrower_percent(basket_distance_mm, offset=8.0)
                 self.calculated_thrower_percent = thrower_percent
-                self.peripheral_manager._node.get_logger().info(
-                    f"Basket distance: {basket_distance_mm} mm, Calculated thrower percent: {thrower_percent:.2f}%"
-                )
+                # self.peripheral_manager._node.get_logger().info(
+                #     f"Basket distance: {basket_distance_mm} mm, Calculated thrower percent: {thrower_percent:.2f}%"
+                # )
         else:
             thrower_percent = self.calculated_thrower_percent
-        # basket_distance_mm = self.peripheral_manager.get_basket_distance()
-        # self.peripheral_manager._node.get_logger().info(
-        #     f"Basket distance: {basket_distance_mm} mm, Calculated thrower percent: {thrower_percent:.2f}%"
-        # )
+        basket_distance_mm = self.peripheral_manager.get_basket_distance(
+            avg_mode=True, num_samples=5
+        )
+        self.peripheral_manager._node.get_logger().info(
+            f"Basket distance: {basket_distance_mm} mm, Calculated thrower percent: {thrower_percent:.2f}%"
+        )
         servo_speed = Parameters.MANI_THROW_BALL_SERVO_SPEED
         if time() - self.start_time < 0.5:
             servo_speed = 0  # avoid sudden movement at the start
@@ -585,29 +605,19 @@ class ManpulationHandler:
 
     def get_thrower_percent(self, dis_to_basket_mm: float, offset: float = 0.0) -> float:
         """Get the thrower speed percentage based on distance to basket."""
-        # Experimental data points: (distance in meters, motor percent)
+        # Experimental data points: (distance in mm, motor percent)
         distances_mm = [dp[0] for dp in self.data_points]
         percents = [dp[1] for dp in self.data_points]
-        if dis_to_basket_mm <= distances_mm[0]:
-            return percents[0] + offset
-        elif dis_to_basket_mm >= distances_mm[-1]:
-            return percents[-1] + offset
-        else:
-            for i in range(len(distances_mm) - 1):
-                if distances_mm[i] <= dis_to_basket_mm <= distances_mm[i + 1]:
-                    # linear interpolation
-                    ratio = (dis_to_basket_mm - distances_mm[i]) / (
-                        distances_mm[i + 1] - distances_mm[i]
-                    )
-                    percent = percents[i] + ratio * (percents[i + 1] - percents[i])
-                    return percent + offset
-        return 50.0  # default percent if something goes wrong
+        # np.interp performs linear interpolation and handles extrapolation at boundaries
+        percent = float(np.interp(dis_to_basket_mm, distances_mm, percents))
+        return percent + offset
 
     def get_expected_transformation_by_markers(
         self, markers: List[Marker], prefered_dist_mm: float
     ) -> np.ndarray:
         """Get the expected transformation from robot base to new position based on marker pose."""
         assert len(markers) in (1, 2), "Number of markers must be 1 or 2."
+        markers = sorted(markers, key=lambda m: m.id)
         if len(markers) == 1:
             marker = markers[0]
             t_newr_marker = np.eye(4)
@@ -632,14 +642,16 @@ class ManpulationHandler:
             t_newr_basket[1, 3] = prefered_dist_mm
             t_r_basket = np.eye(4)
             t_r_basket[0:2, 3] = np.mean([marker.position_2d for marker in markers], axis=0)
-            if markers[0].theta * markers[1].theta < 0 and abs(markers[0].theta) > 15:
-                # markers have opposite signs, likely due to opencv inconsistency
-                # trust the marker that is closer to the robot center
-                if np.linalg.norm(markers[0].position_2d) > np.linalg.norm(markers[1].position_2d):
-                    avg_theta = markers[1].theta
-                else:
-                    avg_theta = markers[0].theta
-            else:
-                avg_theta = np.mean([marker.theta for marker in markers])
-            t_r_basket[:2, :2] = get_rotation_matrix(np.deg2rad(np.clip(avg_theta, -85, 85)))
+            # compute angle based on two markers to avoid errors in single marker detection
+            theta = math.atan2(
+                markers[1].position_2d[1] - markers[0].position_2d[1],
+                markers[1].position_2d[0] - markers[0].position_2d[0],
+            )
+            self.peripheral_manager._node.get_logger().info(
+                f"Marker IDs {[marker.id for marker in markers]} thetas: {[marker.theta for marker in markers]},"
+                + f" computed theta: {np.rad2deg(theta):.2f}"
+            )
+            t_r_basket[:2, :2] = get_rotation_matrix(
+                np.clip(theta, -85 * math.pi / 180, 85 * math.pi / 180)
+            )
             return t_r_basket @ np.linalg.inv(t_newr_basket)

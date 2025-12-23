@@ -13,6 +13,7 @@ from .constants import COLOR_REFERENCE_RGB
 CALIB_SCALE = 1.0
 MARKER_OFFSET_X_MM = 230
 BASKET_RADIUS_MM = 80
+OFFSETS_BASED_ON_CALIB = [-50.0, -20.0]  # mm offset based on experimental measurement
 VALID_MARKER_IDS = [11, 12, 21, 22]
 # homography matrix and its inverse obtained from camera calibration
 H = np.array(
@@ -57,7 +58,7 @@ class ImageProcessing:
         num_ignored_rows: int = 20,
         depth_scale: float = 0.001,
         ball_morth_kernel_size: int = 3,
-        marker_morth_kernel_size: int = 7
+        marker_morth_kernel_size: int = 7,
     ) -> None:
         self.image_segmenter = ColorSegmenter(COLOR_REFERENCE_RGB)
         self.robot_base_mask = robot_base_mask
@@ -120,10 +121,16 @@ class ImageProcessing:
                 t_marker_basket = np.eye(3)
                 # something magical here, idk, the basket has to be offset to left side 80mm
                 # based on experimental tuning
+                dis_to_basket = np.linalg.norm(marker.position_2d)
+                # linear interpolation to get offset based on distance
+                offset = OFFSETS_BASED_ON_CALIB[1] + (dis_to_basket - 2800) / 1600 * (
+                    OFFSETS_BASED_ON_CALIB[0] - OFFSETS_BASED_ON_CALIB[1]
+                )
+                offset = np.clip(offset, OFFSETS_BASED_ON_CALIB[0], OFFSETS_BASED_ON_CALIB[1])
                 if marker.id % 2 == 0:  # right side marker
-                    t_marker_basket[0, 2] = -(MARKER_OFFSET_X_MM + BASKET_RADIUS_MM)
+                    t_marker_basket[0, 2] = -(MARKER_OFFSET_X_MM + offset)
                 else:
-                    t_marker_basket[0, 2] = MARKER_OFFSET_X_MM - BASKET_RADIUS_MM
+                    t_marker_basket[0, 2] = MARKER_OFFSET_X_MM - offset
                 t_marker_basket[1, 2] = -BASKET_RADIUS_MM
                 t_r_basket = t_r_marker @ t_marker_basket
                 basket_2d_posisions.append(t_r_basket[:2, 2])
@@ -143,7 +150,7 @@ class ImageProcessing:
             seg_mask=seg_mask,
             depth=depth,
             viz_rgb=viz if visualize else None,
-            min_component_area_ratio=650 / (im_h * im_w),
+            min_component_area_ratio=400 / (im_h * im_w),
             position_2d_from_markers=basket_2d_pos,
         )
         return detected_balls, detected_basket, detected_markers, viz if visualize else None
@@ -325,7 +332,7 @@ class ImageProcessing:
         self,
         im_gray: NDArray[np.uint8],
         seg_mask: NDArray[np.uint8],
-        viz_rgb: Optional[NDArray[np.uint8]] = None
+        viz_rgb: Optional[NDArray[np.uint8]] = None,
     ) -> List[Marker]:
         black_idx, white_idx = self.image_segmenter.get_color_indices(["black", "white"])
         roi_mask = (seg_mask == white_idx) | (seg_mask == black_idx)
@@ -365,10 +372,9 @@ class ImageProcessing:
             xvec, yvec = r_bm[:, 0], -r_bm[:, 2]
             theta = np.degrees(np.arctan2(xvec[1], xvec[0]))
             detected_markers.append(
-                Marker(
-                    id=int(ids[i][0]), position_2d=(float(t_bm[0]), float(t_bm[1])), theta=theta
-                )
+                Marker(id=int(ids[i][0]), position_2d=(float(t_bm[0]), float(t_bm[1])), theta=theta)
             )
+            print(f"Detected marker ID {ids[i][0]} at position {t_bm} with angle {theta}")
         return detected_markers
 
     def _is_valid_ball(

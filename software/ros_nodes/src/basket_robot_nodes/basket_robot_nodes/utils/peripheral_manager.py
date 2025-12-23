@@ -35,6 +35,7 @@ class PeripheralManager:
         self._is_balls_detected_queue: Deque[Tuple[bool, float]] = deque(maxlen=queue_size)
         self._is_basket_detected_queue: Deque[Tuple[bool, float]] = deque(maxlen=queue_size)
         self._is_markers_detected_queue: Deque[Tuple[bool, float]] = deque(maxlen=queue_size)
+        self._dist_to_basket_queue: Deque[Tuple[float, float]] = deque(maxlen=queue_size)
 
         # Convenience references to the most recent messages (backwards compat)
         self._odom_msg: Optional[Odometry] = None
@@ -135,6 +136,9 @@ class PeripheralManager:
         self._is_balls_detected_queue.append((self.is_ball_detected(), ts))
         self._is_basket_detected_queue.append((self.is_basket_detected(), ts))
         self._is_markers_detected_queue.append((self.is_marker_detected(), ts))
+        dist_to_basket = self.get_basket_distance()
+        if dist_to_basket is not None:
+            self._dist_to_basket_queue.append((dist_to_basket, ts))
 
         # store image size on first receipt
         if self._image_size is None and image_info.image_size is not None:
@@ -164,7 +168,9 @@ class PeripheralManager:
         if self.is_odom_ready():
             detected_ball_positions: List[Tuple[float, float]] = []
             for ball in image_info.balls:
-                pos_robot_mm = ball.position_2d  # (x, y) in robot frame (mm)
+                pos_robot_mm = cast(
+                    Tuple[float, float], ball.position_2d
+                )  # (x, y) in robot frame (mm)
                 pos_odom_mm = self.robot_to_odom_coords(pos_robot_mm)
                 detected_ball_positions.append(pos_odom_mm)
             self.ball_manager.update_balls(detected_ball_positions)
@@ -270,11 +276,15 @@ class PeripheralManager:
         pos_2d = self._image_info_msg.basket.position_2d
         return cast(Optional[Tuple[float, float]], pos_2d)
 
-    def get_basket_distance(self) -> Optional[float]:
-        basket_pos = self.get_basket_position_2d()
-        if basket_pos is None:
-            return None
-        return float(np.linalg.norm(basket_pos))
+    def get_basket_distance(self, avg_mode: bool = False, num_samples: int = 5) -> Optional[float]:
+        if avg_mode:
+            assert num_samples > 0, "num_samples must be positive."
+            return self.get_average_basket_distance(num_samples=num_samples)
+        else:
+            basket_pos = self.get_basket_position_2d()
+            if basket_pos is None:
+                return None
+            return float(np.linalg.norm(basket_pos))
 
     def get_basket_center_pixel(self) -> Optional[Tuple[int, int]]:
         if self._image_info_msg is None or self._image_info_msg.basket is None:
@@ -339,6 +349,16 @@ class PeripheralManager:
         if len(recent_items) < nframes:
             return False
         return sum(it[0] for it in recent_items) == nframes
+
+    def get_average_basket_distance(self, num_samples: int = 5) -> Optional[float]:
+        """Get the average basket distance from the last num_samples entries in the queue."""
+        if len(self._dist_to_basket_queue) == 0:
+            return None
+
+        recent_items = list(self._dist_to_basket_queue)[-num_samples:]
+        distances = [it[0] for it in recent_items]
+        avg_distance = sum(distances) / len(distances)
+        return avg_distance
 
     # ============== Mainboard Control Methods ================
     def stop_robot(self) -> None:
@@ -509,7 +529,7 @@ class PeripheralManager:
             )
         return transform
 
-    def get_odom_to_robot_transform(self, include_z: Literal[True, False]) -> np.ndarray:
+    def get_odom_to_robot_transform(self, include_z: bool = False) -> np.ndarray:
         """
         Get the transformation matrix from odometry frame to robot frame (trans in mm).
         If include_z is True, returns a 4x4 matrix; else returns a 3x3 matrix.

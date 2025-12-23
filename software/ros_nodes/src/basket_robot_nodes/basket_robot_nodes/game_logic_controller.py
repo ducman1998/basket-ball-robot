@@ -166,6 +166,9 @@ class GameLogicController(BaseGameLogicController):
                     self.transition_to(GameState.THROW_BALL)
 
             case GameState.ALIGN_BASKET_ADVANCED:
+                if not self.periph_manager.is_ball_grabbed():
+                    self.transition_to(GameState.SEARCH_BALL)
+
                 ret = self.manipulation_handler.align_to_basket_advanced()
                 if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
                     self.transition_to(GameState.THROW_BALL)

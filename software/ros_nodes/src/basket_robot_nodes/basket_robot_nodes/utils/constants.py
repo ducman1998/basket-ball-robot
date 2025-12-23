@@ -4,7 +4,7 @@ ODOM_FRAME_ID = "odom"
 BASE_FRAME_ID = "base_footprint"
 
 # buffer depth for QoS profiles
-QOS_DEPTH = 3
+QOS_DEPTH = 1
 
 REALSENSE_QUEUE_SIZE = 2
 
