@@ -8,6 +8,7 @@ import numpy as np
 from basket_robot_nodes.state_handlers.actions import ManipulationAction
 from basket_robot_nodes.state_handlers.parameters import Parameters
 from basket_robot_nodes.state_handlers.ret_code import RetCode
+from basket_robot_nodes.utils.constants import CALIB_THROWER_MOTOR_PERCENTS
 from basket_robot_nodes.utils.image_info import Marker
 from basket_robot_nodes.utils.number_utils import (
     get_rotation_matrix,
@@ -50,28 +51,9 @@ class ManpulationHandler:
         self.cumm_wz_error: float = 0.0
 
         self.timeout: float = 10.0  # maximum allowed time for the handler
-        # experimental data points for thrower speed calibration (distance in milimeters, motor percent)
-        self.data_points: List[List[float]] = [
-            [915.04280, 38.4],
-            [1056.3885, 38.4],
-            [1201.5012, 38.4],
-            [1416.3561, 42.0],
-            [1594.0935, 42.4],
-            [1736.3128, 44.5],
-            [2006.8452, 48.0],
-            [2198.6088, 52.0],
-            [2327.1852, 53.5],
-            [2492.5570, 55.0],
-            [2554.5691, 56.0],
-            [2685.6638, 56.7],
-            [2709.2794, 57.5],
-            [2812.3806, 58.0],
-            [2999.7702, 59.0],
-            [3176.3561, 61.0],
-            [3445.6351, 63.0],
-            [3867.9993, 67.0],
-            [4244.7687, 70.1],
-        ]
+        # experimental data points for thrower speed calibration
+        # (distance in milimeters, motor percent)
+        self.data_points = CALIB_THROWER_MOTOR_PERCENTS
 
     def initialize(
         self,
@@ -443,19 +425,13 @@ class ManpulationHandler:
             )
             if basket_distance_mm is not None:
                 thrower_percent = self.get_thrower_percent(basket_distance_mm, offset=0.0)
-                # thrower_percent = self.get_thrower_percent(basket_distance_mm, offset=8.0)
                 self.calculated_thrower_percent = thrower_percent
-                # self.peripheral_manager._node.get_logger().info(
-                #     f"Basket distance: {basket_distance_mm} mm, Calculated thrower percent: {thrower_percent:.2f}%"
-                # )
+                self.peripheral_manager._node.get_logger().info(
+                    f"Basket dis: {basket_distance_mm} mm, thrower per.: {thrower_percent:.2f}%"
+                )
         else:
             thrower_percent = self.calculated_thrower_percent
-        basket_distance_mm = self.peripheral_manager.get_basket_distance(
-            avg_mode=True, num_samples=5
-        )
-        self.peripheral_manager._node.get_logger().info(
-            f"Basket distance: {basket_distance_mm} mm, Calculated thrower percent: {thrower_percent:.2f}%"
-        )
+
         servo_speed = Parameters.MANI_THROW_BALL_SERVO_SPEED
         if time() - self.start_time < 0.5:
             servo_speed = 0  # avoid sudden movement at the start
@@ -648,7 +624,8 @@ class ManpulationHandler:
                 markers[1].position_2d[0] - markers[0].position_2d[0],
             )
             self.peripheral_manager._node.get_logger().info(
-                f"Marker IDs {[marker.id for marker in markers]} thetas: {[marker.theta for marker in markers]},"
+                f"Marker IDs {[marker.id for marker in markers]},"
+                + f" thetas: {[marker.theta for marker in markers]},"
                 + f" computed theta: {np.rad2deg(theta):.2f}"
             )
             t_r_basket[:2, :2] = get_rotation_matrix(
