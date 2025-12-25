@@ -1,6 +1,7 @@
 from typing import List, Optional, Tuple, Union, cast
 
 import cv2
+import numba as nb
 import numpy as np
 from basket_robot_nodes.utils.color_segmention import ColorSegmenter
 from basket_robot_nodes.utils.image_info import Basket, GreenBall, Marker
@@ -49,6 +50,117 @@ K = np.array(
 )
 DIST_COEFFS = np.array([0.105048424954046, -0.201651710545795, 0.0, 0.0, 0.0], dtype=np.float32)
 MARKER_SIZE = 0.16  # ArUco marker size (160mm = 0.16 meters)
+
+
+@nb.njit(parallel=True)
+def _check_balls_parallel(
+    ball_centers: NDArray[np.int32],
+    origin_pix: Tuple[int, int],
+    seg_mask: NDArray[np.uint8],
+    black_idx: int,
+    white_idx: int,
+    black_thresh: int,
+    white_thresh: int,
+    court_thresh: int,
+    im_h: int,
+    im_w: int,
+) -> NDArray[np.bool_]:
+    """
+    Numba-compiled function to check ball status in parallel.
+    Returns array of boolean values indicating if each ball is inside.
+    Line is traced from ball center to origin.
+    """
+    n_balls = ball_centers.shape[0]
+    inside_status = np.empty(n_balls, dtype=np.bool_)
+
+    ox = origin_pix[0]
+    oy = origin_pix[1]
+
+    for idx in nb.prange(n_balls):
+        cx = ball_centers[idx, 0]
+        cy = ball_centers[idx, 1]
+
+        # Bresenham's line algorithm - from ball center to origin
+        dx = abs(ox - cx)
+        dy = abs(oy - cy)
+
+        if cx < ox:
+            sx = 1
+        else:
+            sx = -1
+
+        if cy < oy:
+            sy = 1
+        else:
+            sy = -1
+
+        err = dx - dy
+
+        x = cx
+        y = cy
+        b_count = 0
+        w_count = 0
+        c_count = 0
+        inside = True
+        consecutive_black = 0
+        consecutive_white = 0
+        # Line tracing loop
+        while True:
+            # Boundary check
+            if x < 0 or x >= im_w or y < 0 or y >= im_h:
+                break
+
+            if consecutive_white >= court_thresh:
+                break
+
+            # Check pixel label
+            label = seg_mask[y, x]
+
+            if label == black_idx:
+                b_count += 1
+                consecutive_black += 1
+                consecutive_white = 0
+            elif label == white_idx:
+                consecutive_black = 0
+                # only count white after black
+                if b_count >= black_thresh:
+                    w_count += 1
+                    c_count = 0  # reset court count after white
+                consecutive_white += 1
+
+            else:  # reset counts if other colors encountered
+                consecutive_black = 0
+                consecutive_white = 0
+                c_count += 1
+                if c_count >= court_thresh:
+                    c_count = (
+                        b_count
+                    ) = w_count = 0  # reset counts if enough court pixels encountered
+
+            if consecutive_black > black_thresh:
+                c_count = w_count = 0
+
+            # Early termination if thresholds reached
+            if b_count >= black_thresh and w_count >= white_thresh:
+                inside = False
+                break
+
+            # Check if we reached destination
+            if x == ox and y == oy:
+                break
+
+            # Bresenham step
+            e2 = 2 * err
+            if e2 > -dy:
+                err = err - dy
+                x = x + sx
+            if e2 < dx:
+                err = err + dx
+                y = y + sy
+
+        inside_status[idx] = inside
+
+    return inside_status
 
 
 class ImageProcessing:
@@ -219,9 +331,16 @@ class ImageProcessing:
             ):
                 filtered_balls.append(ball)
 
+        filtered_balls = self._check_ball_status(
+            filtered_balls, seg_mask, black_thresh=5, white_thresh=5, court_thresh=20
+        )
+
         if viz_rgb is not None:
             for ball in filtered_balls:
-                cv2.circle(viz_rgb, ball.center, int(ball.radius), (255, 0, 255), 2)
+                if ball.inside:
+                    cv2.circle(viz_rgb, ball.center, int(ball.radius), (255, 0, 255), 2)
+                else:
+                    cv2.circle(viz_rgb, ball.center, int(ball.radius), (0, 255, 255), 2)
                 text_pos = (
                     (ball.center[0] - 20, ball.center[1] - 10)
                     if ball.center[0] < viz_rgb.shape[1] - 100
@@ -369,12 +488,11 @@ class ImageProcessing:
             t_bm = T_BC @ t_cm  # transformation from marker to robot base
             r_bm = t_bm[0:3, 0:3]
             t_bm = t_bm[0:2, 3]
-            xvec, yvec = r_bm[:, 0], -r_bm[:, 2]
+            xvec = r_bm[:, 0]
             theta = np.degrees(np.arctan2(xvec[1], xvec[0]))
             detected_markers.append(
                 Marker(id=int(ids[i][0]), position_2d=(float(t_bm[0]), float(t_bm[1])), theta=theta)
             )
-            print(f"Detected marker ID {ids[i][0]} at position {t_bm} with angle {theta}")
         return detected_markers
 
     def _is_valid_ball(
@@ -431,6 +549,51 @@ class ImageProcessing:
             interpolation=cv2.INTER_NEAREST,
         ).astype(np.uint8)
         return filled_court_mask
+
+    def _check_ball_status(
+        self,
+        balls: List[GreenBall],
+        seg_mask: NDArray[np.uint8],
+        black_thresh: int = 8,
+        white_thresh: int = 10,
+        court_thresh: int = 20,
+    ) -> List[GreenBall]:
+        """
+        Check if the detected balls are inside the court area.
+        Inputs:
+            balls: list of detected green balls
+            seg_mask: segmented image mask of shape (H, W) with dtype np.uint8
+        Outputs:
+            filtered_balls: list of balls with updated 'inside' attribute
+        """
+        if not balls:
+            return balls
+
+        black_idx, white_idx = self.image_segmenter.get_color_indices(["black", "white"])
+        origin_pix = (self.im_w // 2, self.im_h - 1)
+
+        # Prepare data for Numba function
+        ball_centers = np.array([ball.center for ball in balls], dtype=np.int32)
+
+        # Call Numba-compiled parallel function
+        inside_status = _check_balls_parallel(
+            ball_centers,
+            origin_pix,
+            seg_mask,
+            black_idx,
+            white_idx,
+            black_thresh,
+            white_thresh,
+            court_thresh,
+            self.im_h,
+            self.im_w,
+        )
+
+        # Update ball status
+        for i, ball in enumerate(balls):
+            ball.inside = bool(inside_status[i])
+
+        return balls
 
     def _calculate_basket_2d_pos_from_depth(
         self,

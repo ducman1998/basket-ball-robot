@@ -9,6 +9,7 @@ class GreenBall:
         radius: Union[int, float],
         area: float,
         position_2d: Union[List[float], Tuple[float, float]],
+        inside: bool = True,
     ) -> None:
         """
         Inputs:
@@ -16,11 +17,13 @@ class GreenBall:
             radius: radius of the green ball in image (pixels)
             area: area of the green ball in image (pixels)
             position_2d: 2D position of the green ball in robot base footprint frame (mm)
+            inside: whether the ball is inside the court area
         """
         self.center = center
         self.radius = radius
         self.area = area
         self.position_2d = position_2d
+        self.inside = inside
 
     def to_dict(self) -> Dict:
         return {
@@ -28,6 +31,7 @@ class GreenBall:
             "radius": float(self.radius),
             "area": float(self.area),
             "position_2d": [float(self.position_2d[0]), float(self.position_2d[1])],
+            "inside": bool(self.inside),
         }
 
     @classmethod
@@ -141,9 +145,12 @@ class ImageInfo:
         return json.dumps(self.to_dict())
 
     @classmethod
-    def from_dict(cls, data: Dict) -> "ImageInfo":
+    def from_dict(cls, data: Dict, ignore_outside: bool = True) -> "ImageInfo":
         image_size = tuple(data.get("image_size", (1280, 720)))
         balls = [GreenBall.from_dict(b) for b in data.get("balls", [])]
+        balls = [
+            b for b in balls if (b.inside or not ignore_outside)
+        ]  # filter outside balls if needed
         markers = [Marker.from_dict(m) for m in data.get("markers", [])]
         basket_data = data.get("basket", None)
         basket = Basket.from_dict(basket_data) if basket_data else None

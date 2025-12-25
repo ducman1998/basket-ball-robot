@@ -128,7 +128,7 @@ class PeripheralManager:
 
     def _image_info_callback(self, msg: String) -> None:
         """Handle incoming image info messages."""
-        image_info = ImageInfo.from_json(msg.data)
+        image_info = ImageInfo.from_json(msg.data)  # ignore outside balls
         self._image_info_msg = cast(ImageInfo, image_info)
 
         ts = time()
@@ -617,19 +617,16 @@ class PeripheralManager:
             Tuple of (is_blocked: bool, side: +1 for left, -1 for right)"""
         basket = self.get_detected_basket()
         if basket is None or basket.position_2d is None:
-            self._node.get_logger().info("Basket not detected or position unknown. Not blocking.")
             return False, 0  # no rotation needed
 
         closest_ball = self.get_closest_ball()
         if closest_ball is None:
-            self._node.get_logger().info("No balls detected. Not blocking.")
             return False, 0  # no rotation needed
 
         # calculate closest distance from basket to the line between robot and ball
         ball_pos = np.array(closest_ball.position_2d)
         basket_pos = np.array(basket.position_2d)
         if np.linalg.norm(ball_pos) < np.linalg.norm(basket_pos):
-            self._node.get_logger().info("Ball is closer than basket. Not blocking.")
             return False, 0  # ball is closer than basket, no blocking
 
         robot_pos = np.array([0.0, 0.0])  # robot is at origin in its own frame
@@ -638,10 +635,6 @@ class PeripheralManager:
         distance = np.abs(np.cross(robot_to_ball, robot_to_basket)) / np.linalg.norm(robot_to_ball)
 
         if distance < BASKET_TO_ROBOT_MIN_DIST_MM:
-            self._node.get_logger().info(
-                f"Ball is blocked by basket. Direction needed. {-1 if ball_pos[0] < basket_pos[0] else 1}"
-            )
             return True, -1 if ball_pos[0] < basket_pos[0] else 1
         else:
-            self._node.get_logger().info("Ball is not blocked by basket.")
             return False, 0  # no rotation needed
