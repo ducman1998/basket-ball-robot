@@ -39,22 +39,22 @@ class Parameters:
     MANI_MAX_CONSECUTIVE_FRAMES_NO_BASKET: Final[int] = 5
     MANI_BASKET_ALIGN_ANGLE_THRESHOLD_DEG: Final[float] = 0.5  # degrees
     MANI_STORED_BASKET_TIMEOUT: Final[float] = 15.0  # seconds
-    MANI_SEARCH_BASKET_ANGULAR_SPEED: Final[float] = 5.0  # rad/s
+    MANI_SEARCH_BASKET_ANGULAR_SPEED: Final[float] = 3.5  # rad/s
     MANI_SEARCH_BASKET_MAX_ANGULAR_SPEED: Final[float] = 5.0  # rad/s
     MANI_SEARCH_BASKET_NUM_CONSECUTIVE_VALID_FRAMES: Final[int] = 5
     # slight forward movement when throwing to help accuracy
     MAIN_BASKET_ALIGN_FINE_GRAINED_THRESHOLD_DEG: Final[float] = 5.0  # degrees
     MAIN_BASKET_ALIGN_Y_SPEED: Final[float] = 0.05  # m/s
     ## 2.5. Specific thresholds for grabbing ball
-    MANI_GRAB_BALL_Y_SPEED: Final[float] = 0.35  # m/s
+    MANI_GRAB_BALL_Y_SPEED: Final[float] = 0.5  # m/s
     MANI_GRAB_BALL_SERVO_SPEED: Final[int] = 3000  # servo speed for grabbing
     ## 2.6. Specific parameters for throwing ball
     MANI_THROW_BALL_SERVO_SPEED: Final[int] = 3000  # servo speed for throwing
     MAIN_THROW_BALL_OFFSET_PERCENT: Final[float] = 0.0  # percent added to base thrower power
     ## 2.7. Specific parameters for aligning to basket in advanced mode
     MANI_ALIGN_BASKET_ADV_VALID_DISTS_MM: Final[tuple[float, float]] = (
-        1800,
-        3000,
+        2200,
+        3200,
     )  # min, max valid distances in mm
     # mm offset along x-axis from marker center to basket center
     MANI_ALIGN_BASKET_ADV_MARKER_OFFSET_X_MM = 230
@@ -83,6 +83,6 @@ class Parameters:
     MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_REFINE_ANGLE: Final[float] = 1.5  # refine angle timeout
     MAIN_TIMEOUT_THROW_BALL: Final[float] = 2.0  # seconds before re-trying to throw ball
     MAIN_TIMEOUT_CLEAR_STUCK_BALL: Final[float] = 1.5  # seconds to clear stuck ball
-    MAIN_TURNING_ANGULAR_SPEED_TO_CANDIDATE_BALL: Final[float] = 4.0  # rad/s
+    MAIN_TURNING_ANGULAR_SPEED_TO_CANDIDATE_BALL: Final[float] = 5.0  # rad/s
     MAIN_TIMEOUT_TURN_TO_CANDIDATE_BALL: Final[float] = 1.5  # seconds before re-searching for ball
     MAIN_TIMEOUT_TURN_AROUND_BASKET: Final[float] = 1.5  # timeout for turning to avoid collision

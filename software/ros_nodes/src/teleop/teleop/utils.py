@@ -22,7 +22,9 @@ def get_key(settings: List[Any]) -> str:
     return key
 
 
-def print_status(node: Node, vy: float, vx: float, wz: float, thrower_percent: float) -> None:
+def print_status(
+    node: Node, vy: float, vx: float, wz: float, thrower_percent: float, servo_speed: int
+) -> None:
     """
     Inputs:
         vy: forward/backward speed
@@ -33,7 +35,7 @@ def print_status(node: Node, vy: float, vx: float, wz: float, thrower_percent: f
     Print the current control status.
     """
     node.get_logger().info(
-        f"currently:\tvy {vy:.2f}\tvx {vx:.2f}\twz {wz:.2f}\tthrower {thrower_percent:.0f}%"
+        f"currently:\tvy {vy:.2f}\tvx {vx:.2f}\twz {wz:.2f}\tthrower {thrower_percent:.0f}%\tservo: {servo_speed}"
     )
 
 

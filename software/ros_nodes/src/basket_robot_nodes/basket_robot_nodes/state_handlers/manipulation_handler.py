@@ -424,7 +424,9 @@ class ManpulationHandler:
                 avg_mode=True, num_samples=5
             )
             if basket_distance_mm is not None:
-                thrower_percent = self.get_thrower_percent(basket_distance_mm, offset=0.0)
+                thrower_percent = self.get_thrower_percent(
+                    basket_distance_mm, offset=Parameters.MAIN_THROW_BALL_OFFSET_PERCENT
+                )
                 self.calculated_thrower_percent = thrower_percent
                 self.peripheral_manager._node.get_logger().info(
                     f"Basket dis: {basket_distance_mm} mm, thrower per.: {thrower_percent:.2f}%"
@@ -432,6 +434,12 @@ class ManpulationHandler:
         else:
             thrower_percent = self.calculated_thrower_percent
 
+        # basket_distance_mm = self.peripheral_manager.get_basket_distance(
+        #     avg_mode=True, num_samples=5
+        # )
+        # self.peripheral_manager._node.get_logger().info(
+        #     f"Basket dis: {basket_distance_mm} mm, thrower per.: {thrower_percent:.2f}%"
+        # )
         servo_speed = Parameters.MANI_THROW_BALL_SERVO_SPEED
         if time() - self.start_time < 0.5:
             servo_speed = 0  # avoid sudden movement at the start

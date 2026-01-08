@@ -14,7 +14,7 @@ from .constants import COLOR_REFERENCE_RGB
 CALIB_SCALE = 1.0
 MARKER_OFFSET_X_MM = 230
 BASKET_RADIUS_MM = 80
-OFFSETS_BASED_ON_CALIB = [-50.0, -20.0]  # mm offset based on experimental measurement
+OFFSETS_BASED_ON_CALIB = 50  # mm offset based on experimental measurement
 VALID_MARKER_IDS = [11, 12, 21, 22]
 # homography matrix and its inverse obtained from camera calibration
 H = np.array(
@@ -133,9 +133,9 @@ def _check_balls_parallel(
                 consecutive_white = 0
                 c_count += 1
                 if c_count >= court_thresh:
-                    c_count = (
-                        b_count
-                    ) = w_count = 0  # reset counts if enough court pixels encountered
+                    c_count = b_count = w_count = (
+                        0  # reset counts if enough court pixels encountered
+                    )
 
             if consecutive_black > black_thresh:
                 c_count = w_count = 0
@@ -231,18 +231,10 @@ class ImageProcessing:
                 t_r_marker[:2, :2] = get_rotation_matrix(np.deg2rad(marker.theta))
                 t_r_marker[:2, 2] = marker.position_2d
                 t_marker_basket = np.eye(3)
-                # something magical here, idk, the basket has to be offset to left side 80mm
-                # based on experimental tuning
-                dis_to_basket = np.linalg.norm(marker.position_2d)
-                # linear interpolation to get offset based on distance
-                offset = OFFSETS_BASED_ON_CALIB[1] + (dis_to_basket - 2800) / 1600 * (
-                    OFFSETS_BASED_ON_CALIB[0] - OFFSETS_BASED_ON_CALIB[1]
-                )
-                offset = np.clip(offset, OFFSETS_BASED_ON_CALIB[0], OFFSETS_BASED_ON_CALIB[1])
                 if marker.id % 2 == 0:  # right side marker
-                    t_marker_basket[0, 2] = -(MARKER_OFFSET_X_MM + offset)
+                    t_marker_basket[0, 2] = -(MARKER_OFFSET_X_MM + OFFSETS_BASED_ON_CALIB)
                 else:
-                    t_marker_basket[0, 2] = MARKER_OFFSET_X_MM - offset
+                    t_marker_basket[0, 2] = MARKER_OFFSET_X_MM - OFFSETS_BASED_ON_CALIB
                 t_marker_basket[1, 2] = -BASKET_RADIUS_MM
                 t_r_basket = t_r_marker @ t_marker_basket
                 basket_2d_posisions.append(t_r_basket[:2, 2])
@@ -262,7 +254,7 @@ class ImageProcessing:
             seg_mask=seg_mask,
             depth=depth,
             viz_rgb=viz if visualize else None,
-            min_component_area_ratio=400 / (im_h * im_w),
+            min_component_area_ratio=250 / (im_h * im_w),
             position_2d_from_markers=basket_2d_pos,
         )
         return detected_balls, detected_basket, detected_markers, viz if visualize else None
