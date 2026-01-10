@@ -6,6 +6,7 @@ import numpy as np
 from basket_robot_nodes.utils.color_segmention import ColorSegmenter
 from basket_robot_nodes.utils.image_info import Basket, GreenBall, Marker
 from basket_robot_nodes.utils.number_utils import get_rotation_matrix
+from basket_robot_nodes.utils.constants import CALIB_THROWER_BASKET_OFFSETS
 from numpy.typing import NDArray
 
 from .constants import COLOR_REFERENCE_RGB
@@ -14,7 +15,6 @@ from .constants import COLOR_REFERENCE_RGB
 CALIB_SCALE = 1.0
 MARKER_OFFSET_X_MM = 230
 BASKET_RADIUS_MM = 80
-OFFSETS_BASED_ON_CALIB = 50  # mm offset based on experimental measurement
 VALID_MARKER_IDS = [11, 12, 21, 22]
 # homography matrix and its inverse obtained from camera calibration
 H = np.array(
@@ -190,6 +190,8 @@ class ImageProcessing:
             cv2.MORPH_ELLIPSE, (marker_morth_kernel_size, marker_morth_kernel_size)
         )
 
+        self.basket_offsets = CALIB_THROWER_BASKET_OFFSETS
+
     def process(
         self,
         im_rgb: NDArray[np.uint8],
@@ -223,7 +225,7 @@ class ImageProcessing:
         # detect ArUco markers
         basket_2d_pos: Optional[Tuple[float, float]] = None
         detected_markers = self.detect_aruco_markers(image_gray, seg_mask, viz)
-        if len(detected_markers) == 2:
+        if len(detected_markers) > 0:
             # average position from two markers
             basket_2d_posisions = []
             for marker in detected_markers:
@@ -231,10 +233,12 @@ class ImageProcessing:
                 t_r_marker[:2, :2] = get_rotation_matrix(np.deg2rad(marker.theta))
                 t_r_marker[:2, 2] = marker.position_2d
                 t_marker_basket = np.eye(3)
+                dis_to_basket = np.linalg.norm(marker.position_2d) - BASKET_RADIUS_MM
+                offsets_based_on_calib = self._get_basket_offset(dis_to_basket)
                 if marker.id % 2 == 0:  # right side marker
-                    t_marker_basket[0, 2] = -(MARKER_OFFSET_X_MM + OFFSETS_BASED_ON_CALIB)
+                    t_marker_basket[0, 2] = -(MARKER_OFFSET_X_MM + offsets_based_on_calib)
                 else:
-                    t_marker_basket[0, 2] = MARKER_OFFSET_X_MM - OFFSETS_BASED_ON_CALIB
+                    t_marker_basket[0, 2] = MARKER_OFFSET_X_MM - offsets_based_on_calib
                 t_marker_basket[1, 2] = -BASKET_RADIUS_MM
                 t_r_basket = t_r_marker @ t_marker_basket
                 basket_2d_posisions.append(t_r_basket[:2, 2])
@@ -746,3 +750,9 @@ class ImageProcessing:
             radii = np.linalg.norm(ball_centers - ball_edges, axis=1)
 
             return radii, xy_pos_centers
+
+    def _get_basket_offset(self, distance_mm: float) -> float:
+        # Get basket offset based on distance using linear interpolation (use np.interp)
+        distances = [offset[0] for offset in self.basket_offsets]
+        offsets = [offset[1] for offset in self.basket_offsets]
+        return float(np.interp(distance_mm, distances, offsets))
