@@ -85,13 +85,14 @@ class ThrowerCalibrator(BaseGameLogicController):
             case GameState.GRAB_BALL:
                 ret = self.manipulation_handler.move_forward_to_grab()
                 if ret == RetCode.SUCCESS:
-                    self.transition_to(GameState.ALIGN_BASKET)
-                    self.manipulation_handler.initialize(
-                        ManipulationAction.ALIGN_BASKET,
-                        basket_color=self.get_target_basket_color(),
-                        base_thrower_percent=Parameters.MAIN_BASE_THROWER_PERCENT,
-                        timeout=8.0,
-                    )
+                    # self.transition_to(GameState.ALIGN_BASKET)
+                    # self.manipulation_handler.initialize(
+                    #     ManipulationAction.ALIGN_BASKET,
+                    #     basket_color=self.get_target_basket_color(),
+                    #     base_thrower_percent=Parameters.MAIN_BASE_THROWER_PERCENT,
+                    #     timeout=8.0,
+                    # )
+                    self.transition_to(GameState.STOP)
                 if ret == RetCode.TIMEOUT:
                     self.transition_to(GameState.STOP)
 
@@ -120,7 +121,6 @@ class ThrowerCalibrator(BaseGameLogicController):
             case GameState.STOP:
                 self.periph_manager.stop_robot()
                 self.get_logger().info("Stopping robot due to failure or timeout.")
-                sys.exit(0)
 
             case _:
                 raise RuntimeError("Unknown game state!")

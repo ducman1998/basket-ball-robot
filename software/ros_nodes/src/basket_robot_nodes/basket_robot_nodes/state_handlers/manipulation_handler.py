@@ -14,6 +14,7 @@ from basket_robot_nodes.utils.number_utils import (
     get_rotation_matrix,
     warm_up_angular,
     warm_up_xy,
+    get_angle_diff,
 )
 from basket_robot_nodes.utils.peripheral_manager import PeripheralManager
 
@@ -34,6 +35,9 @@ class ManpulationHandler:
             maxlen=Parameters.MANI_SEARCH_BASKET_NUM_CONSECUTIVE_VALID_FRAMES
         )
 
+        # basic basket alignment variables
+        self.previous_yaw: Optional[float] = None  # yaw at the start of the handler
+        self.cummulative_yaw_change: float = 0.0  # total yaw change since start
         # advanced basket alignment variables
         self.is_marker_pose_extracted: bool = False
         # transformation from odometry to desired throwing position
@@ -97,6 +101,8 @@ class ManpulationHandler:
         self.timeout = timeout  # total timeout for the manipulation action
         self.timeout_refine_angle = timeout_refine_angle
         self.align_basket_turning_direction: Optional[Literal[-1, 1]] = None
+        self.previous_yaw = self.peripheral_manager.get_odom_yaw()
+        self.cummulative_yaw_change = 0.0
 
     def reset(self) -> None:
         """Reset the handler state."""
@@ -112,6 +118,8 @@ class ManpulationHandler:
         self.timeout = 10.0
         self.timeout_refine_angle = None
         self.align_basket_turning_direction = None
+        self.previous_yaw = None
+        self.cummulative_yaw_change = 0.0
         self.reset_pid_errors()
 
     def reset_pid_errors(self) -> None:
@@ -193,6 +201,13 @@ class ManpulationHandler:
                 ),
                 la_dis_mm=Parameters.MANI_ALIGN_BALL_LOOKAHEAD_DIS_MM,
             )
+            if p_error > Parameters.MANI_BALL_ALIGN_ENABLED_DIST_PID_MM:
+                # normalize vx, vy to max speed
+                cur_speed = np.hypot(vx, vy)
+                if cur_speed < Parameters.MANI_MAX_ALIGN_LINEAR_SPEED:
+                    scale = Parameters.MANI_MAX_ALIGN_LINEAR_SPEED / cur_speed
+                    vx *= scale
+                    vy *= scale
 
             if warm_start:
                 vx, vy = self.warm_up_linear_speed(vx, vy, ramp_duration)
@@ -214,6 +229,7 @@ class ManpulationHandler:
         """Align to the basket for scoring, the robot will rotate to face the basket"""
         assert self.start_time is not None, "Handler not initialized."
         assert self.basket_color is not None, "Basket color not set."
+        assert self.previous_yaw is not None, "Previous yaw not set."
 
         if not disable_timeout:
             if time() - self.start_time > self.timeout:
@@ -275,11 +291,22 @@ class ManpulationHandler:
                 Parameters.MANI_PID_ANGULAR_ALIGN_BASKET,
             )
         else:
+            current_yaw = self.peripheral_manager.get_odom_yaw()
+            diff = get_angle_diff(current_yaw, self.previous_yaw)
+            self.previous_yaw = current_yaw
+            self.cummulative_yaw_change += diff
+            if (
+                abs(self.cummulative_yaw_change)
+                >= Parameters.MANI_SEARCH_BASKET_HIGH_SPEED_MAX_TURNING_DEG
+            ):
+                idx = 0
+            else:
+                idx = 1
             # keep rotating to search for the basket
             if self.align_basket_turning_direction is None:
                 self.align_basket_turning_direction = 1  # default direction
             wz = (
-                abs(Parameters.MANI_SEARCH_BASKET_ANGULAR_SPEED)
+                abs(Parameters.MANI_SEARCH_BASKET_ANGULAR_SPEEDS[idx])
                 * self.align_basket_turning_direction
             )
 
@@ -348,10 +375,8 @@ class ManpulationHandler:
         if self.t_odom_tp is not None:
             # TODO: update t_odom_basket frequently to improve accuracy
             t_error = self.peripheral_manager.get_odom_to_robot_transform(True) @ self.t_odom_tp
-            if (
-                np.linalg.norm(t_error[0:2, 3])
-                > Parameters.MANI_ALIGN_BASKET_ADV_DIS_ODOM_THRESHOLD_MM
-            ):
+            dis_to_target = np.linalg.norm(t_error[0:2, 3])
+            if dis_to_target > Parameters.MANI_ALIGN_BASKET_ADV_DIS_ODOM_THRESHOLD_MM:
                 (vx, vy, wz) = self.compute_control_signals(
                     t_error,
                     (
@@ -359,6 +384,15 @@ class ManpulationHandler:
                         Parameters.MANI_PID_ANGULAR_ALIGN_BASKET_ADV,
                     ),
                 )
+
+                if dis_to_target > Parameters.MANI_ALIGN_BASKET_ADV_ENABLED_DIST_PID_MM:
+                    # normalize vx, vy to max speed
+                    cur_speed = np.hypot(vx, vy)
+                    if cur_speed < Parameters.MANI_ALIGN_BASKET_ADV_MAX_LINEAR_SPEED:
+                        scale = Parameters.MANI_ALIGN_BASKET_ADV_MAX_LINEAR_SPEED / cur_speed
+                        vx *= scale
+                        vy *= scale
+
                 self.peripheral_manager.move_robot_adv(
                     vx,
                     vy,
