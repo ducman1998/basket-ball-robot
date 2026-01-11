@@ -1,7 +1,8 @@
 .DS_Store
-.cproject
 .mxproject
 .osx.project
-.project
+.cproject
 *.launch
 .settings/
+.Release/
+.Debug/
