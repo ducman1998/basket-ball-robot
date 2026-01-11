@@ -14,8 +14,8 @@ from rclpy.qos import QoSProfile
 from shared_interfaces.msg import TwistStamped  # a custom message with thrower_percent
 from std_msgs.msg import Bool, String
 
-BALL_MANAGER_DEFAULT_NUM_STORED_BALLS = 10
-BALL_MANAGER_DEFAULT_DIST_THRESHOLD_MM = 300.0
+BALL_MANAGER_DEFAULT_NUM_STORED_BALLS = 8
+BALL_MANAGER_DEFAULT_DIST_THRESHOLD_MM = 200.0
 BALL_MANAGER_DEFAULT_ALIVE_TIME_S = 20.0
 BASKET_TO_ROBOT_MIN_DIST_MM = 280  # min distance to avoid collision with basket
 
@@ -151,7 +151,6 @@ class PeripheralManager:
             and self.is_odom_ready()
             and image_info.basket is not None
             and image_info.basket.position_2d is not None
-            and len(image_info.markers) == 2
         ):
             if image_info.basket.color == self.target_basket_color:
                 # store latest target basket position in odom frame
@@ -596,6 +595,19 @@ class PeripheralManager:
             return self.odom_to_robot_coords(self.latest_opponent_basket_pos_odom)
         else:
             return self.latest_opponent_basket_pos_odom
+
+    def get_turning_angle_to_basket(self, basket_color: str) -> Optional[float]:
+        if basket_color not in ["magenta", "blue"]:
+            raise ValueError("Invalid basket color. Must be 'magenta' or 'blue'.")
+        if basket_color == self.get_target_basket_color():
+            basket_pos_robot = self.get_stored_target_basket_pos(in_robot_frame=True)
+        else:
+            basket_pos_robot = self.get_stored_opponent_basket_pos(in_robot_frame=True)
+        if basket_pos_robot is None:
+            return None
+        # negative for right-hand turn
+        angle_rad = -math.atan2(basket_pos_robot[0], basket_pos_robot[1])
+        return math.degrees(angle_rad)
 
     def get_turning_angle_to_candidate_ball(self) -> Optional[float]:
         """Get the turning angle (in degrees) to the closest stored ball. The ball

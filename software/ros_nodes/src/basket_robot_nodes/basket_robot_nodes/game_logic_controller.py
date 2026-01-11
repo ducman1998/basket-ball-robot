@@ -22,12 +22,13 @@ class GameState:
     SEARCH_BALL = 1
     ALIGN_BALL = 2
     GRAB_BALL = 3
-    ALIGN_BASKET = 4
-    ALIGN_BASKET_ADVANCED = 5
-    THROW_BALL = 6
-    CLEAR_STUCK_BALL = 7
-    TURN_TO_CANDIDATE_BALL = 8
-    TURN_AROUND_BASKET = 9
+    PRE_ALIGN_BASKET = 4
+    ALIGN_BASKET = 5
+    ALIGN_BASKET_ADVANCED = 6
+    THROW_BALL = 7
+    CLEAR_STUCK_BALL = 8
+    TURN_TO_CANDIDATE_BALL = 9
+    TURN_AROUND_BASKET = 10
 
     @staticmethod
     def get_name(state_value: int) -> str:
@@ -66,6 +67,8 @@ class GameLogicController(BaseGameLogicController):
         self.pre_sub_state = SearchSubState.UNDEFINED
         self.cur_sub_state = SearchSubState.TURN_DISCRETE
 
+        self.start_time = self.get_clock().now()
+
         self.get_logger().info(f"Dev mode: {DEV_MODE}")
 
     def game_logic_loop(self) -> None:
@@ -102,7 +105,11 @@ class GameLogicController(BaseGameLogicController):
             case GameState.SEARCH_BALL:
                 # TODO: implement search ball sub state-machine
                 if self.periph_manager.is_ball_grabbed():
-                    self.transition_to(GameState.CLEAR_STUCK_BALL)
+                    # self.transition_to(GameState.CLEAR_STUCK_BALL)
+                    if ENABLE_ADVANCED_BASKET_ALIGNMENT:
+                        self.transition_to(GameState.ALIGN_BASKET_ADVANCED)
+                    else:
+                        self.transition_to(GameState.ALIGN_BASKET)
 
                 if self.periph_manager.is_ball_detected():
                     is_blocked, direction = self.periph_manager.is_ball_blocked_by_basket()
@@ -132,9 +139,17 @@ class GameLogicController(BaseGameLogicController):
                                 )
 
                             elif basket_dis_mm is not None and basket_dis_mm <= 2500:
-                                self.sub_transition_to(
-                                    SearchSubState.ALIGN_BASKET, is_opponent_basket=True
-                                )
+                                if (
+                                    self.periph_manager.get_basket_color()
+                                    == self.get_target_basket_color()
+                                ):
+                                    self.sub_transition_to(
+                                        SearchSubState.ALIGN_BASKET, is_opponent_basket=True
+                                    )
+                                else:
+                                    self.sub_transition_to(
+                                        SearchSubState.ALIGN_BASKET, is_opponent_basket=False
+                                    )
 
                     case SearchSubState.MOVE_FORWARD:
                         ret = self.base_handler.move_robot_forward()
@@ -152,13 +167,47 @@ class GameLogicController(BaseGameLogicController):
             case GameState.GRAB_BALL:
                 ret = self.manipulation_handler.move_forward_to_grab()
                 if ret == RetCode.SUCCESS:
+                    if (
+                        self.periph_manager.is_basket_detected()
+                        and self.periph_manager.get_basket_color() == self.get_target_basket_color()
+                    ):
+                        if ENABLE_ADVANCED_BASKET_ALIGNMENT:
+                            self.transition_to(GameState.ALIGN_BASKET_ADVANCED)
+                        else:
+                            self.transition_to(GameState.ALIGN_BASKET)
+                    else:
+                        turning_degree = self.periph_manager.get_turning_angle_to_basket(
+                            self.get_target_basket_color()
+                        )
+                        if turning_degree is None:
+                            turning_degree = 0.0
+                        # self.get_logger().info(
+                        #     f"Grabbed ball successfully, turning degree to basket: {turning_degree:.2f} deg"
+                        # )
+                        # sys.exit("Exit after pre-align basket for testing purposes.")
+                        self.transition_to(
+                            GameState.PRE_ALIGN_BASKET, turning_degree=turning_degree
+                        )
+
+                if ret == RetCode.TIMEOUT:
+                    self.transition_to(GameState.SEARCH_BALL)
+
+            case GameState.PRE_ALIGN_BASKET:
+                force_transition = False
+                ret = self.base_handler.turn_robot_cont(
+                    Parameters.MANI_PRE_ALIGN_BASKET_ANGULAR_SPEED
+                )
+                if (
+                    self.periph_manager.is_basket_detected()
+                    and self.periph_manager.get_basket_color() == self.get_target_basket_color()
+                ):
+                    force_transition = True
+                if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT or force_transition:
+                    self.periph_manager.stop_robot()
                     if ENABLE_ADVANCED_BASKET_ALIGNMENT:
                         self.transition_to(GameState.ALIGN_BASKET_ADVANCED)
                     else:
                         self.transition_to(GameState.ALIGN_BASKET)
-
-                if ret == RetCode.TIMEOUT:
-                    self.transition_to(GameState.SEARCH_BALL)
 
             case GameState.ALIGN_BASKET:
                 ret = self.manipulation_handler.align_to_basket()
@@ -197,6 +246,7 @@ class GameLogicController(BaseGameLogicController):
                     Parameters.MAIN_TURNING_ANGULAR_SPEED_TO_CANDIDATE_BALL
                 )
                 if ret == RetCode.SUCCESS or ret == RetCode.TIMEOUT:
+                    self.periph_manager.stop_robot()
                     if self.periph_manager.is_ball_detected():
                         is_blocked, direction = self.periph_manager.is_ball_blocked_by_basket()
                         if is_blocked:
@@ -236,6 +286,7 @@ class GameLogicController(BaseGameLogicController):
             self.get_logger().info(f"Already in state {cur_state_name}, no transition needed.")
             return
 
+        self.start_time = self.get_clock().now()
         match new_state:
             case GameState.SEARCH_BALL:
                 self.base_handler.initialize(
@@ -253,6 +304,17 @@ class GameLogicController(BaseGameLogicController):
             case GameState.GRAB_BALL:
                 self.manipulation_handler.initialize(
                     ManipulationAction.GRAB_BALL, timeout=Parameters.MAIN_TIMEOUT_GRAB_BALL
+                )
+
+            case GameState.PRE_ALIGN_BASKET:
+                assert (
+                    "turning_degree" in kwargs
+                ), "turning_degree is required for PRE_ALIGN_BASKET state."
+                turning_degree = kwargs["turning_degree"]
+                self.base_handler.initialize(
+                    BaseAction.TURN_CONTINUOUS,
+                    angle_deg=turning_degree,
+                    timeout=Parameters.MAIN_TIMEOUT_PRE_ALIGN_BASKET,
                 )
 
             case GameState.ALIGN_BASKET:
@@ -359,13 +421,15 @@ class GameLogicController(BaseGameLogicController):
         """Log the current state and relevant information."""
         state_name = GameState.get_name(self.cur_state)
         sub_state_name = SearchSubState.get_name(self.cur_sub_state)
+        cur_time = self.get_clock().now()
+        elapsed_time = (cur_time - self.start_time).nanoseconds / 1e9
         if not self.referee_client.is_connected():
             status = "DISCONNECTED"
         else:
             status = "STARTED" if self.is_game_started else "INACTIVE"
         self.get_logger().info(
-            f"State: {state_name} | SubState: {sub_state_name} | Ref Status: {status}"
-            + f" | Color: {self.get_target_basket_color()}"
+            f"S: {state_name} | ST: {sub_state_name} | RStatus: {status}"
+            + f" | BC: {self.get_target_basket_color()} | ETime: {elapsed_time:.2f}s"
         )
 
 

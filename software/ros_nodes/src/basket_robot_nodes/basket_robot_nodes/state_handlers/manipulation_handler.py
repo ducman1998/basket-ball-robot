@@ -34,12 +34,10 @@ class ManpulationHandler:
         self.is_basket_aligned_queue: deque = deque(
             maxlen=Parameters.MANI_SEARCH_BASKET_NUM_CONSECUTIVE_VALID_FRAMES
         )
-
-        # basic basket alignment variables
-        self.previous_yaw: Optional[float] = None  # yaw at the start of the handler
-        self.cummulative_yaw_change: float = 0.0  # total yaw change since start
         # advanced basket alignment variables
         self.is_marker_pose_extracted: bool = False
+        self.previous_yaw: Optional[float] = None
+        self.cummulative_yaw_change: float = 0.0
         # transformation from odometry to desired throwing position
         self.t_odom_tp: Optional[np.ndarray] = None
 
@@ -216,10 +214,13 @@ class ManpulationHandler:
             self.peripheral_manager._node.get_logger().info(
                 f"Speed commands: vx={vx:.2f}, vy={vy:.2f}, wz={wz:.2f}"
             )
-            self.peripheral_manager.move_robot_normalized(
+            self.peripheral_manager.move_robot_adv(
                 vx,
                 vy,
                 wz,
+                thrower_percent=0.0,
+                servo_speed=Parameters.MANI_GRAB_BALL_SERVO_SPEED,
+                normalize=True,
                 max_xy_speed=Parameters.MANI_MAX_ALIGN_LINEAR_SPEED,
                 max_rot_speed=Parameters.MANI_MAX_ALIGN_ANGULAR_SPEED,
             )
@@ -229,7 +230,6 @@ class ManpulationHandler:
         """Align to the basket for scoring, the robot will rotate to face the basket"""
         assert self.start_time is not None, "Handler not initialized."
         assert self.basket_color is not None, "Basket color not set."
-        assert self.previous_yaw is not None, "Previous yaw not set."
 
         if not disable_timeout:
             if time() - self.start_time > self.timeout:
@@ -291,6 +291,8 @@ class ManpulationHandler:
                 Parameters.MANI_PID_ANGULAR_ALIGN_BASKET,
             )
         else:
+            # update cummulated yaw change
+            assert self.previous_yaw is not None, "Previous yaw not initialized."
             current_yaw = self.peripheral_manager.get_odom_yaw()
             diff = get_angle_diff(current_yaw, self.previous_yaw)
             self.previous_yaw = current_yaw
@@ -468,12 +470,12 @@ class ManpulationHandler:
         else:
             thrower_percent = self.calculated_thrower_percent
 
-        # basket_distance_mm = self.peripheral_manager.get_basket_distance(
-        #     avg_mode=True, num_samples=5
-        # )
-        # self.peripheral_manager._node.get_logger().info(
-        #     f"Basket dis: {basket_distance_mm} mm, thrower per.: {thrower_percent:.2f}%"
-        # )
+        basket_distance_mm = self.peripheral_manager.get_basket_distance(
+            avg_mode=True, num_samples=5
+        )
+        self.peripheral_manager._node.get_logger().info(
+            f"Basket dis: {basket_distance_mm} mm, thrower per.: {thrower_percent:.2f}%"
+        )
         servo_speed = Parameters.MANI_THROW_BALL_SERVO_SPEED
         if time() - self.start_time < 0.5:
             servo_speed = 0  # avoid sudden movement at the start
