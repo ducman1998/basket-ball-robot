@@ -58,7 +58,7 @@ class Parameters:
     ## 2.7. Specific parameters for aligning to basket in advanced mode
     MANI_ALIGN_BASKET_ADV_VALID_DISTS_MM: Final[tuple[float, float]] = (
         1800,
-        3000,
+        3200,
     )  # min, max valid distances in mm
     # mm offset along x-axis from marker center to basket center
     MANI_ALIGN_BASKET_ADV_MARKER_OFFSET_X_MM = 230

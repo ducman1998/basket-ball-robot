@@ -9,7 +9,7 @@ from basket_robot_nodes.utils.base_game_logic import BaseGameLogicController
 from basket_robot_nodes.utils.peripheral_manager import PeripheralManager
 
 DEV_MODE = True
-ENABLE_ADVANCED_BASKET_ALIGNMENT = True  # enable advanced basket alignment mode
+ENABLE_ADVANCED_BASKET_ALIGNMENT = False  # enable advanced basket alignment mode
 SAMPLING_RATE = 60  # Hz
 
 
@@ -86,24 +86,24 @@ class ThrowerCalibrator(BaseGameLogicController):
             case GameState.GRAB_BALL:
                 ret = self.manipulation_handler.move_forward_to_grab()
                 if ret == RetCode.SUCCESS:
-                    # if ENABLE_ADVANCED_BASKET_ALIGNMENT:
-                    #     self.transition_to(GameState.ALIGN_BASKET_ADV)
-                    #     self.manipulation_handler.initialize(
-                    #         ManipulationAction.ALIGN_BASKET_ADVANCED,
-                    #         basket_color=self.get_target_basket_color(),
-                    #         base_thrower_percent=Parameters.MAIN_BASE_THROWER_PERCENT,
-                    #         timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_TOTAL,
-                    #         timeout_refine_angle=Parameters.MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_REFINE_ANGLE,
-                    #     )
-                    # else:
-                    #     self.transition_to(GameState.ALIGN_BASKET)
-                    #     self.manipulation_handler.initialize(
-                    #         ManipulationAction.ALIGN_BASKET,
-                    #         basket_color=self.get_target_basket_color(),
-                    #         base_thrower_percent=Parameters.MAIN_BASE_THROWER_PERCENT,
-                    #         timeout=8.0,
-                    #     )
-                    self.transition_to(GameState.STOP)
+                    if ENABLE_ADVANCED_BASKET_ALIGNMENT:
+                        self.transition_to(GameState.ALIGN_BASKET_ADV)
+                        self.manipulation_handler.initialize(
+                            ManipulationAction.ALIGN_BASKET_ADVANCED,
+                            basket_color=self.get_target_basket_color(),
+                            base_thrower_percent=Parameters.MAIN_BASE_THROWER_PERCENT,
+                            timeout=Parameters.MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_TOTAL,
+                            timeout_refine_angle=Parameters.MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_REFINE_ANGLE,
+                        )
+                    else:
+                        self.transition_to(GameState.ALIGN_BASKET)
+                        self.manipulation_handler.initialize(
+                            ManipulationAction.ALIGN_BASKET,
+                            basket_color=self.get_target_basket_color(),
+                            base_thrower_percent=Parameters.MAIN_BASE_THROWER_PERCENT,
+                            timeout=8.0,
+                        )
+                    # self.transition_to(GameState.STOP)
                 if ret == RetCode.TIMEOUT:
                     self.transition_to(GameState.STOP)
 
