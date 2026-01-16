@@ -58,7 +58,7 @@ class Parameters:
     ## 2.7. Specific parameters for aligning to basket in advanced mode
     MANI_ALIGN_BASKET_ADV_VALID_DISTS_MM: Final[tuple[float, float]] = (
         1800,
-        3200,
+        2800,
     )  # min, max valid distances in mm
     # mm offset along x-axis from marker center to basket center
     MANI_ALIGN_BASKET_ADV_MARKER_OFFSET_X_MM = 230
@@ -83,9 +83,9 @@ class Parameters:
     MAIN_TIMEOUT_ALIGN_BASKET: Final[float] = 3.0  # seconds before re-searching for basket
     # seconds before re-searching for basket in advanced alignment mode
     # marker-based alignment = timeout - refine angle timeout
-    MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_TOTAL: Final[float] = 4.0  # timeout
+    MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_TOTAL: Final[float] = 4.5  # timeout
     # seconds for removing angle error in advanced basket alignment
-    MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_REFINE_ANGLE: Final[float] = 2.0  # refine angle timeout
+    MAIN_TIMEOUT_ALIGN_BASKET_ADVANCED_REFINE_ANGLE: Final[float] = 2.5  # refine angle timeout
     MAIN_TIMEOUT_THROW_BALL: Final[float] = 1.75  # seconds before re-trying to throw ball
     MAIN_TIMEOUT_CLEAR_STUCK_BALL: Final[float] = 1.5  # seconds to clear stuck ball
     MAIN_TURNING_ANGULAR_SPEED_TO_CANDIDATE_BALL: Final[float] = 8.0  # rad/s
