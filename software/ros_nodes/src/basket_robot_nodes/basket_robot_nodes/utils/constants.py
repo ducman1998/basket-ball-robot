@@ -243,6 +243,18 @@ CALIB_THROWER_MOTOR_PERCENTS: List[List[float]] = [
     [5248.3705, 82.63],
 ]
 
+CALIB_THROWER_MOTOR_OFFSETS: List[List[float]] = [
+    [2538.9368, 0.75],
+    [2751.2292, 2.00],
+    [3234.3885, 2.25],
+    [3090.5081, 3.00],
+    [3528.0275, 5.00],
+    [3987.7478, 6.00],
+    [4614.1680, 6.50],
+    [4843.2394, 6.50],
+    [5183.1755, 5.75],
+]
+
 CALIB_THROWER_BASKET_OFFSETS: List[List[float]] = [
     [1092.4502, 0],
     [1598.9760, 35],

@@ -8,7 +8,10 @@ import numpy as np
 from basket_robot_nodes.state_handlers.actions import ManipulationAction
 from basket_robot_nodes.state_handlers.parameters import Parameters
 from basket_robot_nodes.state_handlers.ret_code import RetCode
-from basket_robot_nodes.utils.constants import CALIB_THROWER_MOTOR_PERCENTS
+from basket_robot_nodes.utils.constants import (
+    CALIB_THROWER_MOTOR_PERCENTS,
+    CALIB_THROWER_MOTOR_OFFSETS,
+)
 from basket_robot_nodes.utils.image_info import Marker
 from basket_robot_nodes.utils.number_utils import (
     get_rotation_matrix,
@@ -56,6 +59,7 @@ class ManpulationHandler:
         # experimental data points for thrower speed calibration
         # (distance in milimeters, motor percent)
         self.data_points = CALIB_THROWER_MOTOR_PERCENTS
+        self.offset_points = CALIB_THROWER_MOTOR_OFFSETS
 
     def initialize(
         self,
@@ -394,6 +398,7 @@ class ManpulationHandler:
                         scale = Parameters.MANI_ALIGN_BASKET_ADV_MAX_LINEAR_SPEED / cur_speed
                         vx *= scale
                         vy *= scale
+                #         wz *= scale
 
                 self.peripheral_manager.move_robot_adv(
                     vx,
@@ -461,7 +466,7 @@ class ManpulationHandler:
             )
             if basket_distance_mm is not None:
                 thrower_percent = self.get_thrower_percent(
-                    basket_distance_mm, offset=Parameters.MAIN_THROW_BALL_OFFSET_PERCENT
+                    basket_distance_mm, offset_constant=Parameters.MAIN_THROW_BALL_OFFSET_PERCENT
                 )
                 self.calculated_thrower_percent = thrower_percent
                 self.peripheral_manager._node.get_logger().info(
@@ -623,14 +628,25 @@ class ManpulationHandler:
             warm_up_angular(wz, self.start_time, ramp_duration),
         )
 
-    def get_thrower_percent(self, dis_to_basket_mm: float, offset: float = 0.0) -> float:
+    def get_thrower_percent(self, dis_to_basket_mm: float, offset_constant: float = 0.0) -> float:
         """Get the thrower speed percentage based on distance to basket."""
         # Experimental data points: (distance in mm, motor percent)
         distances_mm = [dp[0] for dp in self.data_points]
         percents = [dp[1] for dp in self.data_points]
         # np.interp performs linear interpolation and handles extrapolation at boundaries
         percent = float(np.interp(dis_to_basket_mm, distances_mm, percents))
-        return percent + offset
+        # calculate offset dynamically based on distance
+        distances_mm = [op[0] for op in self.offset_points]
+        offsets = [op[1] for op in self.offset_points]
+
+        if dis_to_basket_mm < distances_mm[0]:
+            offset_dynamic = 0.0
+        elif dis_to_basket_mm > distances_mm[-1]:
+            offset_dynamic = offsets[-1]
+        else:
+            offset_dynamic = float(np.interp(dis_to_basket_mm, distances_mm, offsets))
+
+        return percent + offset_constant + offset_dynamic
 
     def get_expected_transformation_by_markers(
         self, markers: List[Marker], prefered_dist_mm: float

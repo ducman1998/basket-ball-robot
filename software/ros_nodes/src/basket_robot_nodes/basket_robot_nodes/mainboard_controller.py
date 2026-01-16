@@ -163,7 +163,7 @@ class MainboardController(Node):
         else:
             # log feedback for debugging
             self.get_logger().info(
-                f"Feedback: pos1: {feedback.pos1}, pos2: {feedback.pos2}, pos3: {feedback.pos3}"
+                f"Feedback: pos1: {feedback.pos1}, pos2: {feedback.pos2}, pos3: {feedback.pos3}, sensors: {feedback.sensors}"
             )
             # Publish wheel positions for odometry
             wheel_msg = WheelPositions()
