@@ -22,7 +22,7 @@ class BaseGameLogicController(Node):
         log_initialized_parameters(self)
 
         # Referee client state
-        self.is_game_started = False  # True when referee sends START, False when STOP/
+        self.is_game_started = False  # True when referee sends START, False when STOP
         # default opponent basket color
         self.target_basket_color = "n/a" if not dev_mode else "blue"
 

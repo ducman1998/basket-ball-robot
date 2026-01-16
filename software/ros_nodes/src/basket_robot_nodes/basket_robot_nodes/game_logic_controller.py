@@ -181,10 +181,6 @@ class GameLogicController(BaseGameLogicController):
                         )
                         if turning_degree is None:
                             turning_degree = 0.0
-                        # self.get_logger().info(
-                        #     f"Grabbed ball successfully, turning degree to basket: {turning_degree:.2f} deg"
-                        # )
-                        # sys.exit("Exit after pre-align basket for testing purposes.")
                         self.transition_to(
                             GameState.PRE_ALIGN_BASKET, turning_degree=turning_degree
                         )
@@ -287,6 +283,7 @@ class GameLogicController(BaseGameLogicController):
             return
 
         self.start_time = self.get_clock().now()
+        self.periph_manager.stop_robot()  # ensure robot is stopped before new action
         match new_state:
             case GameState.SEARCH_BALL:
                 self.base_handler.initialize(

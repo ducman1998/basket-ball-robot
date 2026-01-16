@@ -273,7 +273,10 @@ class ManpulationHandler:
                 )
             if basket_pos_robot_mm_temp is not None:
                 x, y = basket_pos_robot_mm_temp
-                self.align_basket_turning_direction = np.sign(np.arctan2(y, x))
+                if -np.arctan2(x, y) >= 0:
+                    self.align_basket_turning_direction = 1
+                else:
+                    self.align_basket_turning_direction = -1
 
         vy = 0.0
         if basket_pos_robot_mm is not None:
@@ -381,6 +384,7 @@ class ManpulationHandler:
         if self.t_odom_tp is not None:
             # TODO: update t_odom_basket frequently to improve accuracy
             t_error = self.peripheral_manager.get_odom_to_robot_transform(True) @ self.t_odom_tp
+            t_error[0:2, 0:2] = np.eye(2)  # ignore orientation error for position alignment
             dis_to_target = np.linalg.norm(t_error[0:2, 3])
             if dis_to_target > Parameters.MANI_ALIGN_BASKET_ADV_DIS_ODOM_THRESHOLD_MM:
                 (vx, vy, wz) = self.compute_control_signals(
@@ -398,12 +402,11 @@ class ManpulationHandler:
                         scale = Parameters.MANI_ALIGN_BASKET_ADV_MAX_LINEAR_SPEED / cur_speed
                         vx *= scale
                         vy *= scale
-                #         wz *= scale
 
                 self.peripheral_manager.move_robot_adv(
                     vx,
                     vy,
-                    wz,
+                    0.0,
                     thrower_percent=(
                         self.base_thrower_percent if self.base_thrower_percent is not None else 0.0
                     ),
@@ -454,10 +457,11 @@ class ManpulationHandler:
         if time() - self.start_time > self.timeout:
             return RetCode.TIMEOUT
 
-        if self.peripheral_manager.is_basket_not_detected_in_nframes(
-            Parameters.MANI_MAX_CONSECUTIVE_FRAMES_NO_BASKET
-        ):
-            return RetCode.FAILED_BASKET_LOST
+        # TURN OFF to avoid robot keep turning outside of the court
+        # if self.peripheral_manager.is_basket_not_detected_in_nframes(
+        #     Parameters.MANI_MAX_CONSECUTIVE_FRAMES_NO_BASKET
+        # ):
+        #     return RetCode.FAILED_BASKET_LOST
 
         if self.calculated_thrower_percent is None:
             thrower_percent = 50.0  # default thrower percent
