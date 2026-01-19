@@ -20,13 +20,24 @@ image::images/robot.webp[Our robot,align="center"]
 We implemented our code in ROS2, which could be an overwhelming source of code for programmers unfamiliar with ROS. Overall, we can divide the program into ROS2 nodes:
 
 === Odometry
-Receiving feedback messages from the mainboard, then building up the robot position with respect to an Odometry frame, which is used to have a global localization of the robot. There is no problem with this node.
+
+Receiving feedback messages from the mainboard, then building up the robot position with respect to an Odometry frame, which is used to have a global localization of the robot. 
+
+There is no problem with this node.
 
 === Perception
-This node is designed to run at high frequency; it can achieve ~55 FPS. It can segment 6 colors simultaneously with optimized segmentation (court color, pink basket, blue basket, green ball, and black and white). The colors will be used to compensate for and filter each other (for example, use the court color to remove false detection of a green ball or a pink basket). It worked perfectly in the lab setting; the only problem is that there is no tool to pick up colors quickly, so we could not calibrate on the fly during the competition, which had changing lighting conditions in every round.
+
+This node is designed to run at high frequency; it can achieve ~55 FPS. It can segment 6 colors simultaneously with optimized segmentation (court color, pink basket, blue basket, green ball, and black and white). 
+
+The colors will be used to compensate for and filter each other (for example, use the court color to remove false detection of a green ball or a pink basket). 
+
+It worked perfectly in the lab setting; the only problem is that there is no tool to pick up colors quickly, so we could not calibrate on the fly during the competition, which had changing lighting conditions in every round.
 
 === Main logic controller (a state-machine) to control game logic
-I believe this state machine is highly optimized for the competition. The only problem is that even if the robot runs at high speed (it can run at 2 m/s when aligning to the basket), it is a waste of time compared to other teams' strategies, such as grasping the ball and throwing it to that position rather than aligning to the basket. However, because our thrower mechanism with a fixed throwing angle does not allow us to do so with high accuracy, the only option is to aim for the basket. The code also supports throwing at the same position as the ball, via an environment variable, so I highly recommend building a thrower mechanism with a higher throwing angle, as this showed greater accuracy in the competition from the winning teams.
+
+I believe this state machine is highly optimized for the competition. The only problem is that even if the robot runs at high speed (it can run at 2 m/s when aligning to the basket), it is a waste of time compared to other teams' strategies, such as grasping the ball and throwing it to that position rather than aligning to the basket. 
+
+However, because our thrower mechanism with a fixed throwing angle does not allow us to do so with high accuracy, the only option is to aim for the basket. The code also supports throwing at the same position as the ball, via an environment variable, so I highly recommend building a thrower mechanism with a higher throwing angle, as this showed greater accuracy in the competition from the winning teams.
 
 [.text-center]
 image::images/main_state_machine.png[Programming Photo 1,align="center"]
@@ -57,17 +68,23 @@ Cable management could have been done a bit better, making the cable lengths mor
 
 == Mechanics
 
-Link to design:
-https://a360.co/4pLvKI6
+Link to design: https://a360.co/4pLvKI6
 
 === Design Approach
+
 If you used something different from what was given at the start of the course or did something different, describe it:
+
 For the mechanical design I approached it quite a standard way. First I placed the main parts into the assembly, (wheels, motors, camera) and then started to fit everything else. The wheels were designed to be with a large diameter, which in turn allowed the whole robot to be quite fast.
 
 === Ball Thrower Design
+
 Description of the main points of interest in your ball thrower design and construction process.
-Ball thrower design was decided to be without the angle changing mechanism with design simplicity in mind. A large servo-driven roller was used to grab the ball and a bldc motor with a ramp was used for throwing. We changed out the university-supplied motor for another one (T-motor AT2317, KV 880) because I had this one available to me. This improved the consistency of ball throws, but as it was with a lower KV rating than the supplied motor, higher output levels were needed for full-court throws. We speculated that the better consistency came from T-motor's higher quality control and better heat management, as the performance was quite consistent across different motor temperatures.
-Thrower construction otherwise was quite standard, consisting of 4 PC plates connected via steel M3 standoffs.
+
+Ball thrower design was decided to be without the angle changing mechanism with design simplicity in mind. A large servo-driven roller was used to grab the ball and a bldc motor with a ramp was used for throwing. 
+
+We changed out the university-supplied motor for another one (T-motor AT2317, KV 880) because I had this one available to me. This improved the consistency of ball throws, but as it was with a lower KV rating than the supplied motor, higher output levels were needed for full-court throws. 
+
+We speculated that the better consistency came from T-motor's higher quality control and better heat management, as the performance was quite consistent across different motor temperatures. Thrower construction otherwise was quite standard, consisting of 4 PC plates connected via steel M3 standoffs.
 
 [cols="3*", frame=none, grid=none]
 |===
@@ -77,11 +94,15 @@ a| image::images/ball_thrower_3.webp[Mechanics Photo 3,300,align="center"]
 |===
 
 === Analysis
+
 A short analysis of what was good and bad in your mechanics and how to improve.
+
 I think the whole construction was quite sturdy and all components had their own place where they were tucked away and not interfering with each other. Many first-revision parts were used, as machining and printing tolerances were taken into account while designing.
-The camera mount was made to attach via tenon and mortice connection, and was removable without tools.
-Extra focus went to satisfy the requirement that no adhesive can be used. This meant that even the IR detector and LED were mounted with a custom screw-mounted design.
+
+The camera mount was made to attach via tenon and mortice connection, and was removable without tools. Extra focus went to satisfy the requirement that no adhesive can be used. This meant that even the IR detector and LED were mounted with a custom screw-mounted design.
+
 The whole round cowling that spanned most of the robot's circumference was printed as one piece and it was mounted without any hardware to make rapid access to internal wiring simple.
+
 If I were to design it again, I would make the thrower independent of the whole bot, as this was the subassembly that needed most servicing and reconfiguration. In our design the top plate of the robot had to be removed to change the motor, servo or other components of the thrower. So a more modular design would have been better.
 
 === Other Images
@@ -103,7 +124,9 @@ a| image::images/others_9.webp[Mechanics Photo 9,300,align="center"]
 == Personal Comments
 
 === Oskar Saarepera
+
 I was responsible for the mechanics. As I was already familiar with Fusion, it was not very hard to start the design. This course disciplined me to use better workflows and standard practices in CAD file composition (for example that every part is a separate file), which I did not really use before. From now on all CAD models I design are made with this course guidelines in mind.
+
 I really liked the system of tracking tasks, marking them done, getting feedback etc. As I have a couple courses that I teach in EAVA, I took note of the course organization and gathered some ideas from it.
 
 For the following students I would strongly recommend starting everything right in the beginning of the course and take the advice of not treating the deadlines of task scores as "homework deadlines". Getting stuff done ahead of time is worth it. Also I would strongly recommend allocating 2 people to the programming side, as looking at our team, this seemed to be the most time-consuming part of the project.
@@ -113,11 +136,24 @@ I have no criticism towards the instructors. When guidance was needed consultati
 I found it hard to attend the practicals, as they were mostly in the evenings and I had to be with my kids at these times. However, the course design was flexible enough that everyone could do stuff on their own timeline.
 
 === Crismar Liukonen
-I worked on the electronics side. During the process I learned quite many things. Specifically, I learned about the workflow of making a PCB (how to make a schematic, make it readable to a reviewer), what to look out for when doing the actual design, how components should be placed etc. Furthermore, I got a good understanding of how firmware development looks like. If asked what I would have done differently then the main thing would be asking more questions up front. I have a strong tendency to figure stuff out on my own, but in some instances it would have been more beneficial to ask things before doing anything, especially during the design of the PCB. It would have saved my/reviewers' time and perhaps provided me more insight into the topic.
+
+I worked on the electronics side. During the process I learned quite many things. Specifically, I learned about the workflow of making a PCB (how to make a schematic, make it readable to a reviewer), what to look out for when doing the actual design, how components should be placed etc. Furthermore, I got a good understanding of how firmware development looks like. 
+
+If asked what I would have done differently then the main thing would be asking more questions up front. I have a strong tendency to figure stuff out on my own, but in some instances it would have been more beneficial to ask things before doing anything, especially during the design of the PCB. It would have saved my/reviewers' time and perhaps provided me more insight into the topic.
 
 Nonetheless, it was a good experience for me. I find that the course design well supported the workflow of building a robot. I liked the system/workflow that was set up to overview points, tasks and reviews. It gave a really good overview of what was going on and what needed to be done to progress further.
 
 If I had to give out suggestions to next year students then the main suggestion would be to complete the tasks as soon as possible, to give some overhead for fine-tuning. No suggestions at this time for the instructors. All of them handled things well in my eyes.
 
 === Duc Man Vo
-I worked on the programming side. I learnt a lot through this course and the final competition. I had the opportunity to apply basic robotics knowledge to build a real robot, including robot kinematics, odometry, and 2D robot control (twist error, PID for pose control, etc.). I also improved my problem-solving skills when working with the robot. The robot's hardware is frequently broken during test competitions, so quickly identifying and resolving issues helps you familiarize yourself with the mobile robots' electronics. If I could join this course a second time, I will only improve 2 things: (1) having a code to allow calibrating colors on the fly, current code I have pick every pixel's color manually one by one, so when it came to the final competition, it took a lot of time to recalibrate with over changing lighting condition, (2) build thrower mechanism with higher throwing angles as this shows more efficient even when the thrower motor is heated. The thing I like most about this course is that I received a lot of support from instructors for every question I had. Also, the code is thoroughly reviewed by instructors to ensure no errors are raised in our competition. Once the code is approved, it should work without errors. I really appreciate their efforts on it. I have nothing to dislike about this course. I have only 1 suggestion for the programming side: we can speed up the review process in the first month to motivate students further, since at first waiting 2 weeks for 1 Merge Request can feel demotivating.
+
+I worked on the programming side. I learnt a lot through this course and the final competition. I had the opportunity to apply basic robotics knowledge to build a real robot, including robot kinematics, odometry, and 2D robot control (twist error, PID for pose control, etc.). I also improved my problem-solving skills when working with the robot. 
+
+The robot's hardware is frequently broken during test competitions, so quickly identifying and resolving issues helps you familiarize yourself with the mobile robots' electronics. If I could join this course a second time, I will only improve 2 things: 
+
+1. Having a code to allow calibrating colors on the fly, current code I have pick every pixel's color manually one by one, so when it came to the final competition, it took a lot of time to recalibrate with over changing lighting condition
+2. Build thrower mechanism with higher throwing angles as this shows more efficient even when the thrower motor is heated
+
+The thing I like most about this course is that I received a lot of support from instructors for every question I had. Also, the code is thoroughly reviewed by instructors to ensure no errors are raised in our competition. Once the code is approved, it should work without errors. I really appreciate their efforts on it. 
+
+I have nothing to dislike about this course. I have only 1 suggestion for the programming side: we can speed up the review process in the first month to motivate students further, since at first waiting 2 weeks for 1 Merge Request can feel demotivating.
