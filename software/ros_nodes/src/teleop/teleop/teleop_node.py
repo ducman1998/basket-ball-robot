@@ -129,8 +129,9 @@ def main() -> None:
             ctrl_vy = make_simple_profile(ctrl_vy, target_vy, LIN_VEL_STEP_SIZE / 2.0)
             ctrl_vx = make_simple_profile(ctrl_vx, target_vx, LIN_VEL_STEP_SIZE / 2.0)
             ctrl_wz = make_simple_profile(ctrl_wz, target_wz, ANG_VEL_STEP_SIZE / 2.0)
+            servo_speed = thrower_percent * 30  # map 0..100% to 0..3000
 
-            print_status(node, ctrl_vy, ctrl_vx, ctrl_wz, thrower_percent)
+            print_status(node, ctrl_vy, ctrl_vx, ctrl_wz, thrower_percent, int(servo_speed))
 
             # Publish (your custom TwistStamped has thrower_percent)
             out = TwistStamped()
@@ -143,7 +144,8 @@ def main() -> None:
             out.twist.angular.x = 0.0
             out.twist.angular.y = 0.0
             out.twist.angular.z = ctrl_wz
-            out.thrower_percent = int(thrower_percent)
+            out.thrower_percent = float(thrower_percent)
+            out.servo_speed = int(servo_speed)
             pub.publish(out)
 
     except (KeyboardInterrupt, EOFError):

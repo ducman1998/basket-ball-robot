@@ -10,13 +10,14 @@
     motor_01: [240.0, 150.0] # [beta, alpha] in degrees
     motor_02: [0.0, 270.0]
     motor_03: [120.0, 30.0]
-    wheel_radius: 0.035  # meters
-    center_to_wheel_dis: 0.1295  # meters  # distance from center to wheel
+    wheel_radius: 0.036  # meters
+    center_to_wheel_dis: 0.135   # meters  # distance from center to wheel
     gear_ratio: 18.75            # wheel to motor ratio
     encoder_resolution: 64       # ticks per motor shaft revolution
     pid_control_freq: 100         # Hz
-    max_rot_speed: 2.0    # rad/s
-    max_xy_speed: 1.0      # m/s # max linear speed in x and y direction
+    max_rot_speed: 10.0    # rad/s
+    max_xy_speed: 3.0      # m/s # max linear speed in x and y direction
+    max_servo_speed: 20000  # max speed command to send to mainboard
     baudrate: 115200
     polarity: 1  # set to -1 if motors spin in reverse
     serial_timeout: 0.05  # seconds
@@ -33,28 +34,21 @@ odometry_node:
 
 image_processor_node:
   ros__parameters:
-    resolution: [1280, 720]      # width, height
-    fps: 30                      # camera fps
+    resolution: [848, 480]      # width, height
+    fps: 60                      # camera fps
     exposure_auto: false
     exposure_time: 100           # in microseconds
     white_balance_auto: false
     enable_depth: True           # enable depth stream
-    publish_viz_image: False
+    publish_viz_image: True
     publish_viz_fps: 1  # Hz
-    publish_viz_resize: 0.4  # factor to resize the viz image before publishing
+    publish_viz_resize: 0.5  # factor to resizSe the viz image before publishing
     log_level: 'info'
 
 game_logic_controller_node:
   ros__parameters:
     referee_ip_address: "192.168.3.220"  # IP address of the referee server
-    referee_port: 8111               # Port of the referee server
+    referee_port: 8111                   # Port of the referee server
+    # referee_port: 8111
     robot_id: "1_9-tdi"
-    search_ball_rot_speed: -1.25  # rad/s
-    throwing_xy_speed: 0.4
-    pid_linear_common: [1.5, 0.001, 0.1]  # [kp, ki, kd] for linear velocity control
-    pid_angular_common: [2.0, 0.001, 0.1]  # [kp, ki, kd] for angular velocity control
-    pid_linear_align_basket: [3.0, 0.000, 0.01]  # [kp, ki, kd] for linear velocity control when aligning to basket
-    pid_angular_align_basket: [2.0, 0.000, 0.01]  # [kp, ki, kd] for angular velocity control when aligning to basket
-    pid_linear_throw_ball: [1.5, 0.0, 0.01]  # [kp, ki, kd] for linear velocity control when throwing ball
-    pid_angular_throw_ball: [1.0, 0.0, 0.01]  # [kp, ki, kd] for angular velocity control when throwing ball
     log_level: 'info'

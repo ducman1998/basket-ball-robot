@@ -27,28 +27,12 @@ def generate_launch_description() -> LaunchDescription:
     nodes = [
         Node(
             package="basket_robot_nodes",
-            executable="start_mainboard_controller",
-            name="mainboard_controller_node",
+            executable="start_calibrate_thrower_speed",
+            name="game_logic_controller_node",
             parameters=[launch_cfg],
             output="screen",
             prefix="/home/robot/miniconda3/envs/picr/bin/python3",  # Use conda Python
-        ),
-        Node(
-            package="basket_robot_nodes",
-            executable="start_odometry",
-            name="odometry_node",
-            parameters=[launch_cfg],
-            output="screen",
-            prefix="/home/robot/miniconda3/envs/picr/bin/python3",  # Use conda Python
-        ),
-        Node(
-            package="basket_robot_nodes",
-            executable="start_image_processor",
-            name="image_processor_node",
-            parameters=launch_cfg,
-            output="screen",
-            prefix="/home/robot/miniconda3/envs/picr/bin/python3",  # Use conda Python
-        ),
+        )
     ]
 
     # Return the LaunchDescription object

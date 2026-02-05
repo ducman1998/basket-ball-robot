@@ -16,6 +16,7 @@ from basket_robot_nodes.utils.ros_utils import (
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
 from shared_interfaces.msg import TwistStamped, WheelPositions
+from std_msgs.msg import Bool
 
 
 class MainboardController(Node):
@@ -46,6 +47,9 @@ class MainboardController(Node):
         self.wheel_pos_pub = self.create_publisher(
             WheelPositions, "wheel_positions", QoSProfile(depth=QOS_DEPTH)
         )
+        self.sensor_status_pub = self.create_publisher(
+            Bool, "sensors/ir_sensor", QoSProfile(depth=QOS_DEPTH)
+        )
         # for checking: log all initialized parameters
         log_initialized_parameters(self)
 
@@ -70,6 +74,7 @@ class MainboardController(Node):
         node.declare_parameter("cmd_fmt", descriptor=str_descriptor)
         node.declare_parameter("fbk_fmt", descriptor=str_descriptor)
         node.declare_parameter("delimiter", descriptor=int_descriptor)
+        node.declare_parameter("max_servo_speed", descriptor=int_descriptor)
         node.declare_parameter("log_level", descriptor=str_descriptor)
 
     @staticmethod
@@ -93,6 +98,7 @@ class MainboardController(Node):
         cmd_fmt = node.get_parameter("cmd_fmt").get_parameter_value().string_value
         fbk_fmt = node.get_parameter("fbk_fmt").get_parameter_value().string_value
         delimieter = node.get_parameter("delimiter").get_parameter_value().integer_value
+        max_rot_speed = node.get_parameter("max_servo_speed").get_parameter_value().integer_value
         log_level = node.get_parameter("log_level").get_parameter_value().string_value
 
         # read and set logging level
@@ -110,6 +116,7 @@ class MainboardController(Node):
             pid_control_freq=pid_freq,
             max_rot_speed=max_rot_speed,
             max_xy_speed=max_xy_speed,
+            max_servo_speed=max_rot_speed,
             hwid=hwid,
             cmd_fmt=cmd_fmt,
             fbk_fmt=fbk_fmt,
@@ -135,16 +142,19 @@ class MainboardController(Node):
         vx: float = msg.twist.linear.x
         vy: float = msg.twist.linear.y
         wz: float = msg.twist.angular.z
-        tp = msg.thrower_percent
-        thrower_percent = int(max(0, min(100, tp)))  # clip to [0, 100]
+        tp: float = msg.thrower_percent
+        servo_speed: int = msg.servo_speed
+        thrower_percent = max(0, min(100, tp))  # clip to [0, 100]
         self.get_logger().info(
-            f"vx: {vx:.2f}, vy: {vy:.2f}, wz: {wz:.2f}, tp: {thrower_percent:.2f}"
+            f"vx: {vx:.2f}, vy: {vy:.2f}, wz: {wz:.2f}, "
+            + f"tp: {thrower_percent:.2f}, servo_speed: {servo_speed}"
         )
         feedback: Optional[FeedbackSerial] = self.controller_kin.move(
             x_speed=vx,
             y_speed=vy,
             rot_speed=wz,
             thrower_speed_percent=thrower_percent,
+            servo1=servo_speed,
             read_feedback=True,
         )
 
@@ -153,7 +163,7 @@ class MainboardController(Node):
         else:
             # log feedback for debugging
             self.get_logger().info(
-                f"Feedback: pos1: {feedback.pos1}, pos2: {feedback.pos2}, pos3: {feedback.pos3}"
+                f"Feedback: pos1: {feedback.pos1}, pos2: {feedback.pos2}, pos3: {feedback.pos3}, sensors: {feedback.sensors}"
             )
             # Publish wheel positions for odometry
             wheel_msg = WheelPositions()
@@ -161,6 +171,10 @@ class MainboardController(Node):
             wheel_msg.pos2 = feedback.pos2
             wheel_msg.pos3 = feedback.pos3
             self.wheel_pos_pub.publish(wheel_msg)
+
+            sensor_status_msg = Bool()
+            sensor_status_msg.data = feedback.sensors > 0
+            self.sensor_status_pub.publish(sensor_status_msg)
 
         return
 

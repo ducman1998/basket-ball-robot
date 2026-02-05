@@ -9,7 +9,7 @@ import pyrealsense2 as rs
 import rclpy
 from ament_index_python.packages import get_package_share_directory
 from basket_robot_nodes.utils.custom_exceptions import FileNotFoundError, CameraNoInitializedError
-from basket_robot_nodes.utils.constants import QOS_DEPTH
+from basket_robot_nodes.utils.constants import QOS_DEPTH, REALSENSE_QUEUE_SIZE
 from basket_robot_nodes.utils.image_info import ImageInfo
 from basket_robot_nodes.utils.image_processing import ImageProcessing
 from basket_robot_nodes.utils.ros_utils import (
@@ -21,7 +21,6 @@ from basket_robot_nodes.utils.ros_utils import (
     parse_log_level,
     str_descriptor,
 )
-from cv_bridge import CvBridge
 from numpy.typing import NDArray
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
@@ -64,6 +63,12 @@ class ImageProcessor(Node):
         self.last_pub_viz_time = self.timestamp
         # internal queue to monitor fps
         self.fps_queue: List[float] = []
+        # simple periodic FPS reporter (do not combine with _monitor_fps)
+        # period in seconds for reporting FPS (choose 0.5, 1.0, 2.0 ...)
+        self._fps_report_period: float = 1.0
+        self._fps_count: int = 0
+        self._fps_last_time: float = self.get_clock().now().nanoseconds * 1e-9
+        self._last_reported_fps: float = 0.0
 
         _robot_mask = cv2.imread(
             os.path.join(self.shared_dir, "images/robot_base_mask.png"), cv2.IMREAD_GRAYSCALE
@@ -85,7 +90,6 @@ class ImageProcessor(Node):
             depth_scale=self._get_depth_scale(),
             ball_morth_kernel_size=3,
         )
-        self.bridge = CvBridge()
 
     def process_frame(self) -> None:
         """Capture and process a single frame from the camera."""
@@ -95,26 +99,26 @@ class ImageProcessor(Node):
         ) >= 1.0 / float(self.pub_viz_fps)
 
         t1 = time()
-        frames = self.pipeline.wait_for_frames()
-        if self.enable_depth:
-            aligned_frames = self.align.process(frames)
-            color_frame_bgr = aligned_frames.get_color_frame()  # HxW in bgr8 format
-            depth_frame = frames.get_depth_frame()  # HxW (16 bits)
-        else:
-            color_frame_bgr = frames.get_color_frame()  # in bgr8 format
-            depth_frame = None
+        # Use timeout to allow frame buffering by RealSense (non-blocking with 1ms timeout)
+        frames = self.pipeline.wait_for_frames(timeout_ms=1000)
 
-        if not color_frame_bgr or (self.enable_depth and depth_frame is None):
+        # Get color and depth frames without alignment
+        color_frame_rgb = frames.get_color_frame()  # in bgr8 format
+        depth_frame = None
+        if self.enable_depth:
+            depth_frame = frames.get_depth_frame()  # HxW (16 bits) - raw, unaligned
+
+        if not color_frame_rgb or (self.enable_depth and depth_frame is None):
             self.get_logger().error("No color or depth frame available.")
             return None
 
-        color_frame_rgb = cv2.cvtColor(np.asanyarray(color_frame_bgr.get_data()), cv2.COLOR_BGR2RGB)
+        color_frame_rgb = np.asanyarray(color_frame_rgb.get_data())
         depth_frame_f32 = None
         if depth_frame is not None:
             depth_frame_f32 = np.asanyarray(depth_frame.get_data()).astype(np.float32)
 
         t2 = time()
-        detected_balls, detected_basket, viz_image = self.image_processor.process(
+        detected_balls, detected_basket, detected_markers, viz_image = self.image_processor.process(
             im_rgb=color_frame_rgb, depth=depth_frame_f32, visualize=is_visualized
         )
 
@@ -135,30 +139,39 @@ class ImageProcessor(Node):
 
         # publish detected ball info
         img_info = ImageInfo(
-            image_size=self.resolution, balls=detected_balls, basket=detected_basket
+            image_size=self.resolution,
+            balls=detected_balls,
+            markers=detected_markers,
+            basket=detected_basket,
         )
         info_msg = String()
         info_msg.data = img_info.to_json()
         self.processed_info_pub.publish(info_msg)
 
         t4 = time()
-        if is_visualized:
-            self.get_logger().info(
-                f"Timings (s): read={t2-t1:.3f}, detect={t3-t2:.3f}, "
-                + f"pub_info={t4-t3:.3f}, detected={len(detected_balls)} balls"
-            )
-
-        elapsed_time = self.get_clock().now().nanoseconds * 1e-9 - self.timestamp
-        avg_fps = self._monitor_fps(elapsed_time)
-        if elapsed_time >= 1.0 / float(self.fps):
-            self.get_logger().warn(
-                f"Processing is too slow! FPS={1.0/elapsed_time:.2f} < {self.fps}"
-                + f" (avg over last {len(self.fps_queue)} frames: {avg_fps:.2f})"
-            )
         if is_visualized and viz_image is not None:
             return self.publish_viz_async(viz_image)
-        else:
-            return None
+        t5 = time()
+
+        if is_visualized:
+            self.get_logger().info(
+                f"Timings (s): read={t2-t1}, detect={t3-t2:.3f}, "
+                + f"pub_info={t4-t3:.3f}, detected={len(detected_balls)} balls, viz_pub={t5-t4:.3f}"
+            )
+
+        # simple periodic FPS counting: increment and check period
+        self._fps_count += 1
+        now = self.get_clock().now().nanoseconds * 1e-9
+        if now - self._fps_last_time >= float(self._fps_report_period):
+            span = now - self._fps_last_time
+            fps = float(self._fps_count) / max(span, 1e-6)
+            self._last_reported_fps = fps
+            self.get_logger().info(f"Measured FPS (last {self._fps_report_period}s): {fps:.2f}")
+            # reset counters
+            self._fps_count = 0
+            self._fps_last_time = now
+
+        return None
 
     def _declare_node_parameters(self) -> None:
         """Declare parameters with descriptors."""
@@ -227,17 +240,39 @@ class ImageProcessor(Node):
         cfg = rs.config()
         # Enable color and depth streams
         cfg.enable_stream(
-            rs.stream.color, self.resolution[0], self.resolution[1], rs.format.bgr8, self.fps
+            rs.stream.color, self.resolution[0], self.resolution[1], rs.format.rgb8, self.fps
         )
         if self.enable_depth:
             cfg.enable_stream(
                 rs.stream.depth, self.resolution[0], self.resolution[1], rs.format.z16, self.fps
             )
-            self.align = rs.align(rs.stream.color)
         try:
             self.get_logger().info("Starting RealSense pipeline...")
             self.profile = self.pipeline.start(cfg)
-            color_sensor = self.profile.get_device().first_color_sensor()
+
+            # Enable frame queue buffering on the device
+            device = self.profile.get_device()
+            depth_sensor = device.first_depth_sensor() if self.enable_depth else None
+            color_sensor = device.first_color_sensor()
+
+            # Set frame queue size to allow buffering (internal RealSense feature)
+            if depth_sensor:
+                try:
+                    # Some RealSense cameras support frame queue control
+                    depth_sensor.set_option(rs.option.frames_queue_size, REALSENSE_QUEUE_SIZE)
+                except RuntimeError:
+                    self.get_logger().warn(
+                        "Depth sensor does not support setting frames_queue_size option."
+                    )
+
+            try:
+                color_sensor.set_option(rs.option.frames_queue_size, REALSENSE_QUEUE_SIZE)
+            except RuntimeError:
+                self.get_logger().warn(
+                    "Color sensor does not support setting frames_queue_size option."
+                )
+
+            self.get_logger().info("Frame queue buffering enabled.")
             # set exposure time if auto-exposure is off
             if self.exposure_auto:
                 color_sensor.set_option(rs.option.enable_auto_exposure, 1)  # turn on auto-exposure
@@ -278,7 +313,7 @@ class ImageProcessor(Node):
     def _monitor_fps(self, elapsed_time: float) -> float:
         """Monitor and log the average FPS over the last 10 frames."""
         self.fps_queue.append(1.0 / elapsed_time)
-        if len(self.fps_queue) >= 10:
+        if len(self.fps_queue) >= 30:
             self.fps_queue.pop(0)
         avg_fps = sum(self.fps_queue) / len(self.fps_queue)
         return avg_fps
@@ -287,8 +322,15 @@ class ImageProcessor(Node):
         self.last_pub_viz_time = self.timestamp
 
         def worker() -> None:
-            viz_msg = self.bridge.cv2_to_imgmsg(viz_image, encoding="rgb8")
+            viz_msg = Image()
             viz_msg.header.stamp = self.get_clock().now().to_msg()
+            viz_msg.header.frame_id = "camera"
+            viz_msg.height = viz_image.shape[0]
+            viz_msg.width = viz_image.shape[1]
+            viz_msg.encoding = "rgb8"
+            viz_msg.is_bigendian = False
+            viz_msg.step = viz_image.shape[1] * 3  # 3 bytes per pixel (RGB)
+            viz_msg.data = viz_image.tobytes()
             self.viz_im_pub.publish(viz_msg)
 
         threading.Thread(target=worker, daemon=True).start()

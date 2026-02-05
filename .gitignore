@@ -3,6 +3,8 @@ __pycache__
 .mypy_cache
 *.egg-info/
 .ruff_cache/
+cython/
+notebooks
 build/
 install/
 log 
