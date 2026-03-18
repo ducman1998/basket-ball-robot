@@ -12,6 +12,27 @@ Notably, our robot demonstrated the best motion performance in the competition, 
 [.text-center]
 image::images/robot.webp[Our robot,align="center"]
 
+== Competition Context
+The Delta-X Challenge is a multi-competition robotics event held in a single day.
+We competed in the Basketball Track, organized for University of Tartu students enrolled in the course `Project in Competitive Robotics` (6 credits).
+
+During the course, teams of 3-4 students worked across three core engineering domains:
+
+- Programming: robot control, image processing, and software systems.
+- Mechanics: robot design, fabrication, and assembly.
+- Electronics: mainboard design, implementation, and firmware development.
+
+Our robot software had to communicate reliably with the custom mainboard to enable real-time control during matches.
+Throughout the semester, we participated in several graded competitions and continuously improved by iterating and learning from other teams.
+
+On Delta-X competition day, 10 teams competed for the top 3 prizes.
+The venue introduced an additional challenge: mixed sunlight and artificial lighting, which significantly affected color-based object detection.
+We had to repeatedly recalibrate vision parameters between matches.
+
+The competition required rapid debugging, on-the-spot code changes, and real-time problem solving under pressure.
+This experience strengthened our skills in robot vision adaptation, system integration, and teamwork in high-stress technical environments.
+Winning Third Prize in such a dynamic and competitive setting was one of the most challenging and memorable robotics experiences of our academic journey.
+
 == Team
 - Oskar Saarepera: mechanical design and construction
 - Crismar Liukonen: electronics design and firmware development
