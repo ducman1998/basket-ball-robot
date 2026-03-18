@@ -68,24 +68,6 @@ What could be improved:
 === CAD Design Link
 - Fusion design link: https://a360.co/4pLvKI6
 
-=== Interactive Fusion Viewer
-The embedded viewer below allows quick interaction with the CAD model directly from this document.
-If your AsciiDoc renderer blocks embedded web content, open the direct Fusion link above.
-
-++++
-<iframe
-  src="https://gmail1315991.autodesk360.com/shares/public/SH28cd1QT2badd0ea72bee33155ba9d54c82?mode=embed"
-  width="100%"
-  height="680"
-  style="border:1px solid #d9d9d9; border-radius:6px;"
-  frameborder="0"
-  referrerpolicy="strict-origin-when-cross-origin"
-  allow="fullscreen; xr-spatial-tracking"
-  loading="lazy"
-  allowfullscreen>
-</iframe>
-++++
-
 === Design Approach
 The mechanical layout started from primary constraints (wheels, motors, camera), then the remaining components were integrated around those fixed elements.
 Large wheel diameter enabled higher robot speed.
