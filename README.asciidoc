@@ -177,7 +177,7 @@ We would like to sincerely thank the instructors for their tremendous support th
 
 Special thanks to:
 
-- Reiko Randoja (in charge of this course at the University of Tartu).
+- Reiko Randoja (In charge - University of Tartu).
 - Allan Kustavus.
 - Martin Maidla.
 - Robert Valge.
