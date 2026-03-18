@@ -1,0 +1,101 @@
+(footprint "SRP4021HMCT-1R5M_custom"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "Inductor, Bourns, SRP6060FA, 6.4x6.6x5.8mm, (https://www.bourns.com/docs/Product-Datasheets/SRP6060FA.pdf), generated with kicad-footprint-generator gen_inductor.py")
+	(tags "power shielded")
+	(property "Reference" "REF**"
+		(at 0 -4.25 0)
+		(layer "F.SilkS")
+		(hide yes)
+		(uuid "97646615-9436-4f4c-a40a-cda0d463ce45")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "1.5u"
+		(at 0 4.25 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "dbc3d144-6f9e-4b09-932a-e145afe56410")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" "~"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "653ab7ef-0a5d-449e-8edf-2201457a3d0e")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "Inductor"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "75707358-b213-4091-8686-0db991657f4e")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_line
+		(start 3.5 -2.1)
+		(end -0.6 -2.1)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "9c10ca28-076c-4c2b-a2f4-36cb077cfaca")
+	)
+	(fp_line
+		(start 3.5 2.1)
+		(end -0.6 2.1)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "48bb0738-5280-4f4a-bbbb-31cefaad70fb")
+	)
+	(pad "1" smd rect
+		(at -0.4 0)
+		(size 1.5 3.5)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "fc2fc560-33bd-4654-90fd-e2233652bf23")
+	)
+	(pad "2" smd rect
+		(at 3.3 0)
+		(size 1.5 3.5)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "a4fe0c14-8f5a-4c90-90b8-4bfcda5424d0")
+	)
+	(embedded_fonts no)
+	(model "${KICAD9_3DMODEL_DIR}/Inductor_SMD.3dshapes/L_Bourns_SRP6060FA.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

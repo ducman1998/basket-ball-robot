@@ -1,0 +1,373 @@
+(footprint "TE_Micro-MaTch_215079-4_2x02_P1.27mm_Vertical"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "TE-Connectivity Micro-MaTch female-on-board top-entry thru-hole 4 pin connector, https://www.te.com/commerce/DocumentDelivery/DDEController?Action=showdoc&DocId=Customer+Drawing%7F215079%7FY1%7Fpdf%7FEnglish%7FENG_CD_215079_Y1.pdf%7F215079-4")
+	(tags "connector TE-Connectivity Micro-MaTch Vertical 215079-4 7-215079-4")
+	(property "Reference" "REF**"
+		(at 5.55 1.75 90)
+		(layer "F.SilkS")
+		(hide yes)
+		(uuid "7f7c0bd6-ba66-4c6d-82f3-957aedeb3b58")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "215079-4"
+		(at 1.27 6.66 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "238e65da-1efb-4aaa-9410-89b7ca3b58f1")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" "https://atta.szlcsc.com/upload/public/pdf/source/20181106/C306160_C0F6687678D8320B9FEA0BB065D7ACFE.pdf"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "57b31177-73f6-4c64-90fc-3d12974ba6a3")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "Pins Structure:2x2P Pitch:2.54mm Mounting Style:Direct Insert Reference Series:- Number of Pins:4P Number of Rows:2 Number of PINs Per Row:2 Row Spacing:2.54mm Contact Material:Phosphor Bronze Contact Plating:Tin Operating Temperature Range:-40°C~+105°C Ope"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "83eb9a3d-e965-4f67-a3d3-aa4ccf0f8a6d")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Manufacturer Part" "215079-4"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "70a64586-3bd7-45fe-a4f6-008e15800e26")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Manufacturer" "TE Connectivity(泰科电子)"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "5d9119e4-3d42-40d4-b78b-1d14930d471e")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Supplier Part" "C306232"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "2844a0f6-b307-4826-a890-5861c4f0426d")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Supplier" "LCSC"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "ec959868-be29-46d9-b205-a80bc0d67cc1")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "LCSC Part Name" "215079-4"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "b292807e-b834-4917-853c-b25be750b783")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr through_hole)
+	(fp_line
+		(start -1.83 -2.15)
+		(end -1.83 5.96)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "b6171b63-ff8a-4000-be37-2cde51b04a42")
+	)
+	(fp_line
+		(start -1.83 5.96)
+		(end 4.37 5.96)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "937d9432-1be7-481e-b436-53987d4c9364")
+	)
+	(fp_line
+		(start 4.37 -2.15)
+		(end -1.83 -2.15)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "88ae8f4b-4e82-4695-a9a3-77577f94a02b")
+	)
+	(fp_line
+		(start 4.37 5.96)
+		(end 4.37 -2.15)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "d7858e90-ee24-4c55-9cdc-b3650f57193b")
+	)
+	(fp_line
+		(start -1.33 -1.645)
+		(end -1.33 1.905)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "15c80b23-3665-4c25-b407-3555db80fac2")
+	)
+	(fp_line
+		(start -1.33 5.455)
+		(end -1.33 1.905)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "1de8d2ed-f9a3-49cd-89d9-907c6fec38a9")
+	)
+	(fp_line
+		(start 0 -1.645)
+		(end -1.33 -1.645)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "5491b1f8-8110-4ea3-8418-167beed22348")
+	)
+	(fp_line
+		(start 0 -0.745)
+		(end 0 -1.645)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "a7308bd6-fcd4-417a-bb5e-63f8509f1e6c")
+	)
+	(fp_line
+		(start 0 4.555)
+		(end 0 5.455)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "42fa4bef-ca42-434d-af47-e510f32f8555")
+	)
+	(fp_line
+		(start 0 5.455)
+		(end -1.33 5.455)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "5baffaaa-25f5-48e1-a9a4-1adbbe9f1701")
+	)
+	(fp_line
+		(start 1.27 -0.745)
+		(end 0 -0.745)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "192cf43b-c722-4092-ba9b-955c695c1a89")
+	)
+	(fp_line
+		(start 1.27 -0.745)
+		(end 2.54 -0.745)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "630e74b0-e088-42ad-97b0-0dc2b20ca825")
+	)
+	(fp_line
+		(start 1.27 4.555)
+		(end 0 4.555)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "15849bfc-00dd-4b2a-a3b9-6a4aa138de0c")
+	)
+	(fp_line
+		(start 1.27 4.555)
+		(end 2.54 4.555)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "830759ff-1932-41c3-ad13-e541515d30d3")
+	)
+	(fp_line
+		(start 2.54 -1.645)
+		(end 3.87 -1.645)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "04b1cec2-55b5-4e4e-a376-ea00aa8c139e")
+	)
+	(fp_line
+		(start 2.54 -0.745)
+		(end 2.54 -1.645)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "570ab5ca-7f57-4a21-b310-307dd8d02822")
+	)
+	(fp_line
+		(start 2.54 4.555)
+		(end 2.54 5.455)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "6e8bf968-0ac0-4d98-9e94-7815ab394730")
+	)
+	(fp_line
+		(start 2.54 5.455)
+		(end 3.87 5.455)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "4c56dc3b-f4e6-41a3-a7fb-fbd0406590a7")
+	)
+	(fp_line
+		(start 3.87 -1.645)
+		(end 3.87 1.905)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "e8ac89c5-737d-4d93-b36c-34265884edf4")
+	)
+	(fp_line
+		(start 3.87 5.455)
+		(end 3.87 1.905)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "a11d4d07-6ae5-48c2-b311-b701063747de")
+	)
+	(pad "" np_thru_hole circle
+		(at 1.8 -1.4)
+		(size 1.5 1.5)
+		(drill 1.5)
+		(layers "*.Cu" "*.Mask")
+		(uuid "99e10914-34a0-47a0-af62-b85c157382e1")
+	)
+	(pad "1" thru_hole rect
+		(at 0 0)
+		(size 1.3 1.3)
+		(drill 0.8)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "8fa2072a-49a0-45ae-a817-574b1e9b9cf5")
+	)
+	(pad "2" thru_hole circle
+		(at 2.54 1.27)
+		(size 1.3 1.3)
+		(drill 0.8)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "f5e0eb24-d0c6-45de-b708-1b259de4837b")
+	)
+	(pad "3" thru_hole circle
+		(at 0 2.54)
+		(size 1.3 1.3)
+		(drill 0.8)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "a72815c1-aae6-4113-991d-a56c90a822b1")
+	)
+	(pad "4" thru_hole circle
+		(at 2.54 3.81)
+		(size 1.3 1.3)
+		(drill 0.8)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "69601f95-37ce-43fe-a198-68b0ae3f9226")
+	)
+	(embedded_fonts no)
+	(model "${KICAD9_3DMODEL_DIR}/Connector_TE-Connectivity.3dshapes/TE_Micro-MaTch_215079-4_2x02_P1.27mm_Vertical.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)
