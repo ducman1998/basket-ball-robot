@@ -173,11 +173,11 @@ The thing I like most about this course is that I received a lot of support from
 I have nothing to dislike about this course. One suggestion for the programming side is to speed up the review process in the first month to keep students motivated, because waiting two weeks for one merge request can be demotivating.
 
 == Acknowledgments
-We would like to sincerely thank the instructors for their tremendous support throughout the course and competition.
+We would like to sincerely thank the instructors at University of Tartu for their tremendous support throughout the course and competition.
 
 Special thanks to:
 
-- Reiko Randoja (In charge - University of Tartu).
+- Reiko Randoja (In charge).
 - Allan Kustavus.
 - Martin Maidla.
 - Robert Valge.
