@@ -3,9 +3,11 @@
 :sectnums:
 
 == Project Overview
-This repository contains the source code and electronic schematics developed for the DeltaX Competition (Basketball Track) at the University of Tartu, including mechanics, electronics, firmware, and ROS2 software.
-Our team won 🥉 3rd prize out of 10 teams.
-In terms of motion performance, our robot was one of the fastest in the competition and reached the practical platform limits: up to `2.5 m/s` linear speed and about `8 rad/s` turning speed.
+This repository contains the full system developed for the DeltaX Competition (Basketball Track) at the University of Tartu, including mechanics, electronics, firmware, and ROS2 software.
+
+Our team achieved 🥉 3rd place out of 10 teams.
+
+Notably, our robot demonstrated the best motion performance in the competition, significantly outperforming others and pushing the platform to its limits, reaching up to `2.5 m/s` linear speed and ~`8 rad/s` angular velocity.
 
 [.text-center]
 image::images/robot.webp[Our robot,align="center"]
