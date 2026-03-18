@@ -9,8 +9,11 @@ Our team achieved 🥉 3rd place out of 10 teams.
 
 Notably, our robot demonstrated the best motion performance in the competition, significantly outperforming others and pushing the platform to its limits, reaching up to `2.5 m/s` linear speed and ~`8 rad/s` angular velocity.
 
-[.text-center]
-image::images/robot.webp[Our robot,align="center"]
+[cols="2*", frame=none, grid=none]
+|===
+a| image::images/robot.webp[Our robot,width=480,align="center"]
+a| image::images/fusion_design.png[Fusion design,width=480,align="center"]
+|===
 
 == Competition Context
 The Delta-X Challenge is a multi-competition robotics event held in a single day.
@@ -32,6 +35,14 @@ We had to repeatedly recalibrate vision parameters between matches.
 The competition required rapid debugging, on-the-spot code changes, and real-time problem solving under pressure.
 This experience strengthened our skills in robot vision adaptation, system integration, and teamwork in high-stress technical environments.
 Winning Third Prize in such a dynamic and competitive setting was one of the most challenging and memorable robotics experiences of our academic journey.
+
+[cols="4*", frame=none, grid=none]
+|===
+a| image::images/IMG_8357.jpg[Competition Photo 1,240,align="center"]
+a| image::images/IMG_8924.jpg[Competition Photo 2,240,align="center"]
+a| image::images/IMG_9039.jpg[Competition Photo 3,240,align="center"]
+a| image::images/IMG_9090.jpg[Competition Photo 4,240,align="center"]
+|===
 
 == Team
 - Oskar Saarepera: mechanical design and construction
@@ -73,8 +84,8 @@ The replacement improved consistency but did not fully solve shot repeatability;
 
 [cols="2*", frame=none, grid=none]
 |===
-a| image::images/mainboard_1_side.webp[Electronics Photo 1,450,align="center"]
-a| image::images/mainboard_2_side.webp[Electronics Photo 2,450,align="center"]
+a| image::images/mainboard_1_side.webp[Electronics Photo 1,360,align="center"]
+a| image::images/mainboard_2_side.webp[Electronics Photo 2,360,align="center"]
 |===
 
 What worked well:
