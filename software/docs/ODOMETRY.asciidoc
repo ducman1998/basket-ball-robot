@@ -1,5 +1,5 @@
 = Odometry documentation
-John <ducman@ut.ee>
+John <ducman1998@gmail.com>
 :toc:
 :sectnums:
 

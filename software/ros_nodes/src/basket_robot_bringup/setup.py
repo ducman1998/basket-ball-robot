@@ -21,7 +21,7 @@ setup(
     install_requires=["setuptools"],
     zip_safe=True,
     maintainer="Duc-Man Vo",
-    maintainer_email="ducman@ut.ee",
+    maintainer_email="ducman1998@gmail.com",
     description="Bringup package for the Basket Robot",
     license="Apache-2.0",
     tests_require=["pytest"],

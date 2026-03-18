@@ -1,0 +1,96 @@
+= Image Processor Node
+John <ducman1998@gmail.com>
+:toc:
+:sectnums:
+
+== Overview
+`image_processor_node` captures RealSense frames, detects balls/basket/markers, and publishes:
+
+- structured perception output on `/image/info` (JSON in `std_msgs/String`)
+- visualization image on `/image/visualized` (`sensor_msgs/Image`, `rgb8`)
+
+Main loop (`process_frame`) runs at `60 fps` with image resolution 848x480 for both depth & RGB images (note that these parameters are changeable, see section #5) and calls:
+
+[source,python]
+----
+detected_balls, detected_basket, detected_markers, viz_image = self.image_processor.process(
+    im_rgb=color_frame_rgb,
+    depth=depth_frame_f32,
+    visualize=is_visualized,
+)
+----
+
+== Segmentation and Processing Pipeline
+=== Color Segmentation (optimized)
+The RGB image is converted to HSV and segmented into semantic classes (court, green, blue, magenta, white, black).
+The segmentation path uses `segment_image(..., use_numba=True)`, and robot-body pixels are removed by `robot_base_mask` to reduce false detections.
+
+=== Ball and Basket Extraction
+Green-ball and basket candidates are extracted from segmented masks using morphology + connected-components (`cv2.connectedComponentsWithStats`).
+For balls, filtering combines area/shape checks and geometric validation, then computes `position_2d` in robot base frame (mm).
+
+=== Marker-based Geometric Refinement
+ArUco markers are detected (`cv2.aruco`) and converted to robot-frame marker poses.
+When valid markers are available, basket position is refined from marker geometry and calibrated offsets, improving basket `position_2d` stability.
+
+=== Performance Notes (highly optimized)
+- Numba JIT + parallel loops are used for expensive per-ball inside/outside checks (`@njit(parallel=True)`).
+- Connected-components and compact morphological kernels keep per-frame operations efficient.
+- Visualization publishing is optional and rate-limited, with async publish to avoid blocking the main detection loop.
+
+== ROS Interface
+=== Publications
+- `/image/info` (`std_msgs/String`): serialized `ImageInfo` JSON.
+- `/image/visualized` (`sensor_msgs/Image`): debug overlay image, published at `publish_viz_fps` when enabled.
+
+== Output Data Contract (`/image/info`)
+The node publishes `ImageInfo.to_json()` with fields:
+
+- `image_size`: `[width, height]` in pixels.
+- `balls[]`: each ball has `center`, `radius`, `area`, `position_2d`, `inside`.
+- `basket`: optional object with `color`, `center`, `position_2d`, `area`.
+- `markers[]`: each marker has `id`, `position_2d`, `theta`.
+
+Frame and unit convention:
+- `position_2d` for balls, basket, and markers is in robot `base_footprint` frame, unit `mm`.
+
+Short example:
+
+[source,json]
+----
+{
+  "image_size": [848, 480],
+  "balls": [
+    {
+      "center": [420, 300],
+      "radius": 13.2,
+      "area": 530.0,
+      "position_2d": [120.0, 860.0],
+      "inside": true
+    }
+  ],
+  "markers": [
+    {"id": 11, "position_2d": [2300.0, 2100.0], "theta": -8.5}
+  ],
+  "basket": {
+    "color": "magenta",
+    "center": [520, 170],
+    "position_2d": [2400.0, 2000.0],
+    "area": 2400
+  }
+}
+----
+
+== Key Parameters
+Configured in `software/ros_nodes/src/basket_robot_bringup/params/setting.yaml` under `image_processor_node`:
+
+- `resolution`: `[W, H]` (default in repo: `[848, 480]`).
+- `fps`: processing rate (default: `60`).
+- `enable_depth`: enable depth stream.
+- `exposure_auto`, `exposure_time`, `white_balance_auto`: camera controls.
+- `publish_viz_image`, `publish_viz_fps`, `publish_viz_resize`: visualization controls.
+- `log_level`: node log level.
+
+Validation in node:
+- `publish_viz_resize` must be in `(0.0, 1.0]`.
+- `publish_viz_fps` must satisfy `0 < publish_viz_fps <= fps`.
