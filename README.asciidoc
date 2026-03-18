@@ -171,3 +171,14 @@ The robot's hardware is frequently broken during test competitions, so quickly i
 The thing I like most about this course is that I received a lot of support from instructors for every question I had. Also, the code was thoroughly reviewed by instructors to ensure no errors were raised in competition. Once the code was approved, it generally worked without runtime issues.
 
 I have nothing to dislike about this course. One suggestion for the programming side is to speed up the review process in the first month to keep students motivated, because waiting two weeks for one merge request can be demotivating.
+
+== Acknowledgments
+We would like to sincerely thank the instructors for their tremendous support throughout the course and competition.
+
+Special thanks to:
+
+- Reiko Randoja (in charge of this course at the University of Tartu).
+- Allan Kustavus.
+- Martin Maidla.
+- Robert Valge.
+- And all other instructors and supporters who helped us during the project.
