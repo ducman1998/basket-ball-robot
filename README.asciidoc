@@ -74,11 +74,14 @@ If your AsciiDoc renderer blocks embedded web content, open the direct Fusion li
 
 ++++
 <iframe
-  src="https://a360.co/4pLvKI6"
+  src="https://gmail1315991.autodesk360.com/shares/public/SH28cd1QT2badd0ea72bee33155ba9d54c82?mode=embed"
   width="100%"
   height="680"
   style="border:1px solid #d9d9d9; border-radius:6px;"
   frameborder="0"
+  referrerpolicy="strict-origin-when-cross-origin"
+  allow="fullscreen; xr-spatial-tracking"
+  loading="lazy"
   allowfullscreen>
 </iframe>
 ++++
