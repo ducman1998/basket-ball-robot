@@ -8,7 +8,9 @@ This repository contains the full system developed for the DeltaX Competition (B
 Our team achieved 🥉 3rd place out of 10 teams.
 
 Notably, our robot demonstrated the best motion performance in the competition, significantly outperforming others and pushing the platform to its limits, reaching up to `2.5 m/s` linear speed and ~`8 rad/s` angular velocity.
+
 [Watch the final game](https://youtu.be/52izr6OpVpA?t=19099)
+
 [cols="2*", frame=none, grid=none]
 |===
 a| image::images/robot.webp[Our robot,width=480,align="center"]
